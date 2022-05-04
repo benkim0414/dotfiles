@@ -57,8 +57,3 @@ nnoremap <Leader>w :w!<CR>
 " Quit without writing.  
 nnoremap <silent> <Leader>q :q!<CR>
 
-" QuickFix shortcuts.
-map <C-j> :cnext<CR>
-map <C-k> :cprevious<CR>
-nnoremap <Leader>cc :cclose<CR>
-
