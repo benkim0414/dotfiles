@@ -33,6 +33,19 @@ set autoindent
 " Write the content of the file automatically.
 set autowrite
 
+" When there is a previous search pattern, highlight all its matches.
+set hlsearch
+" While typing a search command, show where the pattern, as it was typed so far,
+" matches.
+set incsearch
+" If the 'ignorecase' option is on, the case of normal letters is ignored.
+" 'smartcase' can be set to ignore case when the pattern contains lowercase
+" letters only.
+set ignorecase
+" Override the 'ignorecase' option if the search pattern contains upper
+" case characters.
+set smartcase
+
 " Set the "mapleader" variable to comma.
 let mapleader = ","
 
