@@ -57,3 +57,9 @@ nnoremap <Leader>w :w!<CR>
 " Quit without writing.  
 nnoremap <silent> <Leader>q :q!<CR>
 
+" fzf
+" Add fzf directory to &runtimepath.
+set rtp+=/usr/local/opt/fzf
+" Add fzf.vim package.
+packadd! fzf.vim
+
