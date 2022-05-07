@@ -6,6 +6,12 @@ alias config='/usr/local/bin/git --git-dir=$HOME/.cfg/ --work-tree=$HOME'
 export ZPLUG_HOME=/usr/local/opt/zplug
 source $ZPLUG_HOME/init.zsh
 
+zplug 'zsh-users/zsh-syntax-highlighting', defer:2
+zplug 'zsh-users/zsh-completions', defer:2
+zplug 'zsh-users/zsh-autosuggestions', defer:2
+
+zplug load
+
 # fzf
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
