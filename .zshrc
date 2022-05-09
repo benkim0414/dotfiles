@@ -12,6 +12,12 @@ zplug 'zsh-users/zsh-autosuggestions', defer:2
 
 zplug load
 
+fpath=(~/.zsh $fpath)
+autoload -U compinit
+compinit
+
+zstyle ':completion:*:*:git:*' script ~/.git-completion.bash
+
 # fzf
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
