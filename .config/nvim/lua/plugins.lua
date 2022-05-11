@@ -21,6 +21,16 @@ vim.cmd([[
 return require('packer').startup(function()
   use "wbthomason/packer.nvim"
 
+  use "tpope/vim-commentary"
+  use "tpope/vim-repeat"
+  use "tpope/vim-surround"
+  use "tpope/vim-unimpaired"
+
+  use "kana/vim-textobj-user"
+  use "kana/vim-textobj-line"
+  use "kana/vim-textobj-indent"
+  use "kana/vim-textobj-entire"
+
   if packer_bootstrap then
     require('packer').sync()
   end

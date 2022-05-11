@@ -73,6 +73,46 @@ _G.packer_plugins = {
     loaded = true,
     path = "/Users/ben/.local/share/nvim/site/pack/packer/start/packer.nvim",
     url = "https://github.com/wbthomason/packer.nvim"
+  },
+  ["vim-commentary"] = {
+    loaded = true,
+    path = "/Users/ben/.local/share/nvim/site/pack/packer/start/vim-commentary",
+    url = "https://github.com/tpope/vim-commentary"
+  },
+  ["vim-repeat"] = {
+    loaded = true,
+    path = "/Users/ben/.local/share/nvim/site/pack/packer/start/vim-repeat",
+    url = "https://github.com/tpope/vim-repeat"
+  },
+  ["vim-surround"] = {
+    loaded = true,
+    path = "/Users/ben/.local/share/nvim/site/pack/packer/start/vim-surround",
+    url = "https://github.com/tpope/vim-surround"
+  },
+  ["vim-textobj-entire"] = {
+    loaded = true,
+    path = "/Users/ben/.local/share/nvim/site/pack/packer/start/vim-textobj-entire",
+    url = "https://github.com/kana/vim-textobj-entire"
+  },
+  ["vim-textobj-indent"] = {
+    loaded = true,
+    path = "/Users/ben/.local/share/nvim/site/pack/packer/start/vim-textobj-indent",
+    url = "https://github.com/kana/vim-textobj-indent"
+  },
+  ["vim-textobj-line"] = {
+    loaded = true,
+    path = "/Users/ben/.local/share/nvim/site/pack/packer/start/vim-textobj-line",
+    url = "https://github.com/kana/vim-textobj-line"
+  },
+  ["vim-textobj-user"] = {
+    loaded = true,
+    path = "/Users/ben/.local/share/nvim/site/pack/packer/start/vim-textobj-user",
+    url = "https://github.com/kana/vim-textobj-user"
+  },
+  ["vim-unimpaired"] = {
+    loaded = true,
+    path = "/Users/ben/.local/share/nvim/site/pack/packer/start/vim-unimpaired",
+    url = "https://github.com/tpope/vim-unimpaired"
   }
 }
 
