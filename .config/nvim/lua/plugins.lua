@@ -44,6 +44,15 @@ return require('packer').startup(function()
     run = ':TSUpdate'
   }
 
+  use {
+    'nvim-telescope/telescope.nvim',
+    requires = {{'nvim-lua/plenary.nvim'}}
+  }
+  use {
+    'nvim-telescope/telescope-fzf-native.nvim',
+    run = 'make'
+  }
+
   if packer_bootstrap then
     require('packer').sync()
   end
