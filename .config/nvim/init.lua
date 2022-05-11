@@ -119,6 +119,12 @@ require('nvim-treesitter.configs').setup {
   },
 }
 
+require('telescope').setup {
+  defaults = {
+    file_ignore_patterns = {'node_modules'}
+  }
+}
+
 require('telescope').load_extension('fzf')
 
 vim.keymap.set('n', '<leader>ff', require('telescope.builtin').find_files)
