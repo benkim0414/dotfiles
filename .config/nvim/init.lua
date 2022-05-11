@@ -22,3 +22,5 @@ vim.keymap.set('', 'q:', '<cmd>:q<cr>')
 vim.api.nvim_set_keymap('n', '<leader>w', '<cmd>w!<cr>', {noremap = true})
 vim.api.nvim_set_keymap('n', '<leader>q', '<cmd>q!<cr>', {noremap = true})
 
+require('lspconfig').tsserver.setup{}
+

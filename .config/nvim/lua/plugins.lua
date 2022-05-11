@@ -33,6 +33,8 @@ return require('packer').startup(function()
   use "kana/vim-textobj-indent"
   use "kana/vim-textobj-entire"
 
+  use "neovim/nvim-lspconfig"
+
   if packer_bootstrap then
     require('packer').sync()
   end
