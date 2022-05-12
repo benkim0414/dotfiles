@@ -31,3 +31,8 @@ PROMPT="%n@%m:%~\$(__git_ps1 '(%s)')%# "
 # Go
 export PATH="$PATH:$(go env GOPATH)/bin"
 
+# pyenv
+eval "$(pyenv init -)"
+# pyenv-virtualenv
+eval "$(pyenv virtualenv-init -)"
+
