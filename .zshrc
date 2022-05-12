@@ -18,6 +18,13 @@ compinit
 
 zstyle ':completion:*:*:git:*' script ~/.git-completion.bash
 
+# If set, parameter expansion, command substitution and arithmetic expansion
+# are performed in prompts. Substitutions within prompts do not affect the
+# command status.
+setopt PROMPT_SUBST
+. ~/git-prompt.sh
+PROMPT="%n@%m:%~\$(__git_ps1 '(%s)')%# "
+
 # fzf
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
