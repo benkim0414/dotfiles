@@ -23,6 +23,7 @@ vim.cmd [[packadd packer.nvim]]
 return require('packer').startup(function()
   use "wbthomason/packer.nvim"
 
+  use "tpope/vim-fugitive"
   use "tpope/vim-commentary"
   use "tpope/vim-repeat"
   use "tpope/vim-surround"
