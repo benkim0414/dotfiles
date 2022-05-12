@@ -23,6 +23,8 @@ zstyle ':completion:*:*:git:*' script ~/.git-completion.bash
 # command status.
 setopt PROMPT_SUBST
 . ~/git-prompt.sh
+GIT_PS1_SHOWDIRTYSTATE=true
+GIT_PS1_SHOWCOLORHINTS=true
 PROMPT="%n@%m:%~\$(__git_ps1 '(%s)')%# "
 
 # fzf
