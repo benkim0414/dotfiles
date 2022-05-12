@@ -28,3 +28,6 @@ PROMPT="%n@%m:%~\$(__git_ps1 '(%s)')%# "
 # fzf
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
+# Go
+export PATH="$PATH:$(go env GOPATH)/bin"
+
