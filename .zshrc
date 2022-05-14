@@ -30,16 +30,12 @@ PROMPT="%n@%m:%~\$(__git_ps1 '(%s)')%# "
 # fzf
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
-# Go
-export PATH="$PATH:$(go env GOPATH)/bin"
-
 # pyenv
 eval "$(pyenv init -)"
 # pyenv-virtualenv
 eval "$(pyenv virtualenv-init -)"
 
 # nvm
-export NVM_DIR="$HOME/.nvm"
 [ -s "/usr/local/opt/nvm/nvm.sh" ] && \. "/usr/local/opt/nvm/nvm.sh"  # This loads nvm
 [ -s "/usr/local/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/usr/local/opt/nvm/etc/bash_completion.d/nvm"  # This loads nvm bash_completion
 
