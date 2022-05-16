@@ -34,6 +34,8 @@ return require('packer').startup(function()
   use "kana/vim-textobj-indent"
   use "kana/vim-textobj-entire"
 
+  use "christoomey/vim-system-copy"
+
   use "neovim/nvim-lspconfig"
   use "hrsh7th/nvim-cmp"
   use "hrsh7th/cmp-nvim-lsp"
@@ -44,6 +46,7 @@ return require('packer').startup(function()
     'nvim-treesitter/nvim-treesitter',
     run = ':TSUpdate'
   }
+  use 'nvim-treesitter/nvim-treesitter-textobjects'
 
   use {
     'nvim-telescope/telescope.nvim',

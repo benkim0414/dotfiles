@@ -117,6 +117,18 @@ require('nvim-treesitter.configs').setup {
     enable = true,
     additional_vim_regex_highlighting = false,
   },
+  textobjects = {
+    select = {
+      enable = true,
+      lookahead = true,
+      keymaps = {
+        ['ac'] = '@class.outer',
+        ['ic'] = '@class.inner',
+        ['af'] = '@function.outer',
+        ['if'] = '@function.inner',
+      },
+    },
+  },
 }
 
 require('telescope').setup {
