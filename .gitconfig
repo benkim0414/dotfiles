@@ -1,0 +1,30 @@
+[alias]
+  aa = add --all
+  ca = commit --amend --verbose
+  can = commit --amend --no-edit
+  cm = commit -m
+  co = checkout
+  dfs = diff --staged
+  fall = fetch --all
+  last = log --patch -1 HEAD
+  pl = pull
+  ps = push
+  uncommit = reset --soft HEAD^
+  unstage = reset HEAD --
+[color]
+  ui = auto
+[core]
+  editor = vim
+  excludesFile = ~/.gitignore
+[fetch]
+  prune = true
+[init]
+  defaultBranch = main
+[pull]
+  ff = only
+[push]
+  default = upstream
+[user]
+  name = Gunwoo Ben Kim
+  email = benkim0414@gmail.com
+
