@@ -2,8 +2,29 @@
 " Vim behave in a more useful way.
 set nocompatible
 
-syntax on
-filetype plugin indent on
+call plug#begin('~/.vim/bundle')
+Plug 'tpope/vim-commentary'
+Plug 'tpope/vim-flagship'
+Plug 'tpope/vim-fugitive'
+Plug 'tpope/vim-repeat'
+Plug 'tpope/vim-sensible'
+Plug 'tpope/vim-surround'
+Plug 'tpope/vim-unimpaired'
+
+Plug 'kana/vim-textobj-user'
+Plug 'kana/vim-textobj-line'
+Plug 'kana/vim-textobj-indent'
+Plug 'kana/vim-textobj-entire'
+
+Plug 'christoomey/vim-system-copy'
+
+Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
+Plug 'junegunn/fzf.vim'
+
+Plug 'fatih/vim-go', { 'do': ':GoInstallBinaries' }
+Plug 'AndrewRadev/splitjoin.vim'
+Plug 'SirVer/ultisnips'
+call plug#end()
 
 " Set the character encoding to UTF-8.
 set encoding=utf-8
@@ -56,10 +77,4 @@ map q: :q
 nnoremap <Leader>w :w!<CR>
 " Quit without writing.  
 nnoremap <silent> <Leader>q :q!<CR>
-
-" fzf
-" Add fzf directory to &runtimepath.
-set rtp+=/usr/local/opt/fzf
-" Add fzf.vim package.
-packadd! fzf.vim
 
