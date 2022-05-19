@@ -47,3 +47,6 @@ tags
 # Persistent undo
 [._]*.un~
 
+# Auto-generated packer.nvim plugin loader
+.config/nvim/plugin/packer_compiled.lua
+
