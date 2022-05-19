@@ -20,6 +20,13 @@
   prune = true
 [init]
   defaultBranch = main
+[merge]
+  tool = diffconflicts
+[mergetool]
+  keepBackup = false
+[mergetool "diffconflicts"]
+  cmd = vim -c DiffConflicts \"$MERGED\" \"$BASE\" \"$LOCAL\" \"$REMOTE\"
+  trustExitCode = true
 [pull]
   ff = only
 [push]
