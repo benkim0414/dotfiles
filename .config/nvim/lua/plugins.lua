@@ -21,26 +21,26 @@ vim.cmd([[
 vim.cmd [[packadd packer.nvim]]
 
 return require('packer').startup(function()
-  use "wbthomason/packer.nvim"
+  use 'wbthomason/packer.nvim'
 
-  use "tpope/vim-fugitive"
-  use "tpope/vim-commentary"
-  use "tpope/vim-repeat"
-  use "tpope/vim-surround"
-  use "tpope/vim-unimpaired"
+  use 'tpope/vim-fugitive'
+  use 'tpope/vim-commentary'
+  use 'tpope/vim-repeat'
+  use 'tpope/vim-surround'
+  use 'tpope/vim-unimpaired'
 
-  use "kana/vim-textobj-user"
-  use "kana/vim-textobj-line"
-  use "kana/vim-textobj-indent"
-  use "kana/vim-textobj-entire"
+  use 'kana/vim-textobj-user'
+  use 'kana/vim-textobj-line'
+  use 'kana/vim-textobj-indent'
+  use 'kana/vim-textobj-entire'
 
-  use "christoomey/vim-system-copy"
+  use 'christoomey/vim-system-copy'
 
-  use "neovim/nvim-lspconfig"
-  use "hrsh7th/nvim-cmp"
-  use "hrsh7th/cmp-nvim-lsp"
-  use "hrsh7th/cmp-vsnip"
-  use "hrsh7th/vim-vsnip"
+  use 'neovim/nvim-lspconfig'
+  use 'hrsh7th/nvim-cmp'
+
+  use 'hrsh7th/cmp-vsnip'
+  use 'hrsh7th/vim-vsnip'
 
   use {
     'nvim-treesitter/nvim-treesitter',
