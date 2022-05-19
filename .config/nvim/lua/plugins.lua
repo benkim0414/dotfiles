@@ -28,6 +28,7 @@ return require('packer').startup(function()
   use 'tpope/vim-repeat'
   use 'tpope/vim-surround'
   use 'tpope/vim-unimpaired'
+  use 'tpope/vim-flagship'
 
   use 'kana/vim-textobj-user'
   use 'kana/vim-textobj-line'
