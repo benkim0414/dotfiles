@@ -80,3 +80,36 @@ nnoremap <Leader>w :w!<CR>
 " Quit without writing.  
 nnoremap <silent> <Leader>q :q!<CR>
 
+" Move between wrapped lines, rather than jumping over wrapped segements.
+nmap j gj
+nmap k gk
+
+" Use C-Space to Esc out of any mode.
+nnoremap <C-Space> <Esc>:noh<cr>
+vnoremap <C-Space> <Esc>gV
+onoremap <C-Space> <Esc>
+cnoremap <C-Space> <C-c>
+inoremap <C-Space> <Esc>
+" Terminal sees <C-@> as <C-space>
+nnoremap <C-@> <Esc>:noh<cr>
+vnoremap <C-@> <Esc>gV
+onoremap <C-@> <Esc>
+cnoremap <C-@> <C-c>
+inoremap <C-@> <Esc>
+
+nnoremap <Leader>cc :ClearEmAll<CR>
+
+command! ClearEmAll call s:ClearEmAll()
+
+function! s:ClearEmAll()
+  nohlsearch
+  cclose
+  pclose
+  lclose
+  call popup_clear()
+endfunction
+
+" Swap 0 and ^.
+nnoremap 0 ^
+nnoremap ^ 0
+
