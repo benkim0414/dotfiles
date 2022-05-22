@@ -17,6 +17,7 @@ Plug 'kana/vim-textobj-indent'
 Plug 'kana/vim-textobj-entire'
 
 Plug 'christoomey/vim-system-copy'
+Plug 'christoomey/vim-tmux-navigator'
 
 Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
 Plug 'junegunn/fzf.vim'
