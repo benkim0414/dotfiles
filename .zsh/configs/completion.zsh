@@ -14,5 +14,4 @@ zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}' \
 zstyle ':completion:*:*:git:*' script ~/.zsh/completion/git-completion.bash
 
 alias k=kubectl
-complete -F __start_kubectl k
 
