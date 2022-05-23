@@ -2,6 +2,8 @@
 eval "$(/usr/local/bin/brew shellenv)"
 export PATH="/usr/local/bin:$PATH"
 
+export PATH="$HOME/bin:$PATH"
+
 # Go
 export PATH="$(go env GOPATH)/bin:$PATH"
 
