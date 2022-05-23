@@ -36,6 +36,7 @@ return require('packer').startup(function()
   use 'kana/vim-textobj-entire'
 
   use 'christoomey/vim-system-copy'
+  use 'christoomey/vim-tmux-navigator'
 
   use 'neovim/nvim-lspconfig'
   use 'hrsh7th/nvim-cmp'
