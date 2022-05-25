@@ -22,6 +22,12 @@ vim.keymap.set('', 'q:', '<cmd>:q<cr>')
 vim.api.nvim_set_keymap('n', '<leader>w', '<cmd>w!<cr>', {noremap = true})
 vim.api.nvim_set_keymap('n', '<leader>q', '<cmd>q!<cr>', {noremap = true})
 
+vim.keymap.set('n', 'j', 'gj')
+vim.keymap.set('n', 'k', 'gk')
+
+vim.api.nvim_set_keymap('n', '0', '^', {noremap = true})
+vim.api.nvim_set_keymap('n', '^', '0', {noremap = true})
+
 require('plugins')
 
 local opts = {noremap=true, silent=true}
