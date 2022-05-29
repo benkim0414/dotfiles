@@ -114,3 +114,10 @@ endfunction
 nnoremap 0 ^
 nnoremap ^ 0
 
+" Rebalance windows on vim resize
+autocmd VimResized * :wincmd =
+
+" Zoom a vim pane, <C-w>= to re-balance
+nnoremap <Leader>- :wincmd _<CR>:wincmd \|<CR>
+nnoremap <Leader>= :wincmd =<CR>
+
