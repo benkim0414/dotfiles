@@ -176,3 +176,14 @@ vim.keymap.set('n', '<leader>fg', require('telescope.builtin').live_grep)
 vim.keymap.set('n', '<leader>fb', require('telescope.builtin').buffers)
 vim.keymap.set('n', '<leader>fh', require('telescope.builtin').help_tags)
 
+vim.keymap.set('n', '<leader>t', ':TestNearest<cr>')
+vim.keymap.set('n', '<leader>T', ':TestFile<cr>')
+vim.keymap.set('n', '<leader>a', ':TestSuite<cr>')
+vim.keymap.set('n', '<leader>l', ':TestLast<cr>')
+vim.keymap.set('n', '<leader>g', ':TestVisit<cr>')
+
+vim.keymap.set('t', '<c-o>', '<c-\\><c-n>')
+vim.g['test#strategy'] = 'vtr'
+vim.g['test#javascript#runner'] = 'jest'
+vim.g['test#javascript#jest#executable'] = 'yarn jest --config jest.config.js'
+

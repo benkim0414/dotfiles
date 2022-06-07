@@ -59,6 +59,9 @@ return require('packer').startup(function()
     run = 'make'
   }
 
+  use 'vim-test/vim-test'
+  use 'christoomey/vim-tmux-runner'
+
   if packer_bootstrap then
     require('packer').sync()
   end
