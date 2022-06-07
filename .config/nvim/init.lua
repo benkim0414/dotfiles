@@ -21,6 +21,7 @@ vim.g.maplocalleader = ','
 vim.keymap.set('', 'q:', '<cmd>:q<cr>')
 vim.api.nvim_set_keymap('n', '<leader>w', '<cmd>w!<cr>', {noremap = true})
 vim.api.nvim_set_keymap('n', '<leader>q', '<cmd>q!<cr>', {noremap = true})
+vim.api.nvim_set_keymap('n', '<leader>wa', '<cmd>wa<cr>', {noremap = true})
 
 vim.keymap.set('n', 'j', 'gj')
 vim.keymap.set('n', 'k', 'gk')
