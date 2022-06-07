@@ -62,6 +62,8 @@ return require('packer').startup(function()
   use 'vim-test/vim-test'
   use 'christoomey/vim-tmux-runner'
 
+  use 'mustache/vim-mustache-handlebars'
+
   if packer_bootstrap then
     require('packer').sync()
   end
