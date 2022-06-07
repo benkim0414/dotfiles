@@ -121,3 +121,34 @@ autocmd VimResized * :wincmd =
 nnoremap <Leader>- :wincmd _<CR>:wincmd \|<CR>
 nnoremap <Leader>= :wincmd =<CR>
 
+" fzf
+nnoremap <C-p> :Files<CR>
+let $FZF_DEFAULT_OPTS .= ' --inline-info'
+let $FZF_DEFAULT_COMMAND="rg --files --hidden --follow --glob '!.git'"
+
+if exists('$TMUX')
+  let g:fzf_layout = { 'tmux': '-p90%,60%' }
+else
+  let g:fzf_layout = { 'window': { 'width': 0.9, 'height': 0.6 } }
+endif
+
+nnoremap <silent> <Leader>b :Buffers<CR>
+nnoremap <silent> <Leader>l :BLines<CR>
+nnoremap <silent> <Leader>rg :Rg<CR>
+nnoremap <silent> <Leader>RG :RG<CR>
+
+" Delegate search responsibliity to ripgrep process by making it restart ripgrep
+" whenever the query string is updated.
+function! RipgrepFzf(query, fullscreen)
+  let command_fmt = 'rg --column --line-number --no-heading --color=always --smart-case -- %s || true'
+  let initial_command = printf(command_fmt, shellescape(a:query))
+  let reload_command = printf(command_fmt, '{q}')
+  let spec = {'options': ['--phony', '--query', a:query, '--bind', 'change:reload:'.reload_command]}
+  call fzf#vim#grep(initial_command, 1, fzf#vim#with_preview(spec), a:fullscreen)
+endfunction
+
+command! -nargs=* -bang RG call RipgrepFzf(<q-args>, <bang>0)
+
+" Program to use for the :grep command.
+set grepprg=rg\ --vimgrep\ --smart-case\ --follow
+
