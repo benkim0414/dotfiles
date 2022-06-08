@@ -1,3 +1,5 @@
+vim.cmd[[colorscheme gruvbox]]
+
 vim.o.number = true
 vim.o.numberwidth = 5
 vim.o.relativenumber = true

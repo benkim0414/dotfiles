@@ -66,6 +66,8 @@ return require('packer').startup(function()
 
   use 'scrooloose/nerdtree'
 
+  use 'morhetz/gruvbox'
+
   if packer_bootstrap then
     require('packer').sync()
   end
