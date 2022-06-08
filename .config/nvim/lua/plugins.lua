@@ -64,6 +64,8 @@ return require('packer').startup(function()
 
   use 'mustache/vim-mustache-handlebars'
 
+  use 'scrooloose/nerdtree'
+
   if packer_bootstrap then
     require('packer').sync()
   end
