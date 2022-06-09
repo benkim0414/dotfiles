@@ -27,6 +27,8 @@ Plug 'whiteinge/diffconflicts'
 Plug 'fatih/vim-go', { 'do': ':GoInstallBinaries' }
 Plug 'AndrewRadev/splitjoin.vim'
 Plug 'SirVer/ultisnips'
+
+Plug 'fatih/molokai'
 call plug#end()
 
 " Set the character encoding to UTF-8.
