@@ -66,6 +66,11 @@ return require('packer').startup(function()
 
   use 'scrooloose/nerdtree'
 
+  use {
+    'prettier/vim-prettier',
+    run = 'yarn install --frozen-lockfile --production'
+  }
+
   use 'morhetz/gruvbox'
 
   if packer_bootstrap then
