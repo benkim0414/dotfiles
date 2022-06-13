@@ -19,6 +19,10 @@ Plug 'kana/vim-textobj-entire'
 Plug 'christoomey/vim-system-copy'
 Plug 'christoomey/vim-tmux-navigator'
 
+Plug 'pbrisbin/vim-mkdir'
+
+Plug 'vim-scripts/ReplaceWithRegister'
+
 Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
 Plug 'junegunn/fzf.vim'
 
@@ -134,8 +138,8 @@ else
   let g:fzf_layout = { 'window': { 'width': 0.9, 'height': 0.6 } }
 endif
 
-nnoremap <silent> <Leader>b :Buffers<CR>
-nnoremap <silent> <Leader>l :BLines<CR>
+nnoremap <silent> <Leader>B :Buffers<CR>
+nnoremap <silent> <Leader>bl :BLines<CR>
 nnoremap <silent> <Leader>rg :Rg<CR>
 nnoremap <silent> <Leader>RG :RG<CR>
 
