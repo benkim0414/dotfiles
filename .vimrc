@@ -26,6 +26,8 @@ Plug 'vim-scripts/ReplaceWithRegister'
 Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
 Plug 'junegunn/fzf.vim'
 
+Plug 'preservim/nerdtree'
+
 Plug 'whiteinge/diffconflicts'
 
 Plug 'fatih/vim-go', { 'do': ':GoInstallBinaries' }
@@ -157,4 +159,6 @@ command! -nargs=* -bang RG call RipgrepFzf(<q-args>, <bang>0)
 
 " Program to use for the :grep command.
 set grepprg=rg\ --vimgrep\ --smart-case\ --follow
+
+nnoremap <C-n> :NERDTreeToggle<CR>
 
