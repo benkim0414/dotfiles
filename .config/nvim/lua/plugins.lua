@@ -38,6 +38,8 @@ return require('packer').startup(function()
   use 'christoomey/vim-system-copy'
   use 'christoomey/vim-tmux-navigator'
 
+  use 'whiteinge/diffconflicts'
+
   use 'neovim/nvim-lspconfig'
   use 'hrsh7th/nvim-cmp'
   use 'hrsh7th/cmp-nvim-lsp'
