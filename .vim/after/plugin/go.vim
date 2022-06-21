@@ -33,10 +33,6 @@ let g:go_highlight_types = 1
 let g:go_highlight_fields = 1
 let g:go_highlight_functions = 1
 
-let g:rehash256 = 1
-let g:molokai_original = 1
-colorscheme molokai
-
 nmap <C-g> :GoDecls<CR>
 imap <C-g> <Esc>:<C-u>GoDecls<CR>
 
