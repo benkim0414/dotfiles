@@ -190,4 +190,6 @@ vim.g['test#javascript#jest#executable'] = 'yarn jest --config jest.config.js'
 
 
 vim.api.nvim_set_keymap('n', '<c-n>', ':NERDTreeToggle<cr>', {noremap = true})
+vim.g['NERDTreeShowHidden'] = 1
+
 
