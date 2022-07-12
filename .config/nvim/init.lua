@@ -139,8 +139,6 @@ require('nvim-treesitter.configs').setup {
         ['ac'] = '@class.outer',
         ['af'] = '@function.outer',
         ['if'] = '@function.inner',
-        ['il'] = '@loop.inner',
-        ['al'] = '@loop.outer',
       },
     },
     move = {
