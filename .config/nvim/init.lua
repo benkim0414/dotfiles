@@ -188,6 +188,8 @@ vim.g['test#strategy'] = 'vtr'
 vim.g['test#javascript#runner'] = 'jest'
 vim.g['test#javascript#jest#executable'] = 'yarn jest --config jest.config.js'
 
+vim.g['VtrPercentage'] = 50
+vim.g['VtrOrientation'] = 'h'
 
 vim.api.nvim_set_keymap('n', '<c-n>', ':NERDTreeToggle<cr>', {noremap = true})
 vim.g['NERDTreeShowHidden'] = 1
