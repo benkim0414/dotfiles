@@ -17,6 +17,8 @@ for zsh_source in $HOME/.zsh/configs/*.zsh; do
   source $zsh_source
 done
 
+ensure_tmux_is_running
+
 # fzf
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
