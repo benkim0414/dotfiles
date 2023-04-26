@@ -31,6 +31,7 @@ Plug 'preservim/nerdtree'
 Plug 'whiteinge/diffconflicts'
 
 Plug 'dense-analysis/ale'
+Plug 'bufbuild/vim-buf'
 
 Plug 'fatih/vim-go', { 'do': ':GoInstallBinaries' }
 Plug 'AndrewRadev/splitjoin.vim'
