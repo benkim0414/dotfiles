@@ -33,6 +33,8 @@ Plug 'whiteinge/diffconflicts'
 Plug 'dense-analysis/ale'
 Plug 'bufbuild/vim-buf'
 
+Plug 'puremourning/vimspector'
+
 Plug 'fatih/vim-go', { 'do': ':GoInstallBinaries' }
 Plug 'AndrewRadev/splitjoin.vim'
 Plug 'SirVer/ultisnips'
@@ -195,3 +197,6 @@ nnoremap <silent> <Leader>rn :ALERename<CR>
 nnoremap <silent> <Leader>frn :ALEFileRename<CR>
 " Apply a code action via LSP servers or `tsserver`.
 nnoremap <silent> <Leader>a :ALECodeAction<CR>
+
+" Vimspector
+let g:vimspector_install_gadgets = ['vscode-js-debug']
