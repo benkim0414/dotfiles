@@ -30,6 +30,8 @@ Plug 'preservim/nerdtree'
 
 Plug 'whiteinge/diffconflicts'
 
+Plug 'dense-analysis/ale'
+
 Plug 'fatih/vim-go', { 'do': ':GoInstallBinaries' }
 Plug 'AndrewRadev/splitjoin.vim'
 Plug 'SirVer/ultisnips'
@@ -162,3 +164,33 @@ set grepprg=rg\ --vimgrep\ --smart-case\ --follow
 
 nnoremap <C-n> :NERDTreeToggle<CR>
 
+" ALE
+" When this option is set to `1`, completion support will be enabled.
+let g:ale_completion_enabled = 1
+
+" A completion function to use with 'omnifunc'.
+set omnifunc=ale#completion#OmniFunc
+
+" ALE supports jumping to the files and locations where symbols are defined
+" through any enabled LSP linters.
+nnoremap gd :ALEGoToDefinition<CR>
+nnoremap gds :ALEGoToDefinition -split<CR>
+nnoremap gdv :ALEGoToDefinition -vsplit<CR>
+
+" Find references in the codebase for the symbol under the cursor using the
+" enabled LSP linters for the buffer.
+nnoremap <silent> <Leader>fr :ALEFindReferences<CR>
+
+" Print information about the symbol at the cursor.
+nnoremap K :ALEHover<CR>
+
+" Move between warnings or errors in a buffer.
+nnoremap ]d :ALENext<CR>
+nnoremap [d :ALEPrevious<CR>
+
+" Rename a symbol using `tsserver` or a Language Server.
+nnoremap <silent> <Leader>rn :ALERename<CR>
+" Rename a file and fix imports using `tsserver`.
+nnoremap <silent> <Leader>frn :ALEFileRename<CR>
+" Apply a code action via LSP servers or `tsserver`.
+nnoremap <silent> <Leader>a :ALECodeAction<CR>
