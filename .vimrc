@@ -41,6 +41,8 @@ Plug 'AndrewRadev/splitjoin.vim'
 Plug 'SirVer/ultisnips'
 
 Plug 'fatih/molokai'
+
+Plug 'mustache/vim-mustache-handlebars'
 call plug#end()
 
 " Set the character encoding to UTF-8.
