@@ -33,6 +33,9 @@ Plug 'whiteinge/diffconflicts'
 Plug 'dense-analysis/ale'
 Plug 'bufbuild/vim-buf'
 
+Plug 'vim-test/vim-test'
+Plug 'christoomey/vim-tmux-runner'
+
 Plug 'fatih/vim-go', { 'do': ':GoInstallBinaries' }
 Plug 'AndrewRadev/splitjoin.vim'
 Plug 'SirVer/ultisnips'
@@ -195,3 +198,16 @@ nnoremap <silent> <Leader>rn :ALERename<CR>
 nnoremap <silent> <Leader>frn :ALEFileRename<CR>
 " Apply a code action via LSP servers or `tsserver`.
 nnoremap <silent> <Leader>a :ALECodeAction<CR>
+
+" vim-test
+nmap <silent><Leader>t :TestNearest<CR>
+nmap <silent><Leader>T :TestFile<CR>
+nmap <silent><Leader>a :TestSuite<CR>
+nmap <silent><Leader>l :TestLast<CR>
+nmap <silent><Leader>g :TestVisit<CR>
+
+" Runs test commands in a small Tmux pane. Requires the Vim Timux Runner plugin
+" and Tmux.
+let g:test#strategy = 'vtr'
+let g:test#javascript#runner = 'jest'
+let g:test#javascript#jest#executable = 'yarn jest --config jest.config.js'
