@@ -5,5 +5,5 @@ setopt PROMPT_SUBST
 . ~/.zsh/prompt/git-prompt.sh
 GIT_PS1_SHOWDIRTYSTATE=true
 GIT_PS1_SHOWCOLORHINTS=true
-PROMPT="%n@%m:%~\$(__git_ps1 '(%s)')%# "
+PROMPT="%~\$(__git_ps1 '(%s)')%# "
 
