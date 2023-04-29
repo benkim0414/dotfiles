@@ -1,5 +1,7 @@
 [alias]
   aa = add --all
+  br = branch
+  ci = commit
   ca = commit --amend --verbose
   can = commit --amend --no-edit
   cm = commit -m
