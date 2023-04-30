@@ -36,6 +36,8 @@ Plug 'bufbuild/vim-buf'
 Plug 'vim-test/vim-test'
 Plug 'christoomey/vim-tmux-runner'
 
+Plug 'puremourning/vimspector'
+
 Plug 'fatih/vim-go', { 'do': ':GoInstallBinaries' }
 Plug 'AndrewRadev/splitjoin.vim'
 Plug 'SirVer/ultisnips'
@@ -213,3 +215,25 @@ nmap <silent><Leader>g :TestVisit<CR>
 let g:test#strategy = 'vtr'
 let g:test#javascript#runner = 'jest'
 let g:test#javascript#jest#executable = 'yarn jest --config jest.config.js'
+
+" Vimspector
+let g:vimspector_install_gadgets = ['vscode-js-debug', 'vscode-node-debug2']
+
+nmap <Leader>dc <Plug>VimspectorContinue
+nmap <Leader>ds <Plug>VimspectorStop
+nmap <Leader>dr <Plug>VimspectorRestart
+
+nmap <Leader>dB <Plug>VimspectorBreakpoints
+nmap <Leader>db <Plug>VimspectorToggleBreakpoint
+
+nmap <Leader>dl <Plug>VimspectorStepOver
+nmap <Leader>dj <Plug>VimspectorStepInto
+nmap <Leader>dk <Plug>VimspectorStepOut
+nmap <Leader>dn <Plug>VimspectorJumpToNextBreakpoint
+nmap <Leader>dp <Plug>VimspectorJumpToPreviousBreakpoint
+
+nmap <Leader>di <Plug>VimspectorBalloonEval
+xmap <Leader>di <Plug>VimspectorBalloonEval
+
+nmap <Leader>dq :call vimspector#Reset()<CR>
+nmap <Leader>dd :call vimspector#ClearBreakpoints()<CR>
