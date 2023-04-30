@@ -22,3 +22,4 @@ ensure_tmux_is_running
 # fzf
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
+sz() { source ~/.zshrc }
