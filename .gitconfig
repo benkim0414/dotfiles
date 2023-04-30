@@ -1,6 +1,7 @@
 [alias]
   aa = add --all
   br = branch
+  bselect = !git branch | grep -v '^*' | fzf-tmux --reverse | xargs git checkout
   ci = commit
   ca = commit --amend --verbose
   can = commit --amend --no-edit
