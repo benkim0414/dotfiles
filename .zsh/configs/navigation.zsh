@@ -6,3 +6,7 @@ cdpath=(
   $HOME/.zsh \
   $HOME
 )
+
+function cdup() {
+  cd "$(git rev-parse --show-toplevel)"
+}
