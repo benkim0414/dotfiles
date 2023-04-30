@@ -43,9 +43,12 @@ Plug 'AndrewRadev/splitjoin.vim'
 Plug 'SirVer/ultisnips'
 
 Plug 'fatih/molokai'
+Plug 'morhetz/gruvbox'
 
 Plug 'mustache/vim-mustache-handlebars'
 call plug#end()
+
+colorscheme gruvbox
 
 " Set the character encoding to UTF-8.
 set encoding=utf-8
