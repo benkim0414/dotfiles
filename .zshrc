@@ -1,6 +1,6 @@
 # Alias to interact with dotfiles instead of the regular git.
 # https://www.atlassian.com/git/tutorials/dotfiles
-alias config='/usr/local/bin/git --git-dir=$HOME/.cfg/ --work-tree=$HOME'
+alias config="$(which git) --git-dir=$HOME/.cfg/ --work-tree=$HOME"
 
 # zplug
 export ZPLUG_HOME="$(brew --prefix zplug)"
