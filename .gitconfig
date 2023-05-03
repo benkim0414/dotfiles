@@ -20,10 +20,17 @@
 [core]
   editor = vim
   excludesFile = ~/.gitignore
+  pager = delta
+[delta]
+  light = false
+  line-numbers = true
+  navigate = true
 [fetch]
   prune = true
 [init]
   defaultBranch = main
+[interactive]
+  diffFilter = delta --color-only
 [merge]
   tool = diffconflicts
 [mergetool]
