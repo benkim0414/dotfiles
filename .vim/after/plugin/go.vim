@@ -1,3 +1,5 @@
+let g:ale_enabled = 0
+
 autocmd BufNewFile,BufRead *.go setlocal ts=4 sw=4
 
 " Run `:GoBuild` or `:GoTestCompile` based on the go file.
