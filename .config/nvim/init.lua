@@ -123,6 +123,16 @@ require('lazy').setup({
   'hrsh7th/cmp-nvim-lsp',
   'hrsh7th/cmp-vsnip',
   'hrsh7th/vim-vsnip',
+
+  {
+    'nvim-telescope/telescope.nvim',
+    dependencies = 'nvim-lua/plenary.nvim',
+  },
+  {
+    'nvim-telescope/telescope-fzf-native.nvim',
+    build = 'make',
+  },
+
 })
 
 require('nvim-treesitter.configs').setup {
@@ -249,3 +259,29 @@ cmp.setup({
     {name = 'buffer'},
   }),
 })
+
+local config = require('telescope.config')
+local vimgrep_arguments = {unpack(config.values.vimgrep_arguments)}
+table.insert(vimgrep_arguments, '--hidden')
+table.insert(vimgrep_arguments, '--glob')
+table.insert(vimgrep_arguments, '!**/.git/*')
+
+require('telescope').setup {
+  defaults = {
+    file_ignore_patterns = {'node_modules'},
+    vimgrep_arguments = vimgrep_arguments,
+  },
+  pickers = {
+    find_files = {
+      find_command = { 'rg', '--files', '--hidden', '--glob', '!**/.git/*' },
+    },
+  },
+}
+
+require('telescope').load_extension('fzf')
+
+local builtin = require('telescope.builtin')
+vim.keymap.set('n', '<C-p>', builtin.find_files)
+vim.keymap.set('n', '<Leader>rg', builtin.live_grep)
+vim.keymap.set('n', '<Leader>B', builtin.buffers)
+vim.keymap.set('n', '<Leader>h', builtin.buffers)
