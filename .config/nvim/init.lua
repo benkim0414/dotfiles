@@ -141,6 +141,8 @@ require('lazy').setup({
       vim.o.timeoutlen = 300
     end,
   },
+
+  'github/copilot.vim',
 })
 
 require('nvim-treesitter.configs').setup {
