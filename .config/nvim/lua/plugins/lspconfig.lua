@@ -24,7 +24,7 @@ return {
       }
 
       local function on_attach(client, bufnr)
-        local buf_nnoremap = utils.make_keymap_fn("n", {bufnr = bufnr, noremap = ture, silent = true})
+        local buf_nnoremap = utils.make_keymap_fn("n", {bufnr = bufnr, noremap = true, silent = true})
         api.nvim_buf_set_option(bufnr, "omnifunc", "v:lua.vim.lsp.omnifunc")
         buf_nnoremap("gD", "<Cmd>lua vim.lsp.buf.declaration()<CR>")
         buf_nnoremap("gd", "<Cmd>lua vim.lsp.buf.definition()<CR>")
