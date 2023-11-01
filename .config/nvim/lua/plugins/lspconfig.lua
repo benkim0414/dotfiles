@@ -3,6 +3,8 @@ return {
     "neovim/nvim-lspconfig",
     lazy = false,
     dependencies = {
+      "williamboman/mason.nvim",
+      "williamboman/mason-lspconfig.nvim",
       "hrsh7th/nvim-cmp",
       "hrsh7th/cmp-nvim-lsp",
       "hrsh7th/cmp-vsnip",
@@ -13,6 +15,13 @@ return {
       local fn = vim.fn
       local utils = require("utils")
       local nnoremap = utils.nnoremap
+
+      local servers = {"lua_ls", "tsserver"}
+      require("mason").setup()
+      require("mason-lspconfig").setup {
+        ensure_installed = servers,
+        automatic_installation = true,
+      }
 
       local function on_attach(client, bufnr)
         local buf_nnoremap = utils.make_keymap_fn("n", {bufnr = bufnr, noremap = ture, silent = true})
@@ -33,10 +42,10 @@ return {
         end, opts)
       end
 
-      local capabilities = require("cmp_nvim_lsp").default_capabilities(vim.lsp.protocol.make_client_capabilities())
+      local default_capabilities = vim.lsp.protocol.make_client_capabilities()
+      local capabilities = require("cmp_nvim_lsp").default_capabilities(default_capabilities)
 
       local lspconfig = require("lspconfig")
-      local servers = {"tsserver"}
       for _, lsp in pairs(servers) do
         lspconfig[lsp].setup {
           on_attach = on_attach,

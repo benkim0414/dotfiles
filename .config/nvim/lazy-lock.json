@@ -7,6 +7,8 @@
   "copilot.lua": { "branch": "master", "commit": "688762a3999eeee54b78f447719854f52672ec02" },
   "diffconflicts": { "branch": "master", "commit": "05e8d2e935a235b8f8e6d308a46a5f028ea5bf97" },
   "lazy.nvim": { "branch": "main", "commit": "16603c6917435d8446f7357cb61095138a417085" },
+  "mason-lspconfig.nvim": { "branch": "main", "commit": "40301e1c74bc0946eece13edf2b1c561cc497491" },
+  "mason.nvim": { "branch": "main", "commit": "eabf6d347fdb75be360d4c0ced1145670a171453" },
   "nvim-cmp": { "branch": "main", "commit": "51260c02a8ffded8e16162dcf41a23ec90cfba62" },
   "nvim-lspconfig": { "branch": "master", "commit": "d0467b9574b48429debf83f8248d8cee79562586" },
   "nvim-treesitter": { "branch": "master", "commit": "c36681bb496ebce2946867459ed08774cb61788c" },
