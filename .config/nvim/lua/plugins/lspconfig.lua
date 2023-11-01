@@ -39,7 +39,7 @@ return {
         buf_nnoremap("gr", "<Cmd>lua vim.lsp.buf.references()<CR>")
         buf_nnoremap("<Space>f", function()
           vim.lsp.buf.format {async = true}
-        end, opts)
+        end)
       end
 
       local default_capabilities = vim.lsp.protocol.make_client_capabilities()
