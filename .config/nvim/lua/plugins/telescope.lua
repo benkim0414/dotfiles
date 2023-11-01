@@ -5,6 +5,7 @@ return {
     dependencies = {
       "nvim-lua/plenary.nvim",
       { "nvim-telescope/telescope-fzf-native.nvim", build = "make" },
+      'nvim-telescope/telescope-node-modules.nvim',
     },
     config = function()
       local config = require("telescope.config")
@@ -39,6 +40,7 @@ return {
       nnoremap("<Leader>rg", "<Cmd>Telescope live_grep<CR>")
       nnoremap("<Leader>B", "<Cmd>Telescope buffers<CR>")
       nnoremap("<Leader>h", "<Cmd>Telescope help_tags<CR>")
+      nnoremap("<Leader>n", "<Cmd>Telescope node_modules list<CR>")
     end,
   },
 }
