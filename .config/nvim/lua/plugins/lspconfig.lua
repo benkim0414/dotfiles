@@ -1,8 +1,3 @@
-local api = vim.api
-local fn = vim.fn
-local utils = require("utils")
-local nnoremap = utils.nnoremap
-
 return {
   {
     "neovim/nvim-lspconfig",
@@ -14,6 +9,11 @@ return {
       "hrsh7th/vim-vsnip",
     },
     config = function()
+      local api = vim.api
+      local fn = vim.fn
+      local utils = require("utils")
+      local nnoremap = utils.nnoremap
+
       local function on_attach(client, bufnr)
         local buf_nnoremap = utils.make_keymap_fn("n", {bufnr = bufnr, noremap = ture, silent = true})
         api.nvim_buf_set_option(bufnr, "omnifunc", "v:lua.vim.lsp.omnifunc")
