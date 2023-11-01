@@ -15,15 +15,9 @@ return {
       local fn = vim.fn
       local utils = require("utils")
       local nnoremap = utils.nnoremap
+      local lspconfig = require("lspconfig")
 
-      local servers = {"lua_ls", "tsserver"}
-      require("mason").setup()
-      require("mason-lspconfig").setup {
-        ensure_installed = servers,
-        automatic_installation = true,
-      }
-
-      local function on_attach(client, bufnr)
+      local function on_attach(_, bufnr)
         local buf_nnoremap = utils.make_keymap_fn("n", {bufnr = bufnr, noremap = true, silent = true})
         api.nvim_buf_set_option(bufnr, "omnifunc", "v:lua.vim.lsp.omnifunc")
         buf_nnoremap("gD", "<Cmd>lua vim.lsp.buf.declaration()<CR>")
@@ -45,16 +39,33 @@ return {
       local default_capabilities = vim.lsp.protocol.make_client_capabilities()
       local capabilities = require("cmp_nvim_lsp").default_capabilities(default_capabilities)
 
-      local lspconfig = require("lspconfig")
-      for _, lsp in pairs(servers) do
-        lspconfig[lsp].setup {
-          on_attach = on_attach,
-          capabilities = capabilities,
-          flags = {
-            debounce_text_changes = 150,
-          }
-        }
-      end
+      require("mason").setup()
+      require("mason-lspconfig").setup {
+        ensure_installed = {"lua_ls", "tsserver"},
+        automatic_installation = true,
+        handlers = {
+          function(server_name)
+            lspconfig[server_name].setup {
+              on_attach = on_attach,
+              capabilities = capabilities,
+              flags = {
+                debounce_text_changes = 150,
+              },
+            }
+          end,
+          ["lua_ls"] = function()
+             lspconfig.lua_ls.setup {
+               settings = {
+                 Lua = {
+                   diagnostics = {
+                       globals = {"vim"},
+                   },
+                 },
+               },
+             }
+          end,
+        },
+      }
 
       nnoremap("<Space>e", "<Cmd>lua vim.diagnostic.open_float()<CR>")
       nnoremap("[d", "<Cmd>lua vim.diagnostic.goto_prev()<CR>")
