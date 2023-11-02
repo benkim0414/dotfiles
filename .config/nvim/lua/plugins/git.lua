@@ -9,7 +9,9 @@ return {
     },
     config = function()
       local nnoremap = require("utils").nnoremap
-      require("neogit").setup()
+      require("neogit").setup {
+        kind = "split_above",
+      }
 
       nnoremap("<Leader>gg", "<Cmd>Neogit<CR>")
       nnoremap("<Leader>gc", "<Cmd>Neogit commit<CR>")
