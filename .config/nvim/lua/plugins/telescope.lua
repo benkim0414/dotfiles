@@ -4,7 +4,7 @@ return {
     lazy = false,
     dependencies = {
       "nvim-lua/plenary.nvim",
-      { "nvim-telescope/telescope-fzf-native.nvim", build = "make" },
+      {"nvim-telescope/telescope-fzf-native.nvim", build = "make"},
       'nvim-telescope/telescope-node-modules.nvim',
     },
     config = function()
@@ -27,7 +27,7 @@ return {
         },
         pickers = {
           find_files = {
-            find_command = { "rg", "--files", "--hidden", "--glob", "!**/.git/*" },
+            find_command = {"rg", "--files", "--hidden", "--glob", "!**/.git/*"},
           },
         },
       }
