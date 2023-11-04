@@ -21,10 +21,11 @@ return {
       nnoremap("<Space>q", "<Cmd>lua vim.diagnostic.setloclist()<CR>")
 
       local function has_words_before()
-        if vim.api.nvim_buf_get_option(0, "buftype") == "prompt" then
+        unpack = unpack or table.unpack
+        if api.nvim_buf_get_option(0, "buftype") == "prompt" then
           return false
         end
-        local line, col = table.unpack(api.nvim_win_get_cursor(0))
+        local line, col = unpack(api.nvim_win_get_cursor(0))
         return col ~= 0 and api.nvim_buf_get_text(0, line-1, 0, line-1, col, {})[1]:match("^%s*$") == nil
       end
 
@@ -45,14 +46,16 @@ return {
           ["<C-e>"] = cmp.mapping.abort(),
           ["<CR>"] = cmp.mapping.confirm({select = true}),
           ["<Tab>"] = vim.schedule_wrap(function(fallback)
-            if cmp.visible() and has_words_before() then
+            if cmp.visible() then
               cmp.select_next_item({behavior = cmp.SelectBehavior.Select})
             elseif fn["vsnip#available"](1) == 1 then
               feedkey("<plug>(vsnip-expand-or-jump)", "")
+            elseif has_words_before() then
+              cmp.complete()
             else
               fallback()
             end
-          end),
+          end, {"i", "s"}),
           ["<S-Tab>"] = cmp.mapping(function()
             if cmp.visible() then
               cmp.select_prev_item()
