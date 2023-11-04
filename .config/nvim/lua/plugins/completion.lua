@@ -67,10 +67,10 @@ return {
         sources = cmp.config.sources({
           {name = "copilot"},
           {name = "nvim_lsp"},
-          {name = "nvim_lua"},
-          {name = "vsnip"},
           {name = "buffer"},
           {name = "path"},
+          {name = "vsnip"},
+          {name = "nvim_lua"},
         }),
       })
     end,
