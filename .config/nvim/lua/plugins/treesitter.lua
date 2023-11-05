@@ -5,6 +5,7 @@ return {
     dependencies = {
       "nvim-treesitter/nvim-treesitter-textobjects",
     },
+    main = 'nvim-treesitter.configs',
     opts = {
       ensure_installed = {
         "bash",
