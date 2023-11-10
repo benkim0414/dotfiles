@@ -30,6 +30,7 @@ return {
         "lua",
         "markdown",
         "markdown_inline",
+        "norg",
         "proto",
         "python",
         "ruby",
