@@ -1,0 +1,1 @@
+/Users/gunwoo/.dotfiles/vim/bundle/vimspector/support/test/python/simple_python/make_env.sh

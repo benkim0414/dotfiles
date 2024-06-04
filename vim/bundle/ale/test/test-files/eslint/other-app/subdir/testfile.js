@@ -1,0 +1,1 @@
+/Users/gunwoo/.dotfiles/vim/bundle/ale/test/test-files/eslint/other-app/subdir/testfile.js

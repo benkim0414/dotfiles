@@ -1,0 +1,1 @@
+/Users/gunwoo/.dotfiles/vim/bundle/vim-test/spec/fixtures/sbt/whatever_test_smth.scala

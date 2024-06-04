@@ -1,0 +1,1 @@
+/Users/gunwoo/.dotfiles/vim/bundle/vim-test/spec/fixtures/mamba/normal_spec.py

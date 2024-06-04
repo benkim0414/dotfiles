@@ -1,0 +1,1 @@
+/Users/gunwoo/.dotfiles/vim/bundle/vim-test/spec/fixtures/gotest/mypackage/normal_test.go

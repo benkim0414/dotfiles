@@ -1,0 +1,1 @@
+/Users/gunwoo/.dotfiles/vim/bundle/vim-test/spec/fixtures/js_multiple/__tests__/normal-test.js

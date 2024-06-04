@@ -1,0 +1,1 @@
+/Users/gunwoo/.dotfiles/vim/bundle/fzf/src/result_x86.go

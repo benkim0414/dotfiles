@@ -1,0 +1,1 @@
+/Users/gunwoo/.dotfiles/vim/bundle/vim-test/spec/fixtures/ember/src/addition-test.js

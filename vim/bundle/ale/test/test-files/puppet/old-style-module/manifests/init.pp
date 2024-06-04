@@ -1,0 +1,1 @@
+/Users/gunwoo/.dotfiles/vim/bundle/ale/test/test-files/puppet/old-style-module/manifests/init.pp

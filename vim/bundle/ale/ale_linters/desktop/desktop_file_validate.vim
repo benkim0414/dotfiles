@@ -1,0 +1,1 @@
+/Users/gunwoo/.dotfiles/vim/bundle/ale/ale_linters/desktop/desktop_file_validate.vim

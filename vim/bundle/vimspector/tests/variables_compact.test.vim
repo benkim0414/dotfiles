@@ -1,0 +1,1 @@
+/Users/gunwoo/.dotfiles/vim/bundle/vimspector/tests/variables_compact.test.vim

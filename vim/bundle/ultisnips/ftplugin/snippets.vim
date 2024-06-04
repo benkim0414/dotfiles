@@ -1,0 +1,1 @@
+/Users/gunwoo/.dotfiles/vim/bundle/ultisnips/ftplugin/snippets.vim

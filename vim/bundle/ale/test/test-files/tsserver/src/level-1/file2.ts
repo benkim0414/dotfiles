@@ -1,0 +1,1 @@
+/Users/gunwoo/.dotfiles/vim/bundle/ale/test/test-files/tsserver/src/level-1/file2.ts

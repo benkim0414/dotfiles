@@ -1,0 +1,1 @@
+/Users/gunwoo/.dotfiles/vim/bundle/fzf/shell/key-bindings.bash

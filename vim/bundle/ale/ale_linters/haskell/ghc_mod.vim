@@ -1,0 +1,1 @@
+/Users/gunwoo/.dotfiles/vim/bundle/ale/ale_linters/haskell/ghc_mod.vim

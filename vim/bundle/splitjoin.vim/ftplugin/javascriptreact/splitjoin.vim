@@ -1,0 +1,1 @@
+/Users/gunwoo/.dotfiles/vim/bundle/splitjoin.vim/ftplugin/javascriptreact/splitjoin.vim

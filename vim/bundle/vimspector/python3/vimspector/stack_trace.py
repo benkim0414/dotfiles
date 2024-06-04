@@ -1,0 +1,1 @@
+/Users/gunwoo/.dotfiles/vim/bundle/vimspector/python3/vimspector/stack_trace.py

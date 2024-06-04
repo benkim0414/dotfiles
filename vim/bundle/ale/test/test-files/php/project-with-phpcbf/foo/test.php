@@ -1,0 +1,1 @@
+/Users/gunwoo/.dotfiles/vim/bundle/ale/test/test-files/php/project-with-phpcbf/foo/test.php

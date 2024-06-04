@@ -1,0 +1,1 @@
+/Users/gunwoo/.dotfiles/vim/bundle/ale/test/test-files/ruby/not_a_rails_app/file.rb

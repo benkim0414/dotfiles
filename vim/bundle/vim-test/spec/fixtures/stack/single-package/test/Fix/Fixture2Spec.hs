@@ -1,0 +1,1 @@
+/Users/gunwoo/.dotfiles/vim/bundle/vim-test/spec/fixtures/stack/single-package/test/Fix/Fixture2Spec.hs

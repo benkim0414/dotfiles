@@ -1,0 +1,1 @@
+/Users/gunwoo/.dotfiles/vim/bundle/vim-tmux-navigator/vim-tmux-navigator.tmux

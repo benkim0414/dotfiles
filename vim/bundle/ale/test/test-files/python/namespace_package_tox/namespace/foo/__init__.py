@@ -1,0 +1,1 @@
+/Users/gunwoo/.dotfiles/vim/bundle/ale/test/test-files/python/namespace_package_tox/namespace/foo/__init__.py

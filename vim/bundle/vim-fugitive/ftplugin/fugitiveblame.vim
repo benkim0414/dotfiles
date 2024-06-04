@@ -1,0 +1,1 @@
+/Users/gunwoo/.dotfiles/vim/bundle/vim-fugitive/ftplugin/fugitiveblame.vim

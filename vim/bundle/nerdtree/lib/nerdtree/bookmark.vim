@@ -1,0 +1,1 @@
+/Users/gunwoo/.dotfiles/vim/bundle/nerdtree/lib/nerdtree/bookmark.vim

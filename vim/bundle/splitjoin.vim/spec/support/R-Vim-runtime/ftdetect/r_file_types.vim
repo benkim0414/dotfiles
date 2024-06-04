@@ -1,0 +1,1 @@
+/Users/gunwoo/.dotfiles/vim/bundle/splitjoin.vim/spec/support/R-Vim-runtime/ftdetect/r_file_types.vim

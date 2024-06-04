@@ -1,0 +1,1 @@
+/Users/gunwoo/.dotfiles/vim/bundle/vim-test/spec/fixtures/maven/sample_maven_junit3_project/src/main/java/org/vimtest/calc/Calculation.java

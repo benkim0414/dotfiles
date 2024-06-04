@@ -1,0 +1,1 @@
+/Users/gunwoo/.dotfiles/vim/bundle/ale/test/test-files/swift/non-swift-package-project/src/folder/dummy.swift

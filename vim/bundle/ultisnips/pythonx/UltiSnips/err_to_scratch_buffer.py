@@ -1,0 +1,1 @@
+/Users/gunwoo/.dotfiles/vim/bundle/ultisnips/pythonx/UltiSnips/err_to_scratch_buffer.py

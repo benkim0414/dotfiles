@@ -1,0 +1,1 @@
+/Users/gunwoo/.dotfiles/vim/bundle/vim-test/spec/kotlin_gradletest_spec_koltin_dsl.vim

@@ -1,0 +1,1 @@
+/Users/gunwoo/.dotfiles/vim/bundle/splitjoin.vim/spec/support/rust.vim/syntax_checkers/rust/cargo.vim

@@ -1,0 +1,1 @@
+/Users/gunwoo/.dotfiles/vim/bundle/ale/ale_linters/haskell/stack_ghc.vim

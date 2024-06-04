@@ -1,0 +1,1 @@
+/Users/gunwoo/.dotfiles/vim/bundle/fzf/src/tui/light_windows.go

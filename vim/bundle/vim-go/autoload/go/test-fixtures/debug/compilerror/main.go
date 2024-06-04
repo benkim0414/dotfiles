@@ -1,0 +1,1 @@
+/Users/gunwoo/.dotfiles/vim/bundle/vim-go/autoload/go/test-fixtures/debug/compilerror/main.go

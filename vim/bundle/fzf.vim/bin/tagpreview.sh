@@ -1,0 +1,1 @@
+/Users/gunwoo/.dotfiles/vim/bundle/fzf.vim/bin/tagpreview.sh

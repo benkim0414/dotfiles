@@ -1,0 +1,1 @@
+/Users/gunwoo/.dotfiles/vim/bundle/splitjoin.vim/spec/support/vim-javascript/ISSUE_TEMPLATE.md

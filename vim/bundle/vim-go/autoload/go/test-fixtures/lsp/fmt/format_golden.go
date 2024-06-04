@@ -1,0 +1,1 @@
+/Users/gunwoo/.dotfiles/vim/bundle/vim-go/autoload/go/test-fixtures/lsp/fmt/format_golden.go

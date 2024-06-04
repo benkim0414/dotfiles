@@ -1,0 +1,1 @@
+/Users/gunwoo/.dotfiles/vim/bundle/vim-test/spec/fixtures/gradle/kotlin/gradle_single_module_kotlin_dsl/src/test/kotlin/TestCalculation.kt

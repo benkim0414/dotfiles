@@ -1,0 +1,1 @@
+/Users/gunwoo/.dotfiles/vim/bundle/gruvbox/colors/gruvbox.vim

@@ -1,0 +1,1 @@
+/Users/gunwoo/.dotfiles/vim/bundle/vimspector/tests/lib/plugin/screendump.vim
