@@ -1,1 +1,0 @@
-/Users/gunwoo/.dotfiles/vim/bundle/vim-test/spec/fixtures/nim/test_normal.nim

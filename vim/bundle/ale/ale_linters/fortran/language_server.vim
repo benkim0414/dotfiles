@@ -1,1 +1,0 @@
-/Users/gunwoo/.dotfiles/vim/bundle/ale/ale_linters/fortran/language_server.vim

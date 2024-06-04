@@ -1,1 +1,0 @@
-/Users/gunwoo/.dotfiles/vim/bundle/vimspector/autoload/vimspector/internal/neochannel.vim

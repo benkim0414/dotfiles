@@ -1,1 +1,0 @@
-/Users/gunwoo/.dotfiles/vim/bundle/vim-test/spec/fixtures/gradle/kotlin/gradle_multi_module/sample_module/src/main/kotlin/org/vimtest/calc/Calculation.kt

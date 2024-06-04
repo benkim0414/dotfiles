@@ -1,1 +1,0 @@
-/Users/gunwoo/.dotfiles/vim/bundle/vim-test/spec/fixtures/gradle/java/gradle_multi_module_deep/hello/world/src/main/java/org/vimtest/msg/MessageService.java

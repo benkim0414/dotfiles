@@ -1,1 +1,0 @@
-/Users/gunwoo/.dotfiles/vim/bundle/vim-test/spec/dusk_spec.vim

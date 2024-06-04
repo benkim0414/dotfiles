@@ -1,1 +1,0 @@
-/Users/gunwoo/.dotfiles/vim/bundle/nerdtree/lib/nerdtree/menu_controller.vim

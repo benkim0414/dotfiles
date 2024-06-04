@@ -1,1 +1,0 @@
-/Users/gunwoo/.dotfiles/vim/bundle/fzf/src/util/eventbox_test.go

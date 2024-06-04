@@ -1,1 +1,0 @@
-/Users/gunwoo/.dotfiles/vim/bundle/vim-test/spec/fixtures/nx/outside-test.js

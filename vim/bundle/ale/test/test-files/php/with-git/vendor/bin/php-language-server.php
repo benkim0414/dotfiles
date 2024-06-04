@@ -1,1 +1,0 @@
-/Users/gunwoo/.dotfiles/vim/bundle/ale/test/test-files/php/with-git/vendor/bin/php-language-server.php

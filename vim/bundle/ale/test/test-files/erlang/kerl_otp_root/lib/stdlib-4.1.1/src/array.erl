@@ -1,1 +1,0 @@
-/Users/gunwoo/.dotfiles/vim/bundle/ale/test/test-files/erlang/kerl_otp_root/lib/stdlib-4.1.1/src/array.erl

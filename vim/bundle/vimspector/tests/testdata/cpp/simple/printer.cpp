@@ -1,1 +1,0 @@
-/Users/gunwoo/.dotfiles/vim/bundle/vimspector/tests/testdata/cpp/simple/printer.cpp

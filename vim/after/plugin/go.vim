@@ -1,1 +1,0 @@
-/Users/gunwoo/.dotfiles/vim/after/plugin/go.vim

@@ -1,1 +1,0 @@
-/Users/gunwoo/.dotfiles/vim/bundle/ale/test/test-files/scala/valid_sbt_project/build.sbt

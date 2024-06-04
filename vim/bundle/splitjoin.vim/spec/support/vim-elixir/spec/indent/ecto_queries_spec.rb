@@ -1,1 +1,0 @@
-/Users/gunwoo/.dotfiles/vim/bundle/splitjoin.vim/spec/support/vim-elixir/spec/indent/ecto_queries_spec.rb

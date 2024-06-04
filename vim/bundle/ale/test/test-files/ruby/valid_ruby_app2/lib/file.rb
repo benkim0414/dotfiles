@@ -1,1 +1,0 @@
-/Users/gunwoo/.dotfiles/vim/bundle/ale/test/test-files/ruby/valid_ruby_app2/lib/file.rb

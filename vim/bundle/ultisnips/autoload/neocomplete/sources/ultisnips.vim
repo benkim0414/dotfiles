@@ -1,1 +1,0 @@
-/Users/gunwoo/.dotfiles/vim/bundle/ultisnips/autoload/neocomplete/sources/ultisnips.vim

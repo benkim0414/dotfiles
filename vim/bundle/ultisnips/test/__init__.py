@@ -1,1 +1,0 @@
-/Users/gunwoo/.dotfiles/vim/bundle/ultisnips/test/__init__.py

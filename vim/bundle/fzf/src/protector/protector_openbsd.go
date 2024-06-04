@@ -1,1 +1,0 @@
-/Users/gunwoo/.dotfiles/vim/bundle/fzf/src/protector/protector_openbsd.go

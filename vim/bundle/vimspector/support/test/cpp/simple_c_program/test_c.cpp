@@ -1,1 +1,0 @@
-/Users/gunwoo/.dotfiles/vim/bundle/vimspector/support/test/cpp/simple_c_program/test_c.cpp

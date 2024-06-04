@@ -1,1 +1,0 @@
-/Users/gunwoo/.dotfiles/vim/bundle/ale/test/test-files/phpcs/project-without-phpcs/foo/test.php

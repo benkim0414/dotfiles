@@ -1,1 +1,0 @@
-/Users/gunwoo/.dotfiles/vim/bundle/vim-textobj-entire/autoload/textobj/entire.vim

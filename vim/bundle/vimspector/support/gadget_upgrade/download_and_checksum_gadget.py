@@ -1,1 +1,0 @@
-/Users/gunwoo/.dotfiles/vim/bundle/vimspector/support/gadget_upgrade/download_and_checksum_gadget.py

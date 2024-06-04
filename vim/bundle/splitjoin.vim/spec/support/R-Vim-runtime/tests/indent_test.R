@@ -1,1 +1,0 @@
-/Users/gunwoo/.dotfiles/vim/bundle/splitjoin.vim/spec/support/R-Vim-runtime/tests/indent_test.R

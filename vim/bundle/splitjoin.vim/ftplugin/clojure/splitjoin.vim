@@ -1,1 +1,0 @@
-/Users/gunwoo/.dotfiles/vim/bundle/splitjoin.vim/ftplugin/clojure/splitjoin.vim

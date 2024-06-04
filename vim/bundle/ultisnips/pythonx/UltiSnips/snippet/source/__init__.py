@@ -1,1 +1,0 @@
-/Users/gunwoo/.dotfiles/vim/bundle/ultisnips/pythonx/UltiSnips/snippet/source/__init__.py

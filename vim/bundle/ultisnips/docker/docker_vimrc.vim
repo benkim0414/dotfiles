@@ -1,1 +1,0 @@
-/Users/gunwoo/.dotfiles/vim/bundle/ultisnips/docker/docker_vimrc.vim

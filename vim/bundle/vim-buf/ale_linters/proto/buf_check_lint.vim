@@ -1,1 +1,0 @@
-/Users/gunwoo/.dotfiles/vim/bundle/vim-buf/ale_linters/proto/buf_check_lint.vim

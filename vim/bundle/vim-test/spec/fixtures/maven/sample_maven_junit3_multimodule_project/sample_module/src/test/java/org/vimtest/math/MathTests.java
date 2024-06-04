@@ -1,1 +1,0 @@
-/Users/gunwoo/.dotfiles/vim/bundle/vim-test/spec/fixtures/maven/sample_maven_junit3_multimodule_project/sample_module/src/test/java/org/vimtest/math/MathTests.java

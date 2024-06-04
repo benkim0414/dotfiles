@@ -1,1 +1,0 @@
-/Users/gunwoo/.dotfiles/vim/bundle/gruvbox/gruvbox_256palette.sh

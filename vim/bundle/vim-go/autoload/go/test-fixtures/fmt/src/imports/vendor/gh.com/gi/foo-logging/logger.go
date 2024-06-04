@@ -1,1 +1,0 @@
-/Users/gunwoo/.dotfiles/vim/bundle/vim-go/autoload/go/test-fixtures/fmt/src/imports/vendor/gh.com/gi/foo-logging/logger.go

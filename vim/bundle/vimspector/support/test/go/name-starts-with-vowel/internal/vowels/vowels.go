@@ -1,1 +1,0 @@
-/Users/gunwoo/.dotfiles/vim/bundle/vimspector/support/test/go/name-starts-with-vowel/internal/vowels/vowels.go

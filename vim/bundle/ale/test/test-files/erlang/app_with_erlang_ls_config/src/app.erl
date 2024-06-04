@@ -1,1 +1,0 @@
-/Users/gunwoo/.dotfiles/vim/bundle/ale/test/test-files/erlang/app_with_erlang_ls_config/src/app.erl

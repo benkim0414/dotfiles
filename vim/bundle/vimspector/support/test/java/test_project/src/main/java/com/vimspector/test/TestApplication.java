@@ -1,1 +1,0 @@
-/Users/gunwoo/.dotfiles/vim/bundle/vimspector/support/test/java/test_project/src/main/java/com/vimspector/test/TestApplication.java

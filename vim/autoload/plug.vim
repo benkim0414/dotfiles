@@ -1,1 +1,0 @@
-/Users/gunwoo/.dotfiles/vim/autoload/plug.vim

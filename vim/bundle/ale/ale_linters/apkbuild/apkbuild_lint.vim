@@ -1,1 +1,0 @@
-/Users/gunwoo/.dotfiles/vim/bundle/ale/ale_linters/apkbuild/apkbuild_lint.vim

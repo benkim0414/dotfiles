@@ -1,1 +1,0 @@
-/Users/gunwoo/.dotfiles/vim/bundle/ale/test/test-files/python/no_virtualenv/subdir/foo/bar.py

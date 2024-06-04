@@ -1,1 +1,0 @@
-/Users/gunwoo/.dotfiles/vim/bundle/fzf/test/test_go.rb

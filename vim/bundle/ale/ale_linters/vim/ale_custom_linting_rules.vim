@@ -1,1 +1,0 @@
-/Users/gunwoo/.dotfiles/vim/bundle/ale/ale_linters/vim/ale_custom_linting_rules.vim
