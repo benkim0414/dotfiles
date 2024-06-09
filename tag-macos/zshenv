@@ -1,6 +1,6 @@
 # Homebrew
-eval "$($(which brew) shellenv)"
 export PATH="/usr/local/bin:$PATH"
+eval "$($(which brew) shellenv)"
 
 export PATH="$HOME/bin:$PATH"
 
