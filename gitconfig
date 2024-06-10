@@ -25,8 +25,11 @@
   light = false
   line-numbers = true
   navigate = true
+  features = catppuccin-mocha
 [fetch]
   prune = true
+[include]
+  path = $HOME/.dotfiles/catppuccin.gitconfig
 [init]
   defaultBranch = main
 [interactive]
