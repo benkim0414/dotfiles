@@ -1,0 +1,5 @@
+COPY_ALWAYS="bin"
+DOTFILES_DIRS="$HOME/workspace/dotfiles"
+EXCLUDES="catppuccin.gitconfig"
+TAGS="pi"
+UNDOTTED="bin"
