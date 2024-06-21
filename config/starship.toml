@@ -10,7 +10,6 @@ $golang\
 $python\
 $nodejs\
 $terraform\
-$kubernetes\
 """
 
 add_newline = false
