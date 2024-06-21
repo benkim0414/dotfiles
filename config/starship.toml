@@ -55,6 +55,14 @@ style = "bold maroon"
 
 [git_status]
 style = "bold maroon"
+ahead = "+"
+behind = "-"
+stashed = ""
+modified = "M"
+staged = "S"
+renamed = "R"
+deleted = "D"
+typechanged = "T"
 
 [character]
 success_symbol = "[](green)"
