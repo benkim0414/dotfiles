@@ -1,0 +1,11 @@
+---
+- name: Ensure cmake is installed
+  become: yes
+  apt:
+    name: cmake
+- name: Install starship
+  shell: cargo install starship --locked
+  vars:
+    cargo_home: "{{ ansible_env.HOME }}/.cargo"
+  environment:
+    PATH: "{{ cargo_home }}/bin:{{ ansible_env.PATH }}"

@@ -1,0 +1,9 @@
+pis:
+  hosts:
+    pi5:
+      ansible_host: pi5-8gb-crucial-p3-plus-500gb.local
+    pi3b:
+      ansible_host: pi3b-1gb-samsung-fit-plus-128gb.local
+  vars:
+    ansible_user: pi
+    ansible_ssh_private_key_file: ~/.ssh/id_pi
