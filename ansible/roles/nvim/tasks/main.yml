@@ -1,0 +1,10 @@
+---
+- name: Install snap
+  become: yes
+  apt:
+    name: snapd
+- name: Install Neovim via snap
+  become: yes
+  community.general.snap:
+    name: nvim
+    classic: true

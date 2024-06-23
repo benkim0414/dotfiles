@@ -1,0 +1,28 @@
+---
+- hosts: pis
+  roles:
+    - role: roles/git
+    - role: roles/dotfiles
+    - role: gantsign.golang
+      vars:
+        golang_gopath: "$HOME/workspace/go"
+    - role: stephdewit.nvm
+      become: yes
+      vars:
+        nvm_version: latest
+        nvm_node_version: lts
+    - role: staticdev.pyenv
+      vars:
+        pyenv_path: "{{ ansible_env.HOME }}/.pyenv"
+        pyenvrc_path: "{{ ansible_env.HOME }}"
+    - role: hurricanehrndz.rustup
+      vars:
+        rustup_configure_shell: false
+        rustup_cargo_crates:
+          - fd-find
+          - ripgrep
+    - role: roles/zsh
+    - role: roles/tmux
+    - role: roles/starship
+    - role: roles/fzf
+    - role: roles/nvim
