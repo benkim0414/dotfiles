@@ -1,7 +1,0 @@
----
-- name: Install Git and GitHub CLI
-  become: yes
-  apt:
-    name:
-      - git
-      - gh

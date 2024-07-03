@@ -1,0 +1,11 @@
+sz() { source ~/.zshrc }
+
+source .antidote/antidote.zsh
+antidote load ${ZDOTDIR:-$HOME}/.zsh_plugins.txt
+
+for zsh_source in $HOME/.zsh/configs/*.zsh; do
+  source $zsh_source
+done
+
+ensure_tmux_is_running
+

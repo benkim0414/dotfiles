@@ -1,15 +1,11 @@
-export PATH="$HOME/bin:$HOME/.local/bin:$PATH"
+# bin
+export PATH="$HOME/bin:$PATH"
+export PATH="$HOME/.local/bin:$PATH"
 
-# Snap
-export PATH=$PATH:/snap/bin
+# snap
+export PATH="/snap/bin:$PATH"
 
 # Go
-export PATH="$(go env GOPATH)/bin:$PATH"
-
-# pyenv
-export PYENV_ROOT="$HOME/.pyenv"
-export PATH="$PYENV_ROOT/bin:$PATH"
-
-# nvm
-export NVM_DIR="$HOME/.nvm"
-
+export GO111MODULE=on
+export GOPATH="$HOME/go"
+export PATH="$GOPATH/bin:$PATH"
