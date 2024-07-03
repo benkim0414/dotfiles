@@ -1,6 +1,6 @@
 sz() { source ~/.zshrc }
 
-source .antidote/antidote.zsh
+source ${ZDOTDIR:-$HOME}/.antidote/antidote.zsh
 antidote load ${ZDOTDIR:-$HOME}/.zsh_plugins.txt
 
 for zsh_source in $HOME/.zsh/configs/*.zsh; do
