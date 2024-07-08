@@ -9,7 +9,6 @@ right_format = """
 $golang\
 $python\
 $nodejs\
-$terraform\
 """
 
 add_newline = false
@@ -45,16 +44,17 @@ mantle = "#181825"
 crust = "#11111b"
 
 [directory]
-style = "bold lavender"
+truncation_length = 1
+style = "bold blue"
 format = "[$path ]($style)"
 
 [git_branch]
 symbol = " "
 format = "[$symbol$branch ]($style)"
-style = "bold maroon"
+style = "bold red"
 
 [git_status]
-style = "bold maroon"
+style = "bold red"
 ahead = "+"
 behind = "-"
 stashed = ""
@@ -82,14 +82,3 @@ style = "bold yellow"
 symbol = "󰟓 "
 format = "[$symbol($version )]($style)"
 style = "bold sky"
-
-[terraform]
-symbol = "󱁢 "
-format = "[$symbol$workspace ]($style)"
-style = "bold lavender"
-
-[kubernetes]
-disabled = false
-symbol = "󱃾 "
-format = "[$symbol$context(/$namespace)]($style)"
-style = "bold blue"
