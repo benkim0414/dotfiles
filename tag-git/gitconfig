@@ -13,6 +13,11 @@
   patch = add --patch
   pl = pull
   ps = push
+  stash-untracked = "!f() {  \
+    git stash;               \
+    git stash -u;            \
+    git stash pop stash@{1}; \
+  }; f"
   uncommit = reset --soft HEAD^
   unstage = reset HEAD --
 [color]
