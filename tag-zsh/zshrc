@@ -1,11 +1,10 @@
 sz() { source ~/.zshrc }
 
-source ${ZDOTDIR:-$HOME}/.antidote/antidote.zsh
-antidote load ${ZDOTDIR:-$HOME}/.zsh_plugins.txt
-
 for zsh_source in $HOME/.zsh/configs/*.zsh; do
   source $zsh_source
 done
 
-ensure_tmux_is_running
+source ${ZDOTDIR:-$HOME}/.antidote/antidote.zsh
+antidote load ${ZDOTDIR:-$HOME}/.zsh_plugins.txt
 
+ensure_tmux_is_running
