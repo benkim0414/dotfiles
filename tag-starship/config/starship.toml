@@ -65,9 +65,9 @@ deleted = "D"
 typechanged = "T"
 
 [character]
-success_symbol = "[](green)"
-error_symbol = "[](red)"
-vimcmd_symbol = "[](blue)"
+success_symbol = "[\\$](green)"
+error_symbol = "[\\$](red)"
+vimcmd_symbol = "[\\$](blue)"
 
 [nodejs]
 format = "[$symbol($version )]($style)"
