@@ -53,3 +53,6 @@
 [user]
   name = Gunwoo Ben Kim
   email = benkim0414@gmail.com
+[credential]
+	helper = 
+	helper = /usr/local/share/gcm-core/git-credential-manager
