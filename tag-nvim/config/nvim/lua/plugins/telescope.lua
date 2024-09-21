@@ -4,11 +4,11 @@ return {
     lazy = false,
     dependencies = {
       "nvim-lua/plenary.nvim",
-      {"nvim-telescope/telescope-fzf-native.nvim", build = "make"},
+      { "nvim-telescope/telescope-fzf-native.nvim", build = "make" },
     },
     config = function()
       local config = require("telescope.config")
-      local vimgrep_arguments = {unpack(config.values.vimgrep_arguments)}
+      local vimgrep_arguments = { unpack(config.values.vimgrep_arguments) }
       table.insert(vimgrep_arguments, "--hidden")
       table.insert(vimgrep_arguments, "--glob")
       table.insert(vimgrep_arguments, "!**/.git/*")
@@ -25,7 +25,7 @@ return {
         },
         pickers = {
           find_files = {
-            find_command = {"rg", "--files", "--hidden", "--glob", "!**/.git/*"},
+            find_command = { "rg", "--files", "--hidden", "--glob", "!**/.git/*" },
           },
         },
       }

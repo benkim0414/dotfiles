@@ -26,7 +26,7 @@ return {
           return false
         end
         local line, col = unpack(api.nvim_win_get_cursor(0))
-        return col ~= 0 and api.nvim_buf_get_text(0, line-1, 0, line-1, col, {})[1]:match("^%s*$") == nil
+        return col ~= 0 and api.nvim_buf_get_text(0, line - 1, 0, line - 1, col, {})[1]:match("^%s*$") == nil
       end
 
       local function feedkey(key, mode)
@@ -44,10 +44,10 @@ return {
           ["<C-b>"] = cmp.mapping.scroll_docs(-4),
           ["<C-f>"] = cmp.mapping.scroll_docs(4),
           ["<C-e>"] = cmp.mapping.abort(),
-          ["<CR>"] = cmp.mapping.confirm({select = true}),
+          ["<CR>"] = cmp.mapping.confirm({ select = true }),
           ["<Tab>"] = vim.schedule_wrap(function(fallback)
             if cmp.visible() then
-              cmp.select_next_item({behavior = cmp.SelectBehavior.Select})
+              cmp.select_next_item({ behavior = cmp.SelectBehavior.Select })
             elseif fn["vsnip#available"](1) == 1 then
               feedkey("<plug>(vsnip-expand-or-jump)", "")
             elseif has_words_before() then
@@ -55,35 +55,35 @@ return {
             else
               fallback()
             end
-          end, {"i", "s"}),
+          end, { "i", "s" }),
           ["<S-Tab>"] = cmp.mapping(function()
             if cmp.visible() then
               cmp.select_prev_item()
             elseif fn["vsnip#jumpable"](-1) == 1 then
               feedkey("<Plug>(vsnip-jump-prev)", "")
             end
-          end, {"i", "s"}),
+          end, { "i", "s" }),
         }),
         sources = cmp.config.sources({
-          {name = "nvim_lsp"},
-          {name = "buffer"},
-          {name = "path"},
-          {name = "vsnip"},
-          {name = "nvim_lua"},
+          { name = "nvim_lsp" },
+          { name = "buffer" },
+          { name = "path" },
+          { name = "vsnip" },
+          { name = "nvim_lua" },
         }),
       })
 
       cmp.setup.cmdline("/", {
         mapping = cmp.mapping.preset.cmdline(),
         sources = {
-          {name = "buffer"},
+          { name = "buffer" },
         },
       })
 
       cmp.setup.cmdline(":", {
         mapping = cmp.mapping.preset.cmdline(),
         sources = cmp.config.sources({
-          {name = "path"}
+          { name = "path" }
         }, {
           {
             name = "cmdline",
