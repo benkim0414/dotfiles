@@ -34,7 +34,6 @@ return {
 
       local nnoremap = require("utils").nnoremap
       nnoremap("<C-p>", "<Cmd>Telescope find_files<CR>")
-      nnoremap("<Leader>g", "<Cmd>Telescope git_files<CR>")
       nnoremap("<Leader>rg", "<Cmd>Telescope live_grep<CR>")
       nnoremap("<Leader>B", "<Cmd>Telescope buffers<CR>")
       nnoremap("<Leader>ht", "<Cmd>Telescope help_tags<CR>")
