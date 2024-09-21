@@ -17,7 +17,7 @@ return {
         callback = function(ev)
           vim.bo[ev.buf].omnifunc = "v:lua.vim.lsp.omnifunc"
 
-          local opts = {buffer = ev.buf}
+          local opts = { buffer = ev.buf }
           vim.keymap.set("n", "gD", vim.lsp.buf.declaration, opts)
           vim.keymap.set("n", "gd", vim.lsp.buf.definition, opts)
           vim.keymap.set("n", "K", vim.lsp.buf.hover, opts)
@@ -29,17 +29,17 @@ return {
           end, opts)
           vim.keymap.set("n", "<Space>D", vim.lsp.buf.type_definition, opts)
           vim.keymap.set("n", "<Space>rn", vim.lsp.buf.rename, opts)
-          vim.keymap.set({"n", "v"}, "<Space>ca", vim.lsp.buf.code_action, opts)
+          vim.keymap.set({ "n", "v" }, "<Space>ca", vim.lsp.buf.code_action, opts)
           vim.keymap.set("n", "<Space>r", vim.lsp.buf.references, opts)
           vim.keymap.set("n", "<Space>f", function()
-            vim.lsp.buf.format {async = true}
+            vim.lsp.buf.format { async = true }
           end, opts)
         end,
       })
 
       require("mason").setup()
       require("mason-lspconfig").setup {
-        ensure_installed = {"lua_ls", "pyright", "tsserver"},
+        ensure_installed = { "lua_ls", "pyright", "ts_ls" },
         automatic_installation = true,
         handlers = {
           function(server_name)
@@ -51,15 +51,15 @@ return {
             }
           end,
           ["lua_ls"] = function()
-             lspconfig.lua_ls.setup {
-               settings = {
-                 Lua = {
-                   diagnostics = {
-                       globals = {"vim"},
-                   },
-                 },
-               },
-             }
+            lspconfig.lua_ls.setup {
+              settings = {
+                Lua = {
+                  diagnostics = {
+                    globals = { "vim" },
+                  },
+                },
+              },
+            }
           end,
         },
       }
