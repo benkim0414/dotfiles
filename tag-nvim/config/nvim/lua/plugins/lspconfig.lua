@@ -40,7 +40,7 @@ return {
 
       require("mason").setup()
       require("mason-lspconfig").setup {
-        ensure_installed = { "lua_ls", "pyright", "ts_ls" },
+        ensure_installed = { "gopls", "lua_ls", "pyright", "ts_ls" },
         automatic_installation = true,
         handlers = {
           function(server_name)
@@ -49,6 +49,21 @@ return {
               flags = {
                 debounce_text_changes = 150,
               },
+            }
+          end,
+          gopls = function()
+            lspconfig.gopls.setup {
+              capabilities = capabilities,
+              settings = {
+                gopls = {
+                  gofumpt = true,
+                  completeUnimported = true,
+                  usePlaceholders = true,
+                  analyses = {
+                    unusedparams = true,
+                  }
+                }
+              }
             }
           end,
           ["lua_ls"] = function()

@@ -2,6 +2,9 @@ return {
   {
     "stevearc/conform.nvim",
     opts = {
+      formatters = {
+        golines = {
+          args = { "-m", "80" }
         },
         ["markdown-toc"] = {
           condition = function(_, ctx)
@@ -22,6 +25,7 @@ return {
         },
       },
       formatters_by_ft = {
+        go = { "gofumpt", "goimports", "golines" },
         typescript = { "prettier", stop_after_first = true },
         ["markdown"] = { "prettier", "markdownlint-cli2", "markdown-toc" },
         ["markdown.mdx"] = { "prettier", "markdownlint-cli2", "markdown-toc" },
