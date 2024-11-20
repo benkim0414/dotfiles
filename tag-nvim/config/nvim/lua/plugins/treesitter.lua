@@ -15,6 +15,7 @@ return {
         "git_rebase",
         "gitcommit",
         "gitignore",
+        "go",
         "json",
         "json5",
         "lua",
