@@ -6,37 +6,32 @@ return {
       "nvim-lua/plenary.nvim",
       { "nvim-telescope/telescope-fzf-native.nvim", build = "make" },
     },
-    config = function()
-      local config = require("telescope.config")
-      local vimgrep_arguments = { unpack(config.values.vimgrep_arguments) }
-      table.insert(vimgrep_arguments, "--hidden")
-      table.insert(vimgrep_arguments, "--glob")
-      table.insert(vimgrep_arguments, "!**/.git/*")
-      table.insert(vimgrep_arguments, "--trim")
-
-      require("telescope").setup {
-        defaults = {
-          mappings = {
-            i = {
-              ["<Esc>"] = require("telescope.actions").close,
-            },
-          },
-          vimgrep_arguments = vimgrep_arguments,
-        },
-        pickers = {
-          find_files = {
-            find_command = { "rg", "--files", "--hidden", "--glob", "!**/.git/*" },
+    keys = {
+      { "<C-p>",      "<Cmd>Telescope find_files<CR>",          desc = "Find Files" },
+      { "<Leader>/",  "<Cmd>Telescope live_grep<CR>",           desc = "Grep" },
+      { "<Leader>:",  "<Cmd>Telescope command_history<CR>",     desc = "Command History" },
+      { "<Leader>gc", "<Cmd>Telescope git_commits<CR>",         desc = "Commits" },
+      { "<Leader>gs", "<Cmd>Telescope git_status<CR>",          desc = "Status" },
+      { "<Leader>s",  "<Cmd>Telescope registers<CR>",           desc = "Registers" },
+      { "<Leader>sb", "<Cmd>Telescope buffers<CR>",             desc = "Buffer" },
+      { "<Leader>sc", "<Cmd>Telescope command_history<CR>",     desc = "Command History" },
+      { "<Leader>sd", "<Cmd>Telescope diagnostics bufnr=0<CR>", desc = "Document Diagnostics" },
+      { "<Leader>sh", "<Cmd>Telescope help_tags<CR>",           desc = "Help Pages" },
+      { "<Leader>sq", "<Cmd>Telescope quickfix<CR>",            desc = "Quickfix List" },
+    },
+    opts = {
+      defaults = {
+        mappings = {
+          i = {
+            ["<Esc>"] = require("telescope.actions").close,
           },
         },
-      }
-
-      require("telescope").load_extension("fzf")
-
-      local nnoremap = require("utils").nnoremap
-      nnoremap("<C-p>", "<Cmd>Telescope find_files<CR>")
-      nnoremap("<Leader>rg", "<Cmd>Telescope live_grep<CR>")
-      nnoremap("<Leader>b", "<Cmd>Telescope buffers<CR>")
-      nnoremap("<Leader>ht", "<Cmd>Telescope help_tags<CR>")
-    end,
-  },
+      },
+      pickers = {
+        find_files = {
+          find_command = { "rg", "--files", "--hidden", "--glob", "!**/.git/*" },
+        },
+      },
+    },
+  }
 }
