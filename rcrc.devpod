@@ -1,3 +1,0 @@
-COPY_ALWAYS="bin"
-DOTFILES_DIRS="$HOME/dotfiles"
-TAGS="git lazyvim starship tmux zsh"
