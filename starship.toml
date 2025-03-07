@@ -1,0 +1,45 @@
+add_newline = false
+
+format = '$directory$git_branch$git_status$character'
+right_format = '$golang$python$nodejs$kubernetes'
+
+[directory]
+truncation_length = 1
+format = '[$path ]($style)'
+style = 'bold blue'
+
+[git_branch]
+symbol = ' '
+format = '[$symbol$branch ]($style)'
+style = 'bold red'
+
+[git_status]
+format = '([\[$all_status$ahead_behind\] ]($style))'
+style = 'bold red'
+ahead = '+'
+behind = '-'
+stashed = ''
+modified = 'M'
+staged = 'S'
+renamed = 'R'
+deleted = 'D'
+typechanged = 'T'
+
+[character]
+success_symbol = '[\$](green)'
+error_symbol = '[\$](red)'
+vimcmd_symbol = '[\$](blue)'
+
+[golang]
+symbol = '󰟓 '
+format = '[$symbol($version )]($style)'
+style = 'bold sky'
+
+[python]
+symbol = '󰌠 '
+format = '[$symbol($version )]($style)'
+style = 'bold yellow'
+
+[nodejs]
+format = '[$symbol($version )]($style)'
+style = 'bold green'

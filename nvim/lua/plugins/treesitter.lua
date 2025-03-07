@@ -21,6 +21,7 @@ return {
         "lua",
         "markdown",
         "markdown_inline",
+        "nix",
         "proto",
         "python",
         "yaml",

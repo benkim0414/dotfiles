@@ -29,6 +29,8 @@ return {
         typescript = { "prettier", stop_after_first = true },
         ["markdown"] = { "prettier", "markdownlint-cli2", "markdown-toc" },
         ["markdown.mdx"] = { "prettier", "markdownlint-cli2", "markdown-toc" },
+        lua = { "stylua" },
+        nix = { "nixfmt" },
       },
       format_on_save = {
         timeout_ms = 500,
