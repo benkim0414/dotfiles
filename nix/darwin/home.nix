@@ -10,7 +10,41 @@ in
     packages = [
       pkgs.nerd-fonts.symbols-only
     ];
-    file.".local/bin".source = mkOutOfStoreSymlink "/Users/gunwoo/workspace/dotfiles/bin";
+    file.".local/bin/tmux-sessionizer" = {
+      executable = true;
+      text = ''
+        #!/usr/bin/env bash
+
+        if [[ $# -eq 1 ]]; then
+          selected=$1
+        else
+          selected=$(find ~/workspace ~/.config -mindepth 1 -maxdepth 1 -type d | fzf)
+        fi
+
+        if [[ -z $selected ]]; then
+          exit 0
+        fi
+
+        selected_name=$(basename "$selected" | tr . _)
+        tmux_running=$(pgrep tmux)
+
+        if [[ -z $TMUX ]] && [[ -z $tmux_running ]]; then
+          tmux new-session -s $selected_name -c $selected
+          exit 0
+        fi
+
+        if ! tmux has-session -t=$selected_name 2> /dev/null; then
+          tmux new-session -ds $selected_name -c $selected
+        fi
+
+        if [[ -z $TMUX ]]; then
+          tmux attach-session -t $selected_name
+        else
+          tmux switch-client -t $selected_name
+        fi
+      '';
+    };
+
     sessionPath = [
       "$HOME/.local/bin"
     ];
@@ -92,10 +126,9 @@ in
 
     tmux = {
       enable = true;
-      disableConfirmationPrompt = true;
+      baseIndex = 1;
       keyMode = "vi";
       newSession = true;
-      secureSocket = true;
       shell = "${pkgs.zsh}/bin/zsh";
       shortcut = "s";
       terminal = "screen-256color";
@@ -112,32 +145,42 @@ in
             set -g @catppuccin_window_right_separator " "
             set -g @catppuccin_window_middle_separator " █"
             set -g @catppuccin_window_number_position "right"
-
             set -g @catppuccin_window_default_fill "number"
             set -g @catppuccin_window_default_text "#W"
-
             set -g @catppuccin_window_current_fill "number"
             set -g @catppuccin_window_current_text "#W"
-
             set -g @catppuccin_status_modules_right "session host"
             set -g @catppuccin_status_left_separator " "
             set -g @catppuccin_status_middle_separator ""
             set -g @catppuccin_status_right_separator ""
             set -g @catppuccin_status_fill "icon"
             set -g @catppuccin_status_connect_separator "no"
-
             set -g @catppuccin_directory_text "#{pane_current_path}"
           '';
         }
+        resurrect
+        sensible
+        yank
       ];
       extraConfig = ''
+        # Allows programs to receive focus events, improves terminal integration
+        set -g focus-events on
+        # Prevents gaps in window numbers, reduces need for window management
+        set -g renumber-windows on
+        # Closes panes when their commands exit, reducing resource usage
+        set -g remain-on-exit off
+        # Efficiently uses available space when clients of different sizes are attached
+        set -g aggressive-resize on
+
+        # Set default command to create a login shell for proper initialization
+        set -g default-command "${pkgs.zsh}/bin/zsh -l"
+
         # Source tmux.conf with <prefix> r.
         bind-key r source-file ~/.config/tmux/tmux.conf \; display-message "source-file ~/.config/tmux/tmux.conf"
 
         # https://github.com/neovim/neovim/wiki/Building-Neovim#optimized-builds
-        set-option -sg escape-time 10
-
-        set-option -g focus-events on
+        # Reduces delay for ESC key, improving vim/neovim responsiveness
+        set-option -sg escape-time 10 
 
         # Create a new pane by splitting `target-pane`: -h does a
         # horizontal split and -v a vertical split; if neither is
@@ -178,6 +221,9 @@ in
         bind-key -n C-Right resize-pane -R 10
         bind-key -n C-Down resize-pane -D 5
         bind-key -n C-Up resize-pane -U 5
+
+        # Session navigation with tmux-sessionizer
+        bind-key f run-shell "tmux neww tmux-sessionizer"
       '';
     };
 
@@ -189,20 +235,33 @@ in
 
     zsh = {
       enable = true;
-      antidote = {
-        enable = true;
-        plugins = [
-          "zsh-users/zsh-syntax-highlighting"
-          "zsh-users/zsh-completions"
-          "zsh-users/zsh-autosuggestions"
-          "zsh-users/zsh-history-substring-search"
-          "ohmyzsh/ohmyzsh path:plugins/git"
-        ];
-      };
+      enableCompletion = true;
+      autosuggestion.enable = true;
+      syntaxHighlighting.enable = true;
+      historySubstringSearch.enable = true;
+      completionInit = ''
+        # Only regenerate completions once a day to avoid the expensive security check
+        autoload -Uz compinit
+        if [[ -n ''${ZDOTDIR:-$HOME}/.zcompdump(#qN.mh+24) ]]; then
+          compinit -C
+        else
+          compinit
+        fi
+        # Skip the compinit that Home Manager might add elsewhere
+        compdef() {}
+      '';
       initExtra = ''
         sz() { source ~/.zshrc }
+
+        export PATH="''${ASDF_DATA_DIR:-$HOME/.asdf}/shims:$PATH"
+
+        # Append asdf completions to fpath
+        fpath=(''${ASDF_DATA_DIR:-$HOME/.asdf}/completions $fpath)
+
+        # Load asdf
         source "${pkgs.asdf-vm}/share/asdf-vm/asdf.sh"
-        source "${pkgs.asdf-vm}/share/asdf-vm/completions/asdf.bash"
+
+        # Go plugin setup
         source ~/.asdf/plugins/golang/set-env.zsh
       '';
       shellAliases = {
