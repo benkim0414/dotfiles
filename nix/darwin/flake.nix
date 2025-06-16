@@ -27,6 +27,10 @@
         {
           networking.hostName = "Gunwoo-iMac";
 
+          environment.systemPath = [
+            "/Users/gunwoo/.asdf/shims"
+          ];
+
           environment.systemPackages = [
             pkgs.ansible
             pkgs.asdf-vm
