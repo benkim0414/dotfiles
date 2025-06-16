@@ -48,7 +48,7 @@
             pkgs.pnpm
             pkgs.ripgrep
             pkgs.starship
-            pkgs.syncthing
+            # pkgs.syncthing
             pkgs.tmux
             pkgs.yq
             pkgs.zoxide
@@ -83,6 +83,7 @@
           # The platform the configuration will be used on.
           nixpkgs.hostPlatform = "x86_64-darwin";
 
+          system.primaryUser = "gunwoo";
           users.users.gunwoo = {
             name = "gunwoo";
             home = "/Users/gunwoo";
@@ -107,7 +108,7 @@
             home-manager.users.gunwoo = {
               imports = [
                 ./home.nix
-                catppuccin.homeManagerModules.catppuccin
+                catppuccin.homeModules.catppuccin
               ];
             };
           }

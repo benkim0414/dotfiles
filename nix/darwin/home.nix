@@ -250,7 +250,7 @@ in
         # Skip the compinit that Home Manager might add elsewhere
         compdef() {}
       '';
-      initExtra = ''
+      initContent = ''
         sz() { source ~/.zshrc }
 
         export PATH="''${ASDF_DATA_DIR:-$HOME/.asdf}/shims:$PATH"
