@@ -63,6 +63,7 @@
               "ghostty"
               "google-chrome"
               "obsidian"
+              "raycast"
               "tailscale"
             ];
           };
