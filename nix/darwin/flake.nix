@@ -66,6 +66,7 @@
               "docker"
               "ghostty"
               "google-chrome"
+              "multipass"
               "obsidian"
               "raycast"
               "tailscale"
