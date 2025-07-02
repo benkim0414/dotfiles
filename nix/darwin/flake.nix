@@ -54,6 +54,7 @@
             pkgs.starship
             # pkgs.syncthing
             pkgs.tmux
+            pkgs.uv
             pkgs.yq
             pkgs.zoxide
           ];
