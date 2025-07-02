@@ -137,25 +137,26 @@ in
         {
           plugin = catppuccin;
           extraConfig = ''
+            # https://github.com/catppuccin/tmux/issues/409#issuecomment-2894937794
+            set -g @catppuccin_window_status_style "custom"
+            set -g @catppuccin_window_left_separator "#[bg=default,fg=#{@thm_surface_0}]#[bg=#{@thm_surface_0},fg=#{@thm_fg}]"
+            set -g @catppuccin_window_right_separator "#[bg=default,fg=#{@thm_surface_0}]"
+            set -g @catppuccin_window_current_left_separator "#[bg=default,fg=#{@thm_mauve}]#[bg=#{@thm_mauve},fg=#{@thm_bg}]"
+            set -g @catppuccin_window_current_middle_separator "#[fg=#{@thm_mauve}]█"
+            set -g @catppuccin_window_current_right_separator "#[bg=default,fg=#{@thm_surface_1}]"
+            set -g @catppuccin_status_background "none"
+
+            # set -g @catppuccin_window_status_style "rounded"
             set -g status-right-length 100
             set -g status-left-length 100
             set -g status-left ""
 
-            set -g @catppuccin_window_left_separator ""
-            set -g @catppuccin_window_right_separator " "
-            set -g @catppuccin_window_middle_separator " █"
-            set -g @catppuccin_window_number_position "right"
-            set -g @catppuccin_window_default_fill "number"
-            set -g @catppuccin_window_default_text "#W"
-            set -g @catppuccin_window_current_fill "number"
-            set -g @catppuccin_window_current_text "#W"
-            set -g @catppuccin_status_modules_right "session host"
-            set -g @catppuccin_status_left_separator " "
-            set -g @catppuccin_status_middle_separator ""
-            set -g @catppuccin_status_right_separator ""
-            set -g @catppuccin_status_fill "icon"
-            set -g @catppuccin_status_connect_separator "no"
-            set -g @catppuccin_directory_text "#{pane_current_path}"
+            # set -g @catppuccin_window_number_position "right"
+            set -g @catppuccin_window_text " #{b:pane_current_path}"
+            set -g @catppuccin_window_current_text " #{b:pane_current_path}"
+
+            set -g status-right "#{E:@catppuccin_status_session}"
+            set -ag status-right "#{E:@catppuccin_status_host}"
           '';
         }
         resurrect
