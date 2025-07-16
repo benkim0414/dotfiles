@@ -231,7 +231,8 @@ in
     zoxide = {
       enable = true;
       enableZshIntegration = true;
-      options = [ "--cmd cd" ];
+      # Note: --cmd cd option omitted for Claude Code compatibility
+      # See: https://github.com/anthropics/claude-code/issues/2407
     };
 
     zsh = {
