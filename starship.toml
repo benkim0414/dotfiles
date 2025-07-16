@@ -43,3 +43,9 @@ style = 'bold yellow'
 [nodejs]
 format = '[$symbol($version )]($style)'
 style = 'bold green'
+
+[kubernetes]
+disabled = false
+symbol = '󱃾'
+format = '[$symbol $context/$namespace]($style)'
+style = '#326ce5'
