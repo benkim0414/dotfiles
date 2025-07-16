@@ -253,6 +253,9 @@ in
         compdef() {}
       '';
       initContent = ''
+        # Enable case-insensitive completion
+        zstyle ':completion:*' matcher-list "" "m:{a-zA-Z}={A-Za-z}"
+        
         sz() { source ~/.zshrc }
 
         export PATH="''${ASDF_DATA_DIR:-$HOME/.asdf}/shims:$PATH"
