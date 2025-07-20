@@ -39,8 +39,6 @@ map("q:", "<Cmd>:q<CR>")
 
 nmap("j", "gj")
 nmap("k", "gk")
-nnoremap("0", "^")
-nnoremap("^", "0")
 
 nnoremap("<C-Space>", "<Esc>:noh<CR>")
 vnoremap("<C-Space>", "<Esc>gV")
