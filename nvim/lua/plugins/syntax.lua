@@ -30,6 +30,11 @@ return {
       highlight = {
         enable = true,
         additional_vim_regex_highlighting = false,
+        -- Disable highlighting for large files to improve performance
+        disable = function(lang, buf)
+          local utils = require("utils")
+          return utils.is_large_file(buf)
+        end,
       },
       textobjects = {
         select = {

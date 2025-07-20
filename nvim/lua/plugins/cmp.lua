@@ -34,7 +34,39 @@ return {
       end
 
       local cmp = require("cmp")
+      local utils = require("utils")
+      
+      -- Dynamic sources based on file size for performance
+      local function get_sources()
+        if utils.is_medium_file() then
+          -- For larger files, use only essential sources to improve performance
+          return cmp.config.sources({
+            { name = "nvim_lsp" },
+            { name = "path" },
+            { name = "vsnip" },
+          })
+        else
+          -- Full sources for smaller files
+          return cmp.config.sources({
+            { name = "copilot" },
+            { name = "nvim_lsp" },
+            { name = "buffer" },
+            { name = "path" },
+            { name = "vsnip" },
+            { name = "nvim_lua" },
+          })
+        end
+      end
+      
       cmp.setup({
+        performance = {
+          debounce = 300,
+          throttle = 60,
+          fetching_timeout = 200,
+          confirm_resolve_timeout = 80,
+          async_budget = 1,
+          max_view_entries = 200,
+        },
         snippet = {
           expand = function(args)
             fn["vsnip#anonymous"](args.body)
@@ -64,14 +96,7 @@ return {
             end
           end, { "i", "s" }),
         }),
-        sources = cmp.config.sources({
-          { name = "copilot" },
-          { name = "nvim_lsp" },
-          { name = "buffer" },
-          { name = "path" },
-          { name = "vsnip" },
-          { name = "nvim_lua" },
-        }),
+        sources = get_sources(),
       })
 
       cmp.setup.cmdline("/", {

@@ -1,6 +1,8 @@
 return {
   {
     "stevearc/conform.nvim",
+    event = { "BufWritePre" },
+    cmd = { "ConformInfo" },
     opts = {
       formatters = {
         golines = {
@@ -32,11 +34,18 @@ return {
         lua = { "stylua" },
         nix = { "nixfmt" },
       },
-      format_on_save = {
-        timeout_ms = 500,
-        lsp_format = "fallback",
-        async = false
-      },
+      format_on_save = function(bufnr)
+        local utils = require("utils")
+        -- Skip formatting for very large files to improve performance
+        if utils.is_large_file(bufnr) then
+          return
+        end
+        return {
+          timeout_ms = 300,
+          lsp_format = "fallback",
+          async = false
+        }
+      end,
     }
   },
   {

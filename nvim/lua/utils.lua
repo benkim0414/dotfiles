@@ -43,4 +43,33 @@ M.onoremap = make_keymap_fn("o", noremap_opts)
 M.tnoremap = make_keymap_fn("t", noremap_opts)
 M.cnoremap = make_keymap_fn("c", noremap_opts)
 
+-- Performance utilities for large file detection
+function M.is_large_file(bufnr, threshold)
+  bufnr = bufnr or 0
+  threshold = threshold or (100 * 1024) -- 100KB default
+  
+  local filename = api.nvim_buf_get_name(bufnr)
+  if filename == "" then return false end
+  
+  local ok, stats = pcall((vim.uv or vim.loop).fs_stat, filename)
+  if ok and stats and stats.size > threshold then
+    return true
+  end
+  return false
+end
+
+function M.is_medium_file(bufnr, threshold)
+  bufnr = bufnr or 0
+  threshold = threshold or (10 * 1024) -- 10KB default
+  
+  local filename = api.nvim_buf_get_name(bufnr)
+  if filename == "" then return false end
+  
+  local ok, stats = pcall((vim.uv or vim.loop).fs_stat, filename)
+  if ok and stats and stats.size > threshold then
+    return true
+  end
+  return false
+end
+
 return M

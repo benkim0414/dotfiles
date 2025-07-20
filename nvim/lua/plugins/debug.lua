@@ -1,6 +1,7 @@
 return {
   {
     "mfussenegger/nvim-dap",
+    cmd = { "DapToggleBreakpoint", "DapContinue", "DapStepOver", "DapStepInto", "DapStepOut" },
     dependencies = {
       "rcarriga/nvim-dap-ui",
       {
@@ -136,6 +137,7 @@ return {
   },
   {
     "leoluz/nvim-dap-go",
+    ft = "go",
     dependencies = {
       "mfussenegger/nvim-dap",
     },
