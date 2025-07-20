@@ -29,8 +29,8 @@ opt.incsearch = true
 opt.ignorecase = true
 opt.smartcase = true
 
-g.mapleader = ","
-g.maplocalleader = ","
+g.mapleader = " "
+g.maplocalleader = " "
 
 nnoremap("<Leader>w", "<Cmd>w!<CR>")
 nnoremap("<Leader>wa", "<Cmd>wa<CR>")
