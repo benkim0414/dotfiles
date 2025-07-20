@@ -1,4 +1,11 @@
 return {
+  -- Tim Pope's essential plugins
+  "tpope/vim-commentary",
+  "tpope/vim-repeat",
+  "tpope/vim-surround",
+  "tpope/vim-unimpaired",
+  
+  -- Auto-pair brackets and quotes
   {
     "echasnovski/mini.pairs",
     event = "VeryLazy",
@@ -15,4 +22,18 @@ return {
       markdown = true,
     },
   },
+  
+  -- Replace with register content
+  "vim-scripts/ReplaceWithRegister",
+  
+  -- System clipboard integration
+  "christoomey/vim-system-copy",
+  
+  -- Smart commenting
+  {
+    "folke/ts-comments.nvim",
+    opts = {},
+    event = "VeryLazy",
+    enabled = vim.fn.has("nvim-0.10.0") == 1,
+  }
 }

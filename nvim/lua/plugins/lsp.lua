@@ -38,10 +38,7 @@ return {
         end,
       })
 
-      require("mason").setup()
       require("mason-lspconfig").setup {
-        ensure_installed = { "gopls", "lua_ls", "pyright", "ts_ls" },
-        automatic_installation = true,
         handlers = {
           function(server_name)
             lspconfig[server_name].setup {
