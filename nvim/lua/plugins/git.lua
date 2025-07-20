@@ -16,6 +16,26 @@ return {
     },
   },
   {
+    "tpope/vim-fugitive",
+    cmd = {
+      "Git",
+      "GBrowse",
+      "Gdiffsplit",
+      "Gvdiffsplit",
+      "Gcommit",
+      "Gblame",
+      "Glog",
+    },
+    keys = {
+      { "<Leader>gs", "<Cmd>Git<CR>", desc = "Git Status" },
+      { "<Leader>gc", "<Cmd>Gcommit<CR>", desc = "Git Commit" },
+      { "<Leader>gd", "<Cmd>Gdiffsplit<CR>", desc = "Git Diff" },
+      { "<Leader>gb", "<Cmd>Gblame<CR>", desc = "Git Blame" },
+      { "<Leader>gl", "<Cmd>Glog<CR>", desc = "Git Log" },
+      { "<Leader>gp", "<Cmd>Git push<CR>", desc = "Git Push" },
+    },
+  },
+  {
     "lewis6991/gitsigns.nvim",
     config = function()
       require("gitsigns").setup {
