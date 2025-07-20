@@ -34,7 +34,8 @@ g.maplocalleader = " "
 
 nnoremap("<Leader>w", "<Cmd>w!<CR>")
 nnoremap("<Leader>wa", "<Cmd>wa<CR>")
-nnoremap("<Leader>q", "<Cmd>q!<CR>")
+nnoremap("<Leader>q", "<Cmd>q<CR>")
+nnoremap("<Leader>Q", "<Cmd>q!<CR>")
 map("q:", "<Cmd>:q<CR>")
 
 nmap("j", "gj")
