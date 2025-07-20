@@ -19,8 +19,6 @@ return {
 
           vim.keymap.set("n", "gD", vim.lsp.buf.declaration, { buffer = ev.buf, desc = "Go to declaration" })
           vim.keymap.set("n", "gd", vim.lsp.buf.definition, { buffer = ev.buf, desc = "Go to definition" })
-          vim.keymap.set("n", "K", vim.lsp.buf.hover, { buffer = ev.buf })
-          vim.keymap.set("n", "gi", vim.lsp.buf.implementation, { buffer = ev.buf, desc = "Go to implementation" })
           vim.keymap.set("n", "<Space>wa", vim.lsp.buf.add_workspace_folder,
             { buffer = ev.buf, desc = "Add workspace folder" })
           vim.keymap.set("n", "<Space>wr", vim.lsp.buf.remove_workspace_folder,
