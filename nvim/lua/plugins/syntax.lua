@@ -75,7 +75,11 @@ return {
   },
   {
     'Wansmer/treesj',
-    keys = { '<space>m', '<space>j', '<space>s' },
+    keys = { 
+      { '<space>m', function() require('treesj').toggle() end, desc = "Toggle node" },
+      { '<space>j', function() require('treesj').join() end, desc = "Join node" },
+      { '<space>s', function() require('treesj').split() end, desc = "Split node" },
+    },
     dependencies = { 'nvim-treesitter/nvim-treesitter' },
     config = function()
       require('treesj').setup()

@@ -15,10 +15,10 @@ return {
       local utils = require("utils")
       local nnoremap = utils.nnoremap
 
-      nnoremap("<leader>le", "<Cmd>lua vim.diagnostic.open_float()<CR>")
-      nnoremap("[d", "<Cmd>lua vim.diagnostic.goto_prev()<CR>")
-      nnoremap("]d", "<Cmd>lua vim.diagnostic.goto_next()<CR>")
-      nnoremap("<leader>lq", "<Cmd>lua vim.diagnostic.setloclist()<CR>")
+      nnoremap("<leader>le", "<Cmd>lua vim.diagnostic.open_float()<CR>", { desc = "Show line diagnostics" })
+      nnoremap("[d", "<Cmd>lua vim.diagnostic.goto_prev()<CR>", { desc = "Previous diagnostic" })
+      nnoremap("]d", "<Cmd>lua vim.diagnostic.goto_next()<CR>", { desc = "Next diagnostic" })
+      nnoremap("<leader>lq", "<Cmd>lua vim.diagnostic.setloclist()<CR>", { desc = "Diagnostics to loclist" })
 
       local function has_words_before()
         unpack = unpack or table.unpack

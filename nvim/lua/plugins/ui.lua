@@ -81,6 +81,24 @@ return {
         desc = "Buffer Local Keymaps (which-key)",
       },
     },
+    config = function()
+      local wk = require("which-key")
+      
+      -- Register group descriptions for better keymap organization
+      wk.add({
+        { "<leader>f", group = "file" },
+        { "<leader>g", group = "git" },
+        { "<leader>h", group = "hunk" },
+        { "<leader>l", group = "lsp" },
+        { "<leader>s", group = "search" },
+        { "<leader>t", group = "toggle" },
+        { "<leader>w", group = "workspace/window" },
+        { "<leader>1", desc = "Harpoon file 1" },
+        { "<leader>2", desc = "Harpoon file 2" },
+        { "<leader>3", desc = "Harpoon file 3" },
+        { "<leader>4", desc = "Harpoon file 4" },
+      })
+    end,
   },
   {
     "lukas-reineke/indent-blankline.nvim",
