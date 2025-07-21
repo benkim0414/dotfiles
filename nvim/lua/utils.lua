@@ -8,8 +8,7 @@ local function make_keymap_fn(mode, o)
     local _opts = opts and vim.deepcopy(opts) or {}
 
     if type(mapping) == "function" then
-      local fn_id = globals._create(mapping)
-      mapping = string.format("<cmd>lua globals._execute(%s)<cr>", fn_id)
+      error("Function mappings are not supported in this keymap utility. Use vim.keymap.set directly for function mappings.")
     end
 
     if _opts.bufnr then
