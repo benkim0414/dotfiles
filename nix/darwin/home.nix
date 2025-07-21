@@ -53,9 +53,9 @@ in
   programs.home-manager.enable = true;
 
   xdg.enable = true;
-  xdg.configFile.nvim.source = mkOutOfStoreSymlink "/Users/gunwoo/workspace/dotfiles/nvim";
+  xdg.configFile.nvim.source = mkOutOfStoreSymlink "/Users/gunwoo/workspace/dotfiles/nvim/.config/nvim";
   xdg.configFile."ghostty/config".source =
-    mkOutOfStoreSymlink "/Users/gunwoo/workspace/dotfiles/ghostty/config";
+    mkOutOfStoreSymlink "/Users/gunwoo/workspace/dotfiles/ghostty/.config/ghostty/config";
 
   programs = {
     bat.enable = true;
@@ -121,7 +121,7 @@ in
     starship = {
       enable = true;
       enableZshIntegration = true;
-      settings = pkgs.lib.importTOML ../../starship.toml;
+      settings = pkgs.lib.importTOML ../../starship/.config/starship.toml;
     };
 
     tmux = {
