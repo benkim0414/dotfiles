@@ -8,6 +8,27 @@
       ],
       "env": {}
     },
+    "memory": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-memory"
+      ],
+      "env": {}
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/Users/benkim0414/workspace/dotfiles"
+      ],
+      "env": {}
+    },
+    "fetch": {
+      "command": "uvx",
+      "args": ["mcp-server-fetch"]
+    },
     "nixos": {
       "command": "uvx",
       "args": ["mcp-nixos"],
