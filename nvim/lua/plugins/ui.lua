@@ -36,10 +36,45 @@ return {
   {
     'akinsho/bufferline.nvim',
     version = "*",
-    dependencies = 'nvim-tree/nvim-web-devicons',
+    dependencies = {
+      'nvim-tree/nvim-web-devicons',
+      'ThePrimeagen/harpoon'
+    },
     config = function()
       vim.opt.termguicolors = true
-      require("bufferline").setup{}
+      local utils = require("utils")
+      local colors = require("catppuccin.palettes").get_palette()
+
+      require("bufferline").setup {
+        options = {
+          numbers = function(opts)
+            -- Get harpoon number for this buffer
+            local harpoon_num = utils.get_harpoon_number_for_buffer(opts.id)
+
+            if harpoon_num then
+              -- Show harpoon number for pinned buffers
+              return tostring(harpoon_num)
+            end
+
+            -- Return empty string for non-harpoon buffers
+            return ""
+          end,
+          separator_style = "thin",
+          show_buffer_close_icons = false,
+          show_close_icon = false,
+          always_show_bufferline = true,
+        },
+        highlights = {
+          indicator_selected = {
+            fg = colors.mauve,
+            bg = colors.base,
+          },
+          indicator_visible = {
+            fg = colors.overlay2,
+            bg = colors.base,
+          },
+        },
+      }
     end,
   },
   {
@@ -56,7 +91,7 @@ return {
     },
     config = function()
       local wk = require("which-key")
-      
+
       -- Register group descriptions for better keymap organization
       wk.add({
         { "<leader>f", group = "file" },

@@ -72,4 +72,64 @@ function M.is_medium_file(bufnr, threshold)
   return false
 end
 
+-- Harpoon integration utilities
+function M.get_harpoon_file_mapping()
+  local ok, harpoon = pcall(require, "harpoon")
+  if not ok then return {} end
+  
+  local list = harpoon:list()
+  if not list or not list.items then return {} end
+  
+  local mapping = {}
+  for i, item in ipairs(list.items) do
+    if item.value then
+      -- Create mapping for both absolute and relative paths
+      local abs_path = vim.fn.fnamemodify(item.value, ":p")
+      local rel_path = item.value
+      mapping[abs_path] = i
+      mapping[rel_path] = i
+    end
+  end
+  
+  return mapping
+end
+
+function M.get_harpoon_number_for_buffer(bufnr)
+  bufnr = bufnr or 0
+  local filename = api.nvim_buf_get_name(bufnr)
+  if filename == "" then return nil end
+  
+  -- Get fresh mapping each time to ensure accuracy
+  local ok, harpoon = pcall(require, "harpoon")
+  if not ok then return nil end
+  
+  local list = harpoon:list()
+  if not list or not list.items then return nil end
+  
+  -- Get various path formats for this buffer
+  local abs_path = vim.fn.fnamemodify(filename, ":p")
+  local rel_path = vim.fn.fnamemodify(filename, ":.")
+  local tail_name = vim.fn.fnamemodify(filename, ":t")
+  
+  -- Check each harpoon item
+  for i, item in ipairs(list.items) do
+    if item.value then
+      local item_abs = vim.fn.fnamemodify(item.value, ":p")
+      local item_rel = item.value
+      
+      -- Match by absolute path (most reliable)
+      if abs_path == item_abs then
+        return i
+      end
+      
+      -- Match by relative path
+      if filename == item_rel or rel_path == item_rel then
+        return i
+      end
+    end
+  end
+  
+  return nil
+end
+
 return M
