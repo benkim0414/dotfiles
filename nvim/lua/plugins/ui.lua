@@ -97,7 +97,6 @@ return {
         { "<leader>f", group = "file" },
         { "<leader>g", group = "git" },
         { "<leader>h", group = "hunk" },
-        { "<leader>l", group = "lsp" },
         { "<leader>s", group = "search" },
         { "<leader>t", group = "toggle" },
         { "<leader>w", group = "workspace/window" },
@@ -105,6 +104,7 @@ return {
         { "<leader>2", desc = "Harpoon file 2" },
         { "<leader>3", desc = "Harpoon file 3" },
         { "<leader>4", desc = "Harpoon file 4" },
+        { "gr", group = "lsp" },
       })
     end,
   },

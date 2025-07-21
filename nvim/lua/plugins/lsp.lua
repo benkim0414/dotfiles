@@ -17,22 +17,22 @@ return {
         callback = function(ev)
           vim.bo[ev.buf].omnifunc = "v:lua.vim.lsp.omnifunc"
 
-          vim.keymap.set("n", "gD", vim.lsp.buf.declaration, { buffer = ev.buf, desc = "Go to declaration" })
-          vim.keymap.set("n", "gd", vim.lsp.buf.definition, { buffer = ev.buf, desc = "Go to definition" })
-          vim.keymap.set("n", "<Space>wa", vim.lsp.buf.add_workspace_folder,
-            { buffer = ev.buf, desc = "Add workspace folder" })
-          vim.keymap.set("n", "<Space>wr", vim.lsp.buf.remove_workspace_folder,
-            { buffer = ev.buf, desc = "Remove workspace folder" })
-          vim.keymap.set("n", "<Space>wl", function()
-            print(vim.inspect(vim.lsp.buf.list_workspace_folders()))
-          end, { buffer = ev.buf, desc = "List workspace folders" })
-          vim.keymap.set("n", "<Space>D", vim.lsp.buf.type_definition, { buffer = ev.buf, desc = "Type definition" })
-          vim.keymap.set("n", "<Space>rn", vim.lsp.buf.rename, { buffer = ev.buf, desc = "Rename" })
-          vim.keymap.set({ "n", "v" }, "<Space>ca", vim.lsp.buf.code_action, { buffer = ev.buf, desc = "Code action" })
-          vim.keymap.set("n", "<Space>r", vim.lsp.buf.references, { buffer = ev.buf, desc = "References" })
+          -- Use Neovim's default LSP keymaps
+          vim.keymap.set("n", "grn", vim.lsp.buf.rename, { buffer = ev.buf, desc = "LSP rename" })
+          vim.keymap.set({ "n", "v" }, "gra", vim.lsp.buf.code_action, { buffer = ev.buf, desc = "LSP code action" })
+          vim.keymap.set("n", "grr", vim.lsp.buf.references, { buffer = ev.buf, desc = "LSP references" })
+          vim.keymap.set("n", "gri", vim.lsp.buf.implementation, { buffer = ev.buf, desc = "LSP implementation" })
+          vim.keymap.set("n", "grt", vim.lsp.buf.type_definition, { buffer = ev.buf, desc = "LSP type definition" })
+          vim.keymap.set("n", "gO", vim.lsp.buf.document_symbol, { buffer = ev.buf, desc = "LSP document symbols" })
+          
+          -- Keep some common non-default keymaps that are widely used
+          vim.keymap.set("n", "gd", vim.lsp.buf.definition, { buffer = ev.buf, desc = "LSP go to definition" })
+          vim.keymap.set("n", "K", vim.lsp.buf.hover, { buffer = ev.buf, desc = "LSP hover" })
+          
+          -- Format keymap (not part of defaults but commonly needed)
           vim.keymap.set("n", "<Space>f", function()
             vim.lsp.buf.format { async = true }
-          end, { buffer = ev.buf, desc = "Format" })
+          end, { buffer = ev.buf, desc = "LSP format" })
         end,
       })
 
