@@ -1,7 +1,7 @@
 return {
   {
     "neovim/nvim-lspconfig",
-    lazy = false,
+    event = { "BufReadPre", "BufNewFile" },
     dependencies = {
       "williamboman/mason.nvim",
       "williamboman/mason-lspconfig.nvim",
@@ -10,7 +10,8 @@ return {
       local lspconfig = require("lspconfig")
 
       local default_capabilities = vim.lsp.protocol.make_client_capabilities()
-      local capabilities = require("cmp_nvim_lsp").default_capabilities(default_capabilities)
+      -- Update for blink.cmp compatibility
+      local capabilities = require("blink.cmp").get_lsp_capabilities(default_capabilities)
 
       vim.api.nvim_create_autocmd("LspAttach", {
         group = vim.api.nvim_create_augroup("UserLspConfig", {}),
@@ -42,7 +43,7 @@ return {
             lspconfig[server_name].setup {
               capabilities = capabilities,
               flags = {
-                debounce_text_changes = 150,
+                debounce_text_changes = 300,  -- Increased from 150ms for better performance
               },
             }
           end,

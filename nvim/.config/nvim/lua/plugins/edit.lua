@@ -1,9 +1,60 @@
 return {
-  -- Tim Pope's essential plugins
-  "tpope/vim-commentary",
+  -- Fast Lua-based commenting (matches vim-commentary keymaps)
+  {
+    "echasnovski/mini.comment",
+    event = "VeryLazy",
+    opts = {
+      options = {
+        custom_commentstring = function()
+          return require("ts_context_commentstring.internal").calculate_commentstring() or vim.bo.commentstring
+        end,
+      },
+      mappings = {
+        comment = "gc",         -- Toggle comment in both Normal and Visual modes
+        comment_line = "gcc",   -- Toggle comment on current line
+        comment_visual = "gc",  -- Toggle comment on selection
+        textobject = "gc",      -- Define 'comment' textobject
+      },
+    },
+  },
+  
+  -- Fast Lua-based surround operations (matches vim-surround keymaps)
+  {
+    "echasnovski/mini.surround",
+    event = "VeryLazy",
+    opts = {
+      mappings = {
+        add = "ys",             -- Add surrounding (matches vim-surround ys)
+        delete = "ds",          -- Delete surrounding (matches vim-surround ds)  
+        find = "gsf",           -- Find surrounding (to the right)
+        find_left = "gsF",      -- Find surrounding (to the left)
+        highlight = "gsh",      -- Highlight surrounding
+        replace = "cs",         -- Replace surrounding (matches vim-surround cs)
+        update_n_lines = "gsn", -- Update `n_lines`
+      },
+    },
+  },
+  
+  -- Keep vim-repeat as many plugins depend on it
   "tpope/vim-repeat",
-  "tpope/vim-surround",
-  "tpope/vim-unimpaired",
+  
+  -- Replace vim-unimpaired with mini.misc
+  {
+    "echasnovski/mini.misc",
+    event = "VeryLazy",
+    config = function()
+      require("mini.misc").setup()
+      -- Setup exact vim-unimpaired mappings
+      vim.keymap.set("n", "[b", "<Cmd>bprevious<CR>", { desc = "Previous buffer" })
+      vim.keymap.set("n", "]b", "<Cmd>bnext<CR>", { desc = "Next buffer" })
+      vim.keymap.set("n", "[q", "<Cmd>cprevious<CR>", { desc = "Previous quickfix" })
+      vim.keymap.set("n", "]q", "<Cmd>cnext<CR>", { desc = "Next quickfix" })
+      vim.keymap.set("n", "[l", "<Cmd>lprevious<CR>", { desc = "Previous location" })
+      vim.keymap.set("n", "]l", "<Cmd>lnext<CR>", { desc = "Next location" })
+      vim.keymap.set("n", "[<Space>", "O<Esc>j", { desc = "Add blank line above" })
+      vim.keymap.set("n", "]<Space>", "o<Esc>k", { desc = "Add blank line below" })
+    end,
+  },
   
   -- Auto-pair brackets and quotes
   {

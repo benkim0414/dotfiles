@@ -7,25 +7,16 @@ return {
     },
     main = 'nvim-treesitter.configs',
     opts = {
+      -- Install only essential parsers for better startup performance
       ensure_installed = {
-        "bash",
-        "diff",
-        "dockerfile",
-        "git_config",
-        "git_rebase",
-        "gitcommit",
-        "gitignore",
-        "go",
-        "json",
-        "json5",
-        "lua",
-        "markdown",
-        "markdown_inline",
-        "nix",
-        "proto",
-        "python",
-        "yaml",
+        "lua",        -- For nvim config
+        "go",         -- Primary language
+        "python",     -- Primary language
+        "json",       -- Configuration files
+        "markdown",   -- Documentation
       },
+      -- Install additional parsers automatically when opening files
+      auto_install = true,
       sync_install = false,
       highlight = {
         enable = true,
