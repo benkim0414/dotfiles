@@ -19,19 +19,24 @@ return {
       { "<Leader>sh", "<Cmd>Telescope help_tags<CR>",           desc = "Help Pages" },
       { "<Leader>sq", "<Cmd>Telescope quickfix<CR>",            desc = "Quickfix List" },
     },
-    opts = {
-      defaults = {
-        mappings = {
-          i = {
-            ["<Esc>"] = require("telescope.actions").close,
+    config = function()
+      local telescope = require("telescope")
+      local actions = require("telescope.actions")
+
+      telescope.setup({
+        defaults = {
+          mappings = {
+            i = {
+              ["<Esc>"] = actions.close,
+            },
           },
         },
-      },
-      pickers = {
-        find_files = {
-          find_command = { "rg", "--files", "--hidden", "--glob", "!**/.git/*" },
+        pickers = {
+          find_files = {
+            find_command = { "rg", "--files", "--hidden", "--glob", "!**/.git/*" },
+          },
         },
-      },
-    },
+      })
+    end,
   }
 }
