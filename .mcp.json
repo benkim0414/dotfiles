@@ -2,18 +2,12 @@
   "mcpServers": {
     "sequential-thinking": {
       "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-sequential-thinking"
-      ],
+      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"],
       "env": {}
     },
     "memory": {
       "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-memory"
-      ],
+      "args": ["-y", "@modelcontextprotocol/server-memory"],
       "env": {}
     },
     "filesystem": {
@@ -24,6 +18,10 @@
         "/Users/benkim0414/workspace/dotfiles"
       ],
       "env": {}
+    },
+    "git": {
+      "command": "uvx",
+      "args": ["mcp-server-git"]
     },
     "fetch": {
       "command": "uvx",
