@@ -28,11 +28,6 @@
     "fetch": {
       "command": "uvx",
       "args": ["mcp-server-fetch"]
-    },
-    "nixos": {
-      "command": "uvx",
-      "args": ["mcp-nixos"],
-      "env": {}
     }
   }
 }

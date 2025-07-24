@@ -1,0 +1,15 @@
+[user]
+	name = "Gunwoo Ben Kim"
+	email = "benkim0414@gmail.com"
+
+[core]
+	editor = "nvim"
+
+[init]
+	defaultBranch = "main"
+
+[pull]
+	ff = "only"
+
+[push]
+	default = "upstream"
