@@ -5,6 +5,7 @@ return {
     dependencies = {
       "williamboman/mason.nvim",
       "williamboman/mason-lspconfig.nvim",
+      "b0o/schemastore.nvim",
     },
     config = function()
       local lspconfig = require("lspconfig")
@@ -80,6 +81,17 @@ return {
                   telemetry = {
                     enable = false,
                   },
+                },
+              },
+            }
+          end,
+          jsonls = function()
+            lspconfig.jsonls.setup {
+              capabilities = capabilities,
+              settings = {
+                json = {
+                  schemas = require('schemastore').json.schemas(),
+                  validate = { enable = true },
                 },
               },
             }

@@ -29,6 +29,8 @@ return {
       formatters_by_ft = {
         go = { "gofumpt", "goimports", "golines" },
         typescript = { "prettier", stop_after_first = true },
+        json = { "prettier" },
+        jsonc = { "prettier" },
         ["markdown"] = { "prettier", "markdownlint-cli2", "markdown-toc" },
         ["markdown.mdx"] = { "prettier", "markdownlint-cli2", "markdown-toc" },
         lua = { "stylua" },

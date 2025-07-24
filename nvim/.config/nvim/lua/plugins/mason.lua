@@ -9,7 +9,7 @@ return {
     "williamboman/mason-lspconfig.nvim",
     dependencies = { "mason.nvim" },
     opts = {
-      ensure_installed = { "gopls", "lua_ls", "pyright", "ts_ls" },
+      ensure_installed = { "gopls", "lua_ls", "pyright", "ts_ls", "jsonls" },
       automatic_installation = true,
     },
   },
@@ -25,6 +25,7 @@ return {
         "golines",
         "markdown-toc",
         "markdownlint-cli2",
+        "prettier",
       }
     }
   },
