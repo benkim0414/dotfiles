@@ -1,20 +1,26 @@
 # Bash commands
-- `sudo darwin-rebuild switch --flake ~/workspace/dotfiles/nix/darwin`: Apply changes to macOS system based on nix-darwin configuration 
+- `brew install <tool>`: Install a specific CLI tool or package
+- `brew install --cask <app>`: Install a specific GUI application
+- `stow <package>`: Create symlinks for specific package configuration (e.g., `stow nvim`)
+- `stow *`: Create symlinks for all package configurations
+- `brew bundle --file=Brewfile`: Bulk install all packages (fresh system setup)
 
 # Configuration
-- GUI macOS apps: Add to `homebrew.casks` section in `nix/darwin/flake.nix`
-- System packages: Add to `environment.systemPackages` in `nix/darwin/flake.nix`
-- Home-manager options: Configure in `nix/darwin/home.nix`
+- CLI tools: Add to `brew` section in `Brewfile` (optional, for tracking)
+- GUI macOS apps: Add to `cask` section in `Brewfile` (optional, for tracking)
+- Tool-specific config: Edit files in respective directories (nvim/, git/, starship/, etc.)
+- Custom scripts: Add to `bin/.local/bin/` directory
 
-# NixOS MCP Tools
-- `darwin_search(query)`: Search nix-darwin macOS configuration options
-- `darwin_info(name)`: Get detailed info about specific darwin option
-- `darwin_list_options()`: Browse all 21 darwin configuration categories
-- `home_manager_search(query)`: Search home-manager user configuration options
-- `home_manager_info(name)`: Get detailed info about specific home-manager option
-- `home_manager_list_options()`: Browse all 131 home-manager configuration categories
+# Package Structure
+Each tool has its own directory that mirrors the home directory structure:
+- `nvim/.config/nvim/`: Neovim configuration
+- `git/.gitconfig`: Git global configuration
+- `starship/.config/starship.toml`: Starship prompt configuration
+- `zsh/.zshrc`: Zsh shell configuration
+- `bin/.local/bin/`: Custom scripts and binaries
 
 # Workflow
 - Think harder with sequential-thinking MCP before making any changes
-- Rebuild the system to apply changes
-- Verify applied changes
+- **Adding new tool**: `brew install <tool>` → create config directory structure → add config files → `stow <tool>`
+- **Modifying existing configs**: Edit files directly in dotfiles directories (changes are immediate via symlinks)
+- **Verify changes**: Test the tool/configuration to ensure it works correctly
