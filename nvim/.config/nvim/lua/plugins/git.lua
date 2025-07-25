@@ -16,6 +16,8 @@ return {
       -- Core Git Operations (Most frequent = shortest keys)
       { "<Leader>gg", "<Cmd>Git<CR><Cmd>only<CR>", desc = "Git Status (Full)" },
       { "<Leader>gc", "<Cmd>Gcommit<CR>", desc = "Git Commit" },
+      { "<Leader>gr", "<Cmd>Git<CR><Cmd>only<CR>cw", desc = "Git Reword Last Commit" },
+      { "<Leader>gR", "<Cmd>Git<CR><Cmd>only<CR>ca", desc = "Git Reword Last Commit (Verbose)" },
       { "<Leader>gp", "<Cmd>Git push<CR>", desc = "Git Push" },
       
       -- File Operations (Intuitive)
