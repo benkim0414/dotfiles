@@ -6,18 +6,17 @@ return {
       "GBrowse",
       "Gdiffsplit",
       "Gvdiffsplit",
-      "Gcommit",
-      "Gblame",
-      "Glog",
+      "Ghdiffsplit",
       "Gwrite",
       "Gread",
+      "Gclog",
     },
     keys = {
       -- Core Git Operations (Most frequent = shortest keys)
       { "<Leader>gg", "<Cmd>Git<CR><Cmd>only<CR>", desc = "Git Status (Full)" },
-      { "<Leader>gc", "<Cmd>Gcommit<CR>", desc = "Git Commit" },
-      { "<Leader>gr", "<Cmd>Git<CR><Cmd>only<CR>cw", desc = "Git Reword Last Commit" },
-      { "<Leader>gR", "<Cmd>Git<CR><Cmd>only<CR>ca", desc = "Git Reword Last Commit (Verbose)" },
+      { "<Leader>gc", "<Cmd>Git commit<CR>", desc = "Git Commit" },
+      { "<Leader>gr", "<Cmd>Git commit --amend<CR>", desc = "Git Reword Last Commit" },
+      { "<Leader>gR", "<Cmd>Git commit --amend --verbose<CR>", desc = "Git Reword Last Commit (Verbose)" },
       { "<Leader>gp", "<Cmd>Git push<CR>", desc = "Git Push" },
       
       -- File Operations (Intuitive)
@@ -26,9 +25,9 @@ return {
       
       -- View Operations
       { "<Leader>gd", "<Cmd>Gdiffsplit<CR>", desc = "Git Diff" },
-      { "<Leader>gb", "<Cmd>Gblame<CR>", desc = "Git Blame" },
+      { "<Leader>gb", "<Cmd>Git blame<CR>", desc = "Git Blame" },
       { "<Leader>gl", "<Cmd>Git pull<CR>", desc = "Git Pull" },
-      { "<Leader>gL", "<Cmd>Glog<CR>", desc = "Git Log" },
+      { "<Leader>gL", "<Cmd>Gclog<CR>", desc = "Git Log" },
     },
   },
   {
