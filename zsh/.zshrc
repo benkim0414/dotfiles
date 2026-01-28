@@ -25,6 +25,8 @@ eval "$(zoxide init zsh --cmd cd)"
 
 eval "$(starship init zsh)"
 
+. ${ASDF_DATA_DIR:-$HOME/.asdf}/plugins/golang/set-env.zsh
+
 alias vi="nvim"
 alias vim="nvim"
 
