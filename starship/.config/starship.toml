@@ -5,7 +5,7 @@ palette = "catppuccin_mocha"
 add_newline = false
 
 format = '$directory$git_branch$git_status$character'
-right_format = '$golang$python$nodejs$kubernetes'
+right_format = '$golang$python$nodejs$kubernetes$aws'
 
 [directory]
 truncation_length = 1
@@ -53,6 +53,11 @@ disabled = false
 symbol = '󱃾'
 format = '[$symbol $context/$namespace]($style)'
 style = '#326ce5'
+
+[aws]
+symbol = '󰸏'
+format = '[$symbol $region]($style)'
+style = '#ff9900'
 
 [palettes.catppuccin_mocha]
 rosewater = "#f5e0dc"
