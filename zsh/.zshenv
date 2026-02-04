@@ -32,3 +32,5 @@ export EZA_CONFIG_DIR="$XDG_CONFIG_HOME/eza"
 export EZA_ICONS_AUTO=true
 
 export BAT_THEME="Catppuccin Mocha"
+
+export SSH_AUTH_SOCK=~/.1password/agent.sock
