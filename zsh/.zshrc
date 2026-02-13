@@ -21,7 +21,9 @@ antidote load
 
 source <(fzf --zsh)
 
-eval "$(zoxide init zsh --cmd cd)"
+if [[ $- == *i* ]]; then
+  eval "$(zoxide init zsh --cmd cd)"
+fi
 
 eval "$(starship init zsh)"
 
