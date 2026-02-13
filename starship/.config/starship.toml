@@ -51,7 +51,7 @@ style = 'bold green'
 [kubernetes]
 disabled = false
 symbol = '󱃾'
-format = '[$symbol $context/$namespace]($style)'
+format = '[$symbol $context/$namespace ]($style)'
 style = '#326ce5'
 
 [aws]
