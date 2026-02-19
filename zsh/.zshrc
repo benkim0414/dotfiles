@@ -15,6 +15,7 @@ bindkey "^n" history-search-forward
 
 autoload -Uz compinit
 compinit
+zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'
 
 source ~/.antidote/antidote.zsh
 antidote load
