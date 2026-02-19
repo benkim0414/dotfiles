@@ -27,6 +27,7 @@ if [[ $- == *i* ]]; then
 fi
 
 eval "$(starship init zsh)"
+eval "$(direnv hook zsh)"
 
 . ${ASDF_DATA_DIR:-$HOME/.asdf}/plugins/golang/set-env.zsh
 _gobin_path_hook() {

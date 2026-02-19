@@ -1,0 +1,8 @@
+# Fetch all env vars from a 1Password item using `op run`
+use_op() {
+  local env_file="${1:-.env.op}"
+  if [[ -f "$env_file" ]]; then
+    direnv_load op run --env-file="$env_file" --no-masking -- direnv dump
+    watch_file "$env_file"
+  fi
+}
