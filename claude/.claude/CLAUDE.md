@@ -7,6 +7,12 @@
 - Prefer targeted edits over full file rewrites
 - Never use emojis in responses
 - Editor: nvim
+- Use the fetch MCP to look up current docs, API versions, chart versions, or image digests — training data goes stale; never guess at versions
+- Before any state-changing command, state what resources will be affected and the blast radius
+- Present the dry-run/plan/diff form of a command before the apply form; let the user review first
+- When generating YAML or IaC, self-review for: missing resource requests/limits, deprecated API versions, missing labels, and security context issues before presenting
+- Explain the reasoning behind config choices, not just what to set
+- When uncertain about behavior of a tool or API, say so explicitly rather than presenting a guess as fact
 
 ## Git Discipline
 - Conventional commits: `type(scope): description` — types: feat, fix, docs, chore, refactor, test, ci, perf
@@ -46,6 +52,14 @@
 - Review resource diffs before syncing; investigate drift before applying
 - Secrets in GitOps repos must be encrypted — never commit plaintext Secret manifests
 - Break large changes into smaller PRs; one logical change per PR where reasonable
+
+## CI/CD
+- Never merge to main without a passing pipeline; treat a red pipeline as a blocker
+- Keep pipelines fast: split slow steps into separate jobs, cache dependency installs keyed on lockfile hash
+- Pipelines are code: version-control workflow files, use reusable workflows/templates to avoid duplication
+- Secrets in CI must use the platform's secret store — never pass them as plain environment variables in logs
+- Pin action/orb/plugin versions by commit SHA, not tag, to prevent supply-chain drift
+- Fail fast: put lint and unit tests first, expensive integration tests last
 
 ## Observability
 - Structured logs (JSON preferred); always include relevant context (resource, namespace, request ID)
