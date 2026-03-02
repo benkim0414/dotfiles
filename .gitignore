@@ -1,2 +1,8 @@
 !.*
+.envrc
+.envrc.local
+.env
+.env.bw
+.env.op
+.env.local
 tmux/.config/tmux/plugins
