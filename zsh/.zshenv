@@ -33,4 +33,4 @@ export EZA_ICONS_AUTO=true
 
 export BAT_THEME="Catppuccin Mocha"
 
-export SSH_AUTH_SOCK=~/.1password/agent.sock
+export SSH_AUTH_SOCK=~/.bitwarden-ssh-agent.sock
