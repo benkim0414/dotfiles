@@ -1,6 +1,7 @@
 brew "antidote"
 brew "asdf"
 brew "bat"
+brew "bitwarden-cli"
 brew "eza"
 brew "fd"
 brew "fzf"

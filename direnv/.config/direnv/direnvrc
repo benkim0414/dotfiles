@@ -6,3 +6,43 @@ use_op() {
     watch_file "$env_file"
   fi
 }
+
+# Fetch secrets from Bitwarden and export them as environment variables.
+#
+# Reads a .env.bw file (default) where each non-comment line has the form:
+#   VAR_NAME=<item-uuid>:<field>
+#
+# Supported fields: password (default), username, notes
+# Example .env.bw:
+#   GITHUB_TOKEN=88a52664-df43-4c8a-b33b-b32300817bb0:notes
+#   DB_PASSWORD=e3e46a6b-a643-4f13-9820-ae4313fe75nd:password
+#
+# BW_SESSION must be set before entering the directory:
+#   export BW_SESSION="$(bw unlock --raw)"
+use_bw() {
+  local env_file="${1:-.env.bw}"
+  [[ -f "$env_file" ]] || return 0
+
+  if [[ -z "${BW_SESSION:-}" ]]; then
+    log_error "direnv: BW_SESSION is not set — run: export BW_SESSION=\"\$(bw unlock --raw)\""
+    return 1
+  fi
+
+  watch_file "$env_file"
+
+  local key value item_id field secret
+  while IFS='=' read -r key value || [[ -n "$key" ]]; do
+    [[ "$key" =~ ^[[:space:]]*# ]] && continue
+    [[ -z "${key// /}" ]] && continue
+
+    item_id="${value%%:*}"
+    field="${value#*:}"
+    [[ "$field" == "$value" ]] && field="password"
+
+    secret="$(bw get "$field" "$item_id" 2>/dev/null)" || {
+      log_error "direnv: failed to retrieve ${key} from Bitwarden (item: ${item_id}, field: ${field})"
+      return 1
+    }
+    export "${key}=${secret}"
+  done < "$env_file"
+}
