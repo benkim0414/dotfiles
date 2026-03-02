@@ -1,3 +1,6 @@
 .envrc.local
+.envrc
 .env
+.env.bw
+.env.op
 .env.local
