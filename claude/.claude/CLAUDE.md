@@ -14,6 +14,16 @@
 - Present the dry-run/plan/diff form of a command before the apply form; let the user review first
 - Ask for explicit confirmation before destructive operations (deletes, force-pushes, infrastructure-level changes)
 
+## Git Session Workflow
+- At session start, check the current branch (the `[git-workflow]` context injection shows this).
+- If on main: immediately run `git checkout -b <type>/<scope>-<description>` before any file edit.
+  Branch naming: type = feat|fix|docs|chore|refactor; scope = affected component or app.
+- If using `claude --worktree <name>`: branch is auto-created (`worktree-<name>`); proceed directly.
+- After each self-contained logical change (not per-file, per-logical-unit): stage only the
+  relevant files, commit with a conventional message, then proceed to the next change.
+- Do not batch multiple unrelated changes into a single commit.
+- Never commit or push directly to main — the guard hook will block it, but branch first to avoid it.
+
 ## Git Discipline
 - Conventional commits: `type(scope): description` — types: feat, fix, docs, chore, refactor, test, ci, perf
 - Atomic commits: one logical change per commit; keep unrelated changes separate
