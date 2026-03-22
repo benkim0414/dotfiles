@@ -6,3 +6,4 @@
 .env.op
 .env.local
 tmux/.config/tmux/plugins
+.claude/settings.local.json
