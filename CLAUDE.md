@@ -9,7 +9,7 @@ macOS/Linux dotfiles managed with GNU Stow and Homebrew.
 ```sh
 brew bundle --file=Brewfile
 mkdir -p ~/.local/bin
-stow -t ~ bat bin claude direnv eza ghostty git kitty lazygit nvim starship tmux yazi zsh
+stow -t ~ bat bin claude direnv eza ghostty git kitty lazygit mise nvim starship tmux yazi zsh
 ```
 
 ## Daily workflow
