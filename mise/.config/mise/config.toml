@@ -1,0 +1,3 @@
+[settings]
+# Auto-trust mise.toml files under ~/workspace without prompting
+trusted_config_paths = ["~/workspace"]

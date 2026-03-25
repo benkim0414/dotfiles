@@ -12,7 +12,6 @@ export XDG_STATE_HOME="$HOME/.local/state"
 
 export PATH="$HOME/bin:$PATH"
 export PATH="$HOME/.local/bin:$PATH"
-export PATH="${ASDF_DATA_DIR:-$HOME/.asdf}/shims:$PATH"
 if [[ "$OSTYPE" == "darwin"* ]]; then
     if [[ -x /opt/homebrew/bin/brew ]]; then  # Apple Silicon
         eval "$(/opt/homebrew/bin/brew shellenv)"

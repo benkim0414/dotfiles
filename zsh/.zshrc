@@ -27,13 +27,8 @@ if [[ $- == *i* ]]; then
 fi
 
 eval "$(starship init zsh)"
+eval "$(mise activate zsh)"
 eval "$(direnv hook zsh)"
-
-. ${ASDF_DATA_DIR:-$HOME/.asdf}/plugins/golang/set-env.zsh
-_gobin_path_hook() {
-  [[ -n "$GOBIN" ]] && path=("$GOBIN" "${path[@]:#$GOBIN}")
-}
-add-zsh-hook precmd _gobin_path_hook
 
 alias vi="nvim"
 alias vim="nvim"
