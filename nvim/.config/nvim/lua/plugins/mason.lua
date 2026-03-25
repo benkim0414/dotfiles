@@ -26,6 +26,7 @@ return {
         "markdown-toc",
         "markdownlint-cli2",
         "prettier",
+        "tree-sitter-cli",
       }
     }
   },
