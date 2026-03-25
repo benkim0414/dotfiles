@@ -38,63 +38,61 @@ return {
         end,
       })
 
+      -- Default capabilities and flags for all servers (nvim 0.11 native API)
+      vim.lsp.config('*', {
+        capabilities = capabilities,
+        flags = {
+          debounce_text_changes = 300,
+        },
+      })
+
+      vim.lsp.config('gopls', {
+        settings = {
+          gopls = {
+            gofumpt = true,
+            completeUnimported = true,
+            usePlaceholders = true,
+            analyses = {
+              unusedparams = true,
+            },
+          },
+        },
+      })
+
+      vim.lsp.config('lua_ls', {
+        settings = {
+          Lua = {
+            runtime = {
+              version = "LuaJIT",
+            },
+            diagnostics = {
+              globals = { "vim" },
+            },
+            workspace = {
+              library = vim.api.nvim_get_runtime_file("", true),
+              checkThirdParty = false,
+            },
+            telemetry = {
+              enable = false,
+            },
+          },
+        },
+      })
+
+      vim.lsp.config('jsonls', {
+        settings = {
+          json = {
+            schemas = require('schemastore').json.schemas(),
+            validate = { enable = true },
+          },
+        },
+      })
+
+      -- Use lspconfig handlers to provide cmd/root_dir/filetypes defaults per server
       require("mason-lspconfig").setup {
         handlers = {
           function(server_name)
-            lspconfig[server_name].setup {
-              capabilities = capabilities,
-              flags = {
-                debounce_text_changes = 300,  -- Increased from 150ms for better performance
-              },
-            }
-          end,
-          gopls = function()
-            lspconfig.gopls.setup {
-              capabilities = capabilities,
-              settings = {
-                gopls = {
-                  gofumpt = true,
-                  completeUnimported = true,
-                  usePlaceholders = true,
-                  analyses = {
-                    unusedparams = true,
-                  }
-                }
-              }
-            }
-          end,
-          ["lua_ls"] = function()
-            lspconfig.lua_ls.setup {
-              capabilities = capabilities,
-              settings = {
-                Lua = {
-                  runtime = {
-                    version = "LuaJIT",
-                  },
-                  diagnostics = {
-                    globals = { "vim" },
-                  },
-                  workspace = {
-                    library = vim.api.nvim_get_runtime_file("", true),
-                    checkThirdParty = false,
-                  },
-                  telemetry = {
-                    enable = false,
-                  },
-                },
-              },
-            }
-          end,
-          jsonls = function()
-            lspconfig.jsonls.setup {
-              capabilities = capabilities,
-              settings = {
-                json = {
-                  schemas = require('schemastore').json.schemas(),
-                  validate = { enable = true },
-                },
-              },
-            }
+            lspconfig[server_name].setup {}
           end,
         },
       }
