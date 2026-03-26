@@ -24,7 +24,7 @@ esac
 # - description: must have at least one non-whitespace character after the space
 PATTERN='^(feat|fix|docs|chore|refactor|test|ci|perf)\([a-z0-9][a-z0-9_-]*\)!?:[[:space:]].+'
 
-if ! echo "$subject" | grep -qE "$PATTERN"; then
+if ! printf '%s\n' "$subject" | grep -qE "$PATTERN"; then
   echo "COMMIT REJECTED: subject does not follow conventional commits." >&2
   echo "" >&2
   echo "  Required:  type(scope): description" >&2
@@ -53,7 +53,7 @@ if [[ -n "$scope" ]]; then
     | sed -n 's/^[a-z]*(\([^)]*\)).*/\1/p' \
     | sort -u || true)
 
-  if [[ -n "$known_scopes" ]] && ! echo "$known_scopes" | grep -qxF "$scope"; then
+  if [[ -n "$known_scopes" ]] && ! printf '%s\n' "$known_scopes" | grep -qxF "$scope"; then
     echo "COMMIT REJECTED: scope '${scope}' not found in recent commit history." >&2
     echo "" >&2
     echo "  Known scopes: $(echo "$known_scopes" | tr '\n' ', ' | sed 's/,$//')" >&2
