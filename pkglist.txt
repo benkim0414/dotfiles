@@ -1,5 +1,6 @@
 ghostty
 neovim
+openssh
 stow
 tailscale
 yazi
