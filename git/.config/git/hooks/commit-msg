@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# commit-msg: enforce conventional commit format on the subject line.
+# Installed via core.hooksPath in ~/.gitconfig; applies to all repositories.
+# Exit 1 = reject. Exit 0 = allow.
+set -euo pipefail
+
+COMMIT_MSG_FILE="$1"
+
+# Extract subject: first non-blank, non-comment line, stripped of leading whitespace.
+# Leading whitespace occurs when Claude Code uses heredoc indentation in git commit -m.
+subject=$(sed -n '/^[[:space:]]*#/d; /^[[:space:]]*$/d; s/^[[:space:]]*//; p; q' "$COMMIT_MSG_FILE" || true)
+
+# Allow auto-generated subjects that intentionally deviate from the convention.
+case "$subject" in
+  Merge\ *|Revert\ *|"fixup! "*|"squash! "*)
+    exit 0
+    ;;
+esac
+
+# Enforce: type(scope)[!]: description
+# - type: one of the allowed values (from CLAUDE.md)
+# - scope: required, lowercase alphanumeric with hyphens/underscores
+# - !: optional, marks a breaking change
+# - description: must have at least one non-whitespace character after the space
+PATTERN='^(feat|fix|docs|chore|refactor|test|ci|perf)\([a-z0-9][a-z0-9_-]*\)!?:[[:space:]].+'
+
+if ! echo "$subject" | grep -qE "$PATTERN"; then
+  echo "COMMIT REJECTED: subject does not follow conventional commits." >&2
+  echo "" >&2
+  echo "  Required:  type(scope): description" >&2
+  echo "  Breaking:  type(scope)!: description" >&2
+  echo "  Types:     feat fix docs chore refactor test ci perf" >&2
+  echo "  Scope:     required — lowercase alphanumeric, hyphens, underscores" >&2
+  echo "" >&2
+  echo "  Got: $subject" >&2
+  exit 1
+fi
+
+# Subject line should be concise (conventional commits best practice: ≤ 72 chars)
+if [[ "${#subject}" -gt 72 ]]; then
+  echo "COMMIT REJECTED: subject too long (${#subject}/72 chars)." >&2
+  echo "" >&2
+  echo "  Got: $subject" >&2
+  exit 1
+fi
