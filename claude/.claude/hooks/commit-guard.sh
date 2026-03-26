@@ -19,7 +19,11 @@ if echo "$COMMAND" | grep -qE 'git\s+add\s+(-A|--all|--update|-u|\.(\s|$))'; the
 fi
 
 # --- Block git commit -a (bypasses selective staging) ---
-if echo "$COMMAND" | grep -qE 'git\s+commit\s+.*(-a\s|-a$|-am\s|--all)'; then
+# Strip the -m argument content first to avoid false positives where -a appears
+# inside the commit message string (e.g., git commit -m "add -a flag support").
+# The sed strips: -m "...", -m '...', and -m "$(..." (heredoc substitution).
+cmd_no_msg=$(echo "$COMMAND" | sed 's/ -m ["\x27$].*//')
+if echo "$cmd_no_msg" | grep -qE 'git\s+commit\s+.*(-a(\s|$)|-am(\s|$)|--all)'; then
   echo "BLOCKED: Do not use 'git commit -a' — it bypasses selective staging." >&2
   echo "" >&2
   echo "  Stage specific files first, then commit:" >&2
