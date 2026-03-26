@@ -43,3 +43,22 @@ if [[ "${#subject}" -gt 72 ]]; then
   echo "  Got: $subject" >&2
   exit 1
 fi
+
+# Scope validation: check against recent git history.
+# New repos with no history skip this check. Genuinely new scopes
+# require --no-verify for the first commit, then they're in history.
+scope=$(echo "$subject" | sed -n 's/^[a-z]*(\([^)]*\)).*/\1/p')
+if [[ -n "$scope" ]]; then
+  known_scopes=$(git log --format='%s' -200 2>/dev/null \
+    | sed -n 's/^[a-z]*(\([^)]*\)).*/\1/p' \
+    | sort -u || true)
+
+  if [[ -n "$known_scopes" ]] && ! echo "$known_scopes" | grep -qxF "$scope"; then
+    echo "COMMIT REJECTED: scope '${scope}' not found in recent commit history." >&2
+    echo "" >&2
+    echo "  Known scopes: $(echo "$known_scopes" | tr '\n' ', ' | sed 's/,$//')" >&2
+    echo "" >&2
+    echo "  Use a known scope, or --no-verify for a genuinely new scope." >&2
+    exit 1
+  fi
+fi
