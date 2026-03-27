@@ -29,7 +29,20 @@
       "Bash(sudo rm *)",
       "Bash(kubectl delete *)",
       "Bash(terraform destroy*)",
-      "Bash(helm uninstall *)"
+      "Bash(helm uninstall *)",
+      "Bash(gh repo delete *)",
+      "Bash(gh repo archive *)",
+      "Bash(gh release delete *)",
+      "Bash(gh issue delete *)",
+      "Bash(gh cache delete *)",
+      "Bash(gh secret delete *)",
+      "Bash(gh variable delete *)",
+      "Bash(gh label delete *)",
+      "Bash(gh pr merge *)",
+      "Bash(gh run cancel *)",
+      "Bash(gh workflow disable *)",
+      "Bash(gh api --method DELETE *)",
+      "Bash(gh api -X DELETE *)"
     ]
   },
   "hooks": {
