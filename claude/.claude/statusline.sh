@@ -23,16 +23,6 @@ IFS=$'\t' read -r model ctx_pct rate_5h rate_7d cwd <<< "$(
   ] | @tsv'
 )"
 
-# Context progress bar (10 blocks).
-bar=""
-for ((i = 1; i <= 10; i++)); do
-  if (( i * 10 <= ctx_pct )); then
-    bar+="▓"
-  else
-    bar+="░"
-  fi
-done
-
 # Color thresholds: >=90 red, >=70 yellow, else green/teal.
 if (( ctx_pct >= 90 )); then
   ctx_color="$RED"
@@ -67,7 +57,7 @@ out="${MAUVE}${model}${RESET}"
 if [[ -n "$git_branch" ]]; then
   out+="${sep}${BLUE}${git_branch}${RESET}"
 fi
-out+="${sep}${ctx_color}${bar} ${ctx_pct}%${RESET}"
+out+="${sep}${ctx_color}${ctx_pct}%${RESET}"
 
 # Rate limits — only when non-zero (Pro/Max subscribers).
 for pair in "5h:$rate_5h" "7d:$rate_7d"; do
