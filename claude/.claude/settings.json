@@ -7,7 +7,8 @@
       "Edit(**)",
       "Bash(*)",
       "WebFetch(*)",
-      "WebSearch(*)"
+      "WebSearch(*)",
+      "mcp__sequential-thinking__*"
     ],
     "deny": [
       "Read(.env)",
