@@ -57,7 +57,7 @@ out="${MAUVE}${model}${RESET}"
 if [[ -n "$git_branch" ]]; then
   out+="${sep}${BLUE}${git_branch}${RESET}"
 fi
-out+="${sep}${ctx_color}${ctx_pct}%${RESET}"
+out+="${sep}${ctx_color}ctx ${ctx_pct}%${RESET}"
 
 # Rate limits — only when non-zero (Pro/Max subscribers).
 for pair in "5h:$rate_5h" "7d:$rate_7d"; do
