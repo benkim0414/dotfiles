@@ -38,6 +38,7 @@
 - Branch workflow: feature branches off main, open PR
 - Never force-push to main or shared branches
 - Review diffs for accidental secrets before every commit
+- Always use merge commits (`gh pr merge --merge`), never squash or rebase — preserve full commit history
 
 ## Security
 - Never hardcode secrets, tokens, or credentials in version-controlled files
