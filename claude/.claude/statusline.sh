@@ -35,8 +35,10 @@ fi
 # Git branch — cached per working directory (5-second TTL).
 git_branch=""
 if [[ -n "$cwd" ]]; then
-  cwd_key=${cwd//[^a-zA-Z0-9_]/_}
-  git_cache="/tmp/claude-statusline-git-${cwd_key}"
+  cwd_key="${cwd//[^a-zA-Z0-9_]/_}_${#cwd}"
+  cache_dir="${XDG_RUNTIME_DIR:-$HOME/.cache/claude}"
+  mkdir -p "$cache_dir" 2>/dev/null || true
+  git_cache="${cache_dir}/statusline-git-${cwd_key}"
   cache_age=999
   if [[ -f "$git_cache" ]]; then
     cache_age=$(( EPOCHSECONDS - $(stat -c %Y "$git_cache" 2>/dev/null || echo 0) ))

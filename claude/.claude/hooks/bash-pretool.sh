@@ -53,17 +53,14 @@ if [[ ! "$COMMAND" =~ git[[:space:]]+(add|commit|push) ]]; then
 fi
 
 # --- Block blanket staging commands ---
-if [[ "$COMMAND" =~ git[[:space:]]+add ]]; then
-  if echo "$COMMAND" | grep -qE 'git\s+add\s+(-A|--all|--update|-u|\.(\s|$))'; then
-    echo "BLOCKED: Stage specific files instead of everything." >&2
-    echo "" >&2
-    echo "  Use: git add <file1> <file2> ..." >&2
-    echo "  Not:  git add -A / --all / --update / ." >&2
-    echo "" >&2
-    echo "  Stage only the files for ONE logical change, commit, then repeat." >&2
-    exit 2
-  fi
-  exit 0
+if echo "$COMMAND" | grep -qE 'git\s+add\s+(-A|--all|--update|-u|\.(\s|$))'; then
+  echo "BLOCKED: Stage specific files instead of everything." >&2
+  echo "" >&2
+  echo "  Use: git add <file1> <file2> ..." >&2
+  echo "  Not:  git add -A / --all / --update / ." >&2
+  echo "" >&2
+  echo "  Stage only the files for ONE logical change, commit, then repeat." >&2
+  exit 2
 fi
 
 # --- Block git commit -a (bypasses selective staging) ---
@@ -117,7 +114,9 @@ dirs=$(echo "$staged" | grep '/' | cut -d/ -f1 | sort -u | tr '\n' ', ' | sed 's
 # Collect known scopes from recent history — cached with 60-second TTL.
 repo_path=$(git rev-parse --show-toplevel 2>/dev/null || true)
 repo_key=${repo_path//[^a-zA-Z0-9_]/_}
-scope_cache="/tmp/claude-commit-scopes-${repo_key}"
+cache_dir="${XDG_RUNTIME_DIR:-$HOME/.cache/claude}"
+mkdir -p "$cache_dir" 2>/dev/null || true
+scope_cache="${cache_dir}/commit-scopes-${repo_key}"
 scope_age=999
 if [[ -f "$scope_cache" ]]; then
   scope_age=$(( EPOCHSECONDS - $(stat -c %Y "$scope_cache" 2>/dev/null || echo 0) ))
