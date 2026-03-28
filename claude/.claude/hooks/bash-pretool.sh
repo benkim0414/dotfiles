@@ -136,11 +136,42 @@ if [[ "$COMMAND" =~ git[[:space:]]+push ]]; then
     fi
   fi
 
+  # Case 3: With push.default=upstream the branch's tracked remote may be origin/main
+  # (EnterWorktree creates branches that track main). A bare `git push origin <branch>`
+  # or `git push` without an explicit same-name refspec would silently redirect there.
+  upstream_main_tracking=false
+  if [[ "$block_push" != "true" && "$BRANCH" != "$MAIN_BRANCH" ]]; then
+    upstream_ref=$(git rev-parse --abbrev-ref "${BRANCH}@{upstream}" 2>/dev/null || true)
+    if [[ "$upstream_ref" == "origin/${MAIN_BRANCH}" ]]; then
+      # Allow only when an explicit same-name (non-main) refspec is given,
+      # e.g. git push origin HEAD:feature or git push origin feature:feature.
+      if [[ "$COMMAND" =~ git[[:space:]]+push([[:space:]]+-[^[:space:]]+)*[[:space:]]+(origin)[[:space:]]+([^[:space:]]+:[^[:space:]]+) ]]; then
+        dest_refspec="${BASH_REMATCH[3]}"
+        if [[ "$dest_refspec" =~ :${MAIN_BRANCH}$ ]]; then
+          block_push=true  # Explicit push to main via src:main — block.
+        fi
+        # else: explicit non-main refspec overrides tracking — ALLOW.
+      else
+        # No explicit refspec: push.default=upstream would silently target origin/main.
+        block_push=true
+        upstream_main_tracking=true
+      fi
+    fi
+  fi
+
   if [[ "$block_push" == "true" ]]; then
     echo "BLOCKED: Cannot push directly to '${MAIN_BRANCH}'." >&2
     echo "" >&2
-    echo "  Push to your feature branch: git push origin <branch>" >&2
-    echo "  Then open a PR:              gh pr create" >&2
+    if [[ "$upstream_main_tracking" == "true" ]]; then
+      echo "  Your branch '${BRANCH}' tracks origin/${MAIN_BRANCH}." >&2
+      echo "  With push.default=upstream this push would silently target origin/${MAIN_BRANCH}." >&2
+      echo "" >&2
+      echo "  Use an explicit refspec to create a new remote branch instead:" >&2
+      echo "    git push origin HEAD:${BRANCH}" >&2
+    else
+      echo "  Push to your feature branch: git push origin <branch>:<branch>" >&2
+      echo "  Then open a PR:              gh pr create" >&2
+    fi
     exit 2
   fi
 fi
