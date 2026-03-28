@@ -37,6 +37,24 @@ if [[ -n "$GIT_ABS_DIR" && -n "$GIT_COMMON_DIR" && "$GIT_ABS_DIR" != "$GIT_COMMO
   exit 0
 fi
 
+# --- Main working tree path ---
+
+REMOTE_HEAD=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null || true)
+MAIN_BRANCH="${REMOTE_HEAD#refs/remotes/origin/}"
+MAIN_BRANCH="${MAIN_BRANCH:-main}"
+
+# If on a non-main branch, check whether it has been merged into remote main.
+# Covers the GitHub-web-merge case: user merges on GitHub, starts a new session.
+if [[ -n "$BRANCH" && "$BRANCH" != "$MAIN_BRANCH" && "$BRANCH" != "HEAD" ]]; then
+  git fetch origin "$MAIN_BRANCH" --quiet 2>/dev/null || true
+  if git merge-base --is-ancestor HEAD "origin/$MAIN_BRANCH" 2>/dev/null; then
+    git checkout "$MAIN_BRANCH" 2>/dev/null || true
+    git pull --ff-only origin "$MAIN_BRANCH" 2>/dev/null || true
+    BRANCH="$MAIN_BRANCH"
+    echo "[git-workflow] Merged branch detected; switched to ${MAIN_BRANCH} and pulled latest."
+  fi
+fi
+
 # Main working tree: require EnterWorktree() before file edits.
 if [[ -n "$SESSION_ID" ]]; then
   touch "$STATE_DIR/pending-${SESSION_ID}"

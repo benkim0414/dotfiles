@@ -27,6 +27,8 @@
 - When the task is complete: call `ExitWorktree("keep")` to preserve the branch, then open
   a PR from it. Use `ExitWorktree("remove")` only to discard exploratory work with no
   commits worth keeping.
+- After `gh pr merge` succeeds: if in a worktree, call `ExitWorktree("keep")` first; then
+  run `git checkout <main-branch> && git pull` to land on the latest state for the next task.
 - Never commit or push directly to main — the guard hook will block it.
 
 ## Git Discipline
