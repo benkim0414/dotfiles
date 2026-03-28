@@ -86,6 +86,18 @@ if [[ -n "$BRANCH" && "$BRANCH" != "$MAIN_BRANCH" && "$BRANCH" != "HEAD" ]]; the
   fi
 fi
 
+# List existing linked worktrees so Claude knows where to resume open PR work.
+# Prune stale entries first so only live worktrees appear. No network calls.
+git worktree prune 2>/dev/null || true
+linked_wts=$(git worktree list 2>/dev/null | tail -n +2 || true)
+if [[ -n "$linked_wts" ]]; then
+  echo "[git-workflow] Existing worktrees (may have open PRs):"
+  while IFS= read -r line; do
+    echo "[git-workflow]   $line"
+  done <<< "$linked_wts"
+  echo "[git-workflow] To resume: start Claude Code from within a worktree directory."
+fi
+
 # Main working tree: require EnterWorktree() before file edits.
 if [[ -n "$SESSION_ID" ]]; then
   touch "$STATE_DIR/pending-${SESSION_ID}"

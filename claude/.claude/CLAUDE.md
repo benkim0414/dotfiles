@@ -24,17 +24,21 @@
 - After each self-contained logical change (not per-file, per-logical-unit): stage only the
   relevant files, commit with a conventional message, then proceed to the next change.
 - Do not batch multiple unrelated changes into a single commit.
-- When the task is complete: while still inside the worktree, push the feature branch and
-  open a PR — then call `ExitWorktree("keep")` to return to main:
+- When initial implementation is complete: push the feature branch and open a PR, then
+  stay in the worktree — do NOT call ExitWorktree yet:
     ```
     git push origin HEAD:<branch>   # explicit refspec avoids push.default=upstream redirecting to main
     gh pr create
-    ExitWorktree("keep")
     ```
+  Address any review feedback with additional commits in the same worktree, then re-push.
+- When the PR is approved and ready to merge: call `ExitWorktree("keep")` to return to main.
   Use `ExitWorktree("remove")` only to discard exploratory work with no commits worth keeping.
-- After ExitWorktree: STOP. Wait for the user to review and approve the PR on GitHub.
+- After ExitWorktree: wait for the user to merge the PR on GitHub.
   Do NOT merge without explicit user approval. Do NOT run `gh pr merge` proactively.
 - After the user merges the PR: run `git pull` to land on the latest main.
+- To resume PR review in a new session: start Claude Code from within the worktree directory
+  (e.g. `claude` from `.claude/worktrees/<name>/` — paths listed at session start);
+  the session-start hook detects the linked worktree and skips the EnterWorktree requirement.
 - Never commit or push directly to main — the guard hook will block it.
 
 ## Git Discipline
