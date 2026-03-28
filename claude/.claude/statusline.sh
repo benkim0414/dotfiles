@@ -58,6 +58,7 @@ fi
 # Hidden components (starting with .) keep the dot: .claude -> .c
 _abbrev_part() {
   local part="$1"
+  [[ "$part" == ".." ]] && { printf '..'; return; }
   if [[ "$part" == .* ]]; then
     local rest="${part#.}"
     printf '.%s' "${rest:0:1}"
