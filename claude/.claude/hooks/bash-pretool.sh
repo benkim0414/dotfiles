@@ -6,10 +6,8 @@
 # Exit 0 = allow (stdout → context). Exit 2 = block (stderr → Claude).
 set -euo pipefail
 
-# Portable fallbacks for macOS (system bash 3.2 lacks EPOCHSECONDS; BSD stat
-# uses -f %m instead of GNU -c %Y).
-: "${EPOCHSECONDS:=$(date +%s)}"
-file_mtime() { stat -c %Y "$1" 2>/dev/null || stat -f %m "$1" 2>/dev/null || echo 0; }
+# shellcheck source=../lib/portability.sh
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../lib/portability.sh"
 
 # --- Parse JSON once: extract both session_id and command ---
 INPUT=$(cat)
@@ -84,7 +82,7 @@ if [[ "$COMMAND" =~ git[[:space:]]+commit ]]; then
 fi
 
 # --- Main branch guard (git commit/push only) ---
-if [[ "$COMMAND" =~ (^|[,\;\&\|][[:space:]]*)git[[:space:]]+(commit|push) ]]; then
+if [[ "$COMMAND" =~ git[[:space:]]+(commit|push) ]]; then
   if git rev-parse --git-dir >/dev/null 2>&1; then
     BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)
     REMOTE_HEAD=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null || true)

@@ -3,10 +3,8 @@
 # Stdout is added to Claude's context; stderr is shown to the user.
 set -euo pipefail
 
-# Portable fallbacks for macOS (system bash 3.2 lacks EPOCHSECONDS; BSD stat
-# uses -f %m instead of GNU -c %Y).
-: "${EPOCHSECONDS:=$(date +%s)}"
-file_mtime() { stat -c %Y "$1" 2>/dev/null || stat -f %m "$1" 2>/dev/null || echo 0; }
+# shellcheck source=../lib/portability.sh
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../lib/portability.sh"
 
 INPUT=$(cat)
 SESSION_ID=$(printf '%s' "$INPUT" | jq -r '.session_id // empty' 2>/dev/null || true)
@@ -53,7 +51,7 @@ MAIN_BRANCH="${MAIN_BRANCH:-main}"
 if [[ -n "$BRANCH" && "$BRANCH" != "$MAIN_BRANCH" && "$BRANCH" != "HEAD" ]]; then
   # Only fetch if FETCH_HEAD is older than 5 minutes (avoids redundant network
   # calls on rapid session restarts).
-  fetch_head="$(git rev-parse --git-dir 2>/dev/null)/FETCH_HEAD"
+  fetch_head="${GIT_ABS_DIR}/FETCH_HEAD"
   fetch_age=999
   if [[ -f "$fetch_head" ]]; then
     fetch_age=$(( EPOCHSECONDS - $(file_mtime "$fetch_head") ))

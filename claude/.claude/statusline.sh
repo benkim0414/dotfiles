@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Portable fallbacks for macOS (system bash 3.2 lacks EPOCHSECONDS; BSD stat
-# uses -f %m instead of GNU -c %Y).
-: "${EPOCHSECONDS:=$(date +%s)}"
-file_mtime() { stat -c %Y "$1" 2>/dev/null || stat -f %m "$1" 2>/dev/null || echo 0; }
+# shellcheck source=lib/portability.sh
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/lib/portability.sh"
 
 # Catppuccin Mocha — 24-bit ANSI colors (hex values from starship.toml)
 RESET='\033[0m'
