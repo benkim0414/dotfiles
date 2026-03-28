@@ -18,7 +18,7 @@ if [[ "$(git rev-parse --is-bare-repository 2>/dev/null)" == "true" ]]; then
   exit 0
 fi
 
-REPO=$(git rev-parse --show-toplevel)
+REPO=$(git rev-parse --show-toplevel 2>/dev/null || true)
 BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)
 GIT_ABS_DIR=$(git rev-parse --absolute-git-dir 2>/dev/null || true)
 GIT_COMMON_DIR=$(git rev-parse --git-common-dir 2>/dev/null || true)
