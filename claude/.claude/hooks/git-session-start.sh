@@ -46,12 +46,27 @@ MAIN_BRANCH="${MAIN_BRANCH:-main}"
 # If on a non-main branch, check whether it has been merged into remote main.
 # Covers the GitHub-web-merge case: user merges on GitHub, starts a new session.
 if [[ -n "$BRANCH" && "$BRANCH" != "$MAIN_BRANCH" && "$BRANCH" != "HEAD" ]]; then
-  git fetch origin "$MAIN_BRANCH" --quiet 2>/dev/null || true
+  git fetch origin "$MAIN_BRANCH" 2>/dev/null || true
+  # Two detection strategies:
+  # 1. Ancestry check: HEAD is reachable from origin/main (regular/fast-forward merge).
+  # 2. Remote branch deleted: ls-remote exits 2 when the ref is absent (squash/rebase
+  #    merge + GitHub auto-delete). Non-2 failures (network error) are not treated as merged.
+  MERGED=false
   if git merge-base --is-ancestor HEAD "origin/$MAIN_BRANCH" 2>/dev/null; then
+    MERGED=true
+  else
+    ls_rc=0
+    git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1 || ls_rc=$?
+    [[ $ls_rc -eq 2 ]] && MERGED=true
+  fi
+  if [[ "$MERGED" == "true" ]]; then
     git checkout "$MAIN_BRANCH" 2>/dev/null || true
-    git pull --ff-only origin "$MAIN_BRANCH" 2>/dev/null || true
-    BRANCH="$MAIN_BRANCH"
-    echo "[git-workflow] Merged branch detected; switched to ${MAIN_BRANCH} and pulled latest."
+    BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)
+    if [[ "$BRANCH" == "$MAIN_BRANCH" ]]; then
+      git pull --ff-only origin "$MAIN_BRANCH" 2>/dev/null || \
+        git pull origin "$MAIN_BRANCH" 2>/dev/null || true
+      echo "[git-workflow] Merged branch detected; switched to ${MAIN_BRANCH} and pulled latest."
+    fi
   fi
 fi
 
