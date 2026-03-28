@@ -17,7 +17,7 @@
 ## Git Session Workflow
 - At session start, check the `[git-workflow]` context injection.
 - If it says "WORKTREE REQUIRED": call `EnterWorktree()` as the absolute first action —
-  before any Read, Edit, Write, or Bash. The hook blocks Write/Edit/Bash until you do.
+  before any Write, Edit, or Bash. The hook blocks Write/Edit/Bash until you do.
   Pass no argument; Claude Code auto-generates an isolated branch off HEAD.
 - If it says "Worktree session active": already isolated (started with `--worktree` or
   a prior `EnterWorktree()` call); proceed directly with the task.

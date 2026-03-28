@@ -5,7 +5,7 @@
 set -euo pipefail
 
 INPUT=$(cat)
-SESSION_ID=$(printf '%s' "$INPUT" | jq -r '.session_id // empty')
+SESSION_ID=$(printf '%s' "$INPUT" | jq -r '.session_id // empty' 2>/dev/null || true)
 
 if [[ -z "$SESSION_ID" ]]; then
   exit 0

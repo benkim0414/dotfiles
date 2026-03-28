@@ -18,8 +18,8 @@ fi
 
 REPO=$(git rev-parse --show-toplevel)
 BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
-GIT_ABS_DIR=$(git rev-parse --absolute-git-dir 2>/dev/null)
-GIT_COMMON_DIR=$(git rev-parse --git-common-dir 2>/dev/null)
+GIT_ABS_DIR=$(git rev-parse --absolute-git-dir 2>/dev/null || true)
+GIT_COMMON_DIR=$(git rev-parse --git-common-dir 2>/dev/null || true)
 
 # State directory: one pending file per session needing a worktree.
 STATE_DIR="$HOME/.claude/session-worktrees"
