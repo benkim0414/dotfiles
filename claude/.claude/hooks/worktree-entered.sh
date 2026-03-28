@@ -6,6 +6,8 @@ set -euo pipefail
 
 INPUT=$(cat)
 SESSION_ID=$(printf '%s' "$INPUT" | jq -r '.session_id // empty' 2>/dev/null || true)
+# Reject anything that isn't a UUID to prevent unexpected jq output in file paths.
+[[ "$SESSION_ID" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]] || SESSION_ID=""
 
 if [[ -z "$SESSION_ID" ]]; then
   exit 0
