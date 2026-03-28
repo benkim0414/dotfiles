@@ -73,10 +73,12 @@ fi
 # Main working tree: require EnterWorktree() before file edits.
 if [[ -n "$SESSION_ID" ]]; then
   touch "$STATE_DIR/pending-${SESSION_ID}"
+  echo "[git-workflow] WORKTREE REQUIRED: You are in the main working tree of ${REPO}."
+  echo "[git-workflow] Current branch: ${BRANCH}"
+  echo "[git-workflow] ACTION REQUIRED: Call EnterWorktree() immediately before any file edits."
+  echo "[git-workflow] This creates an isolated worktree+branch so parallel sessions cannot conflict."
+  echo "[git-workflow] After entering the worktree, proceed with the task normally."
+else
+  echo "[git-workflow] Warning: Could not determine session ID; worktree isolation unavailable."
+  echo "[git-workflow] Current branch: ${BRANCH}, repo: ${REPO}"
 fi
-
-echo "[git-workflow] WORKTREE REQUIRED: You are in the main working tree of ${REPO}."
-echo "[git-workflow] Current branch: ${BRANCH}"
-echo "[git-workflow] ACTION REQUIRED: Call EnterWorktree() immediately before any file edits."
-echo "[git-workflow] This creates an isolated worktree+branch so parallel sessions cannot conflict."
-echo "[git-workflow] After entering the worktree, proceed with the task normally."
