@@ -27,7 +27,7 @@
 - When the task is complete: while still inside the worktree, push the feature branch and
   open a PR — then call `ExitWorktree("keep")` to return to main:
     ```
-    git push origin <branch>
+    git push origin HEAD:<branch>   # explicit refspec avoids push.default=upstream redirecting to main
     gh pr create
     ExitWorktree("keep")
     ```
