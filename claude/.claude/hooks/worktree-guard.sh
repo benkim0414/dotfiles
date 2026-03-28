@@ -19,13 +19,12 @@ fi
 
 # Self-healing: if already in a linked worktree (PostToolUse may not have fired
 # for built-in tools), clear the stale file and pass through.
-if git rev-parse --git-dir >/dev/null 2>&1; then
-  GIT_ABS=$(git rev-parse --absolute-git-dir 2>/dev/null || true)
-  GIT_COM=$(git rev-parse --git-common-dir 2>/dev/null || true)
-  if [[ -n "$GIT_ABS" && -n "$GIT_COM" && "$GIT_ABS" != "$GIT_COM" ]]; then
-    rm -f "$PENDING"
-    exit 0
-  fi
+# The pending file was only written inside a git repo, so --absolute-git-dir is safe.
+GIT_ABS=$(git rev-parse --absolute-git-dir 2>/dev/null || true)
+GIT_COM=$(git rev-parse --git-common-dir 2>/dev/null || true)
+if [[ -n "$GIT_ABS" && -n "$GIT_COM" && "$GIT_ABS" != "$GIT_COM" ]]; then
+  rm -f "$PENDING"
+  exit 0
 fi
 
 echo "BLOCKED: This session requires an isolated git worktree before file edits." >&2

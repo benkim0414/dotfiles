@@ -109,6 +109,15 @@
             "command": "bash $HOME/.claude/hooks/worktree-guard.sh"
           }
         ]
+      },
+      {
+        "matcher": "NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $HOME/.claude/hooks/worktree-guard.sh"
+          }
+        ]
       }
     ],
     "PostToolUse": [
