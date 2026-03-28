@@ -79,7 +79,7 @@ if [[ "$COMMAND" =~ git[[:space:]]+commit ]]; then
 fi
 
 # --- Main branch guard (git commit/push only) ---
-if [[ "$COMMAND" =~ ^git[[:space:]]+(commit|push) ]]; then
+if [[ "$COMMAND" =~ (^|[,\;\&\|][[:space:]]*)git[[:space:]]+(commit|push) ]]; then
   if git rev-parse --git-dir >/dev/null 2>&1; then
     BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)
     REMOTE_HEAD=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null || true)
