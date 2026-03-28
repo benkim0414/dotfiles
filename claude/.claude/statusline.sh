@@ -54,13 +54,41 @@ if [[ -n "$cwd" ]]; then
   fi
 fi
 
+# Abbreviate a single path component to its first printable character.
+# Hidden components (starting with .) keep the dot: .claude -> .c
+_abbrev_part() {
+  local part="$1"
+  [[ "$part" == ".." ]] && { printf '..'; return; }
+  if [[ "$part" == .* ]]; then
+    local rest="${part#.}"
+    printf '.%s' "${rest:0:1}"
+  else
+    printf '%s' "${part:0:1}"
+  fi
+}
+
 # Separator.
 sep="${OVERLAY} │ ${RESET}"
 
 # Build output — model and context are always shown.
 out="${MAUVE}${model}${RESET}"
 if [[ -n "$cwd" ]]; then
-  display_cwd="${cwd/#$HOME/\~}"
+  # Fish-style path: abbreviate every component except the last.
+  tilde_cwd="${cwd/#$HOME/\~}"
+  IFS='/' read -ra _parts <<< "$tilde_cwd"
+  _n="${#_parts[@]}"
+  display_cwd=""
+  for (( _i=0; _i<_n; _i++ )); do
+    _p="${_parts[$_i]}"
+    if (( _i == _n - 1 )); then
+      display_cwd+="$_p"          # last component: full name
+    elif [[ -z "$_p" ]]; then
+      display_cwd+="/"            # leading slash (absolute path)
+    else
+      display_cwd+="$(_abbrev_part "$_p")/"
+    fi
+  done
+  unset _parts _n _i _p
   out+="${sep}${BLUE}${display_cwd}${RESET}"
 fi
 if [[ -n "$git_branch" ]]; then
