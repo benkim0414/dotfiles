@@ -60,12 +60,16 @@ if [[ -n "$BRANCH" && "$BRANCH" != "$MAIN_BRANCH" && "$BRANCH" != "HEAD" ]]; the
     [[ $ls_rc -eq 2 ]] && MERGED=true
   fi
   if [[ "$MERGED" == "true" ]]; then
-    git checkout "$MAIN_BRANCH" 2>/dev/null || true
-    BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)
-    if [[ "$BRANCH" == "$MAIN_BRANCH" ]]; then
-      git pull --ff-only origin "$MAIN_BRANCH" 2>/dev/null || \
-        git pull origin "$MAIN_BRANCH" 2>/dev/null || true
-      echo "[git-workflow] Merged branch detected; switched to ${MAIN_BRANCH} and pulled latest."
+    if [[ -n "$(git status --porcelain 2>/dev/null)" ]]; then
+      echo "[git-workflow] Warning: merged branch detected but worktree has uncommitted changes; skipping auto-checkout."
+    else
+      git checkout "$MAIN_BRANCH" 2>/dev/null || true
+      BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)
+      if [[ "$BRANCH" == "$MAIN_BRANCH" ]]; then
+        git pull --ff-only origin "$MAIN_BRANCH" 2>/dev/null || \
+          git pull origin "$MAIN_BRANCH" 2>/dev/null || true
+        echo "[git-workflow] Merged branch detected; switched to ${MAIN_BRANCH} and pulled latest."
+      fi
     fi
   fi
 fi
