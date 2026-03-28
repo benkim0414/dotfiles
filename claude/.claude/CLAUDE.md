@@ -17,13 +17,16 @@
 ## Git Session Workflow
 - At session start, check the `[git-workflow]` context injection.
 - If it says "WORKTREE REQUIRED": call `EnterWorktree()` as the absolute first action —
-  before any Write, Edit, or Bash. The hook blocks Write/Edit/Bash until you do.
+  before any Write, Edit, Bash, or notebook edit. The hook blocks file-editing tools until you do.
   Pass no argument; Claude Code auto-generates an isolated branch off HEAD.
 - If it says "Worktree session active": already isolated (started with `--worktree` or
   a prior `EnterWorktree()` call); proceed directly with the task.
 - After each self-contained logical change (not per-file, per-logical-unit): stage only the
   relevant files, commit with a conventional message, then proceed to the next change.
 - Do not batch multiple unrelated changes into a single commit.
+- When the task is complete: call `ExitWorktree("keep")` to preserve the branch, then open
+  a PR from it. Use `ExitWorktree("remove")` only to discard exploratory work with no
+  commits worth keeping.
 - Never commit or push directly to main — the guard hook will block it.
 
 ## Git Discipline

@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
-# PreToolUse hook (matchers: Bash, Write, Edit, MultiEdit):
+# PreToolUse hook (matchers: Bash, Write, Edit, MultiEdit, NotebookEdit):
 # Block file-touching tools until EnterWorktree() has been called this session.
 # Exit 0 = allow. Exit 2 = block (stderr shown to Claude as error).
 set -euo pipefail
 
 INPUT=$(cat)
-SESSION_ID=$(printf '%s' "$INPUT" | jq -r '.session_id // empty')
+SESSION_ID=$(printf '%s' "$INPUT" | jq -r '.session_id // empty' 2>/dev/null || true)
+# Reject anything that isn't a UUID to prevent unexpected jq output in file paths.
+[[ "$SESSION_ID" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]] || SESSION_ID=""
 
 if [[ -z "$SESSION_ID" ]]; then
   exit 0
@@ -30,7 +32,7 @@ fi
 echo "BLOCKED: This session requires an isolated git worktree before file edits." >&2
 echo "" >&2
 echo "Call EnterWorktree() now — it creates an isolated branch off HEAD automatically." >&2
-echo "Write/Edit/Bash are blocked until the worktree is entered." >&2
+echo "File-editing tools are blocked until the worktree is entered." >&2
 echo "" >&2
 echo "  Emergency escape: rm \"${PENDING}\"" >&2
 exit 2

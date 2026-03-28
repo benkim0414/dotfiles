@@ -4,7 +4,9 @@
 set -euo pipefail
 
 INPUT=$(cat)
-SESSION_ID=$(printf '%s' "$INPUT" | jq -r '.session_id // empty')
+SESSION_ID=$(printf '%s' "$INPUT" | jq -r '.session_id // empty' 2>/dev/null || true)
+# Reject anything that isn't a UUID to prevent unexpected jq output in file paths.
+[[ "$SESSION_ID" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]] || SESSION_ID=""
 
 # Silently exit if not inside a git repository.
 if ! git rev-parse --git-dir >/dev/null 2>&1; then
@@ -17,7 +19,7 @@ if [[ "$(git rev-parse --is-bare-repository 2>/dev/null)" == "true" ]]; then
 fi
 
 REPO=$(git rev-parse --show-toplevel)
-BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)
 GIT_ABS_DIR=$(git rev-parse --absolute-git-dir 2>/dev/null || true)
 GIT_COMMON_DIR=$(git rev-parse --git-common-dir 2>/dev/null || true)
 
