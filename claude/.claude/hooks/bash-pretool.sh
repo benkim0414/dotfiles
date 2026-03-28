@@ -6,6 +6,11 @@
 # Exit 0 = allow (stdout → context). Exit 2 = block (stderr → Claude).
 set -euo pipefail
 
+# Portable fallbacks for macOS (system bash 3.2 lacks EPOCHSECONDS; BSD stat
+# uses -f %m instead of GNU -c %Y).
+: "${EPOCHSECONDS:=$(date +%s)}"
+file_mtime() { stat -c %Y "$1" 2>/dev/null || stat -f %m "$1" 2>/dev/null || echo 0; }
+
 # --- Parse JSON once: extract both session_id and command ---
 INPUT=$(cat)
 IFS=$'\t' read -r SESSION_ID COMMAND <<< "$(
@@ -67,7 +72,7 @@ fi
 if [[ "$COMMAND" =~ git[[:space:]]+commit ]]; then
   # Strip the -m argument content to avoid false positives where -a appears
   # inside the commit message string (e.g., git commit -m "add -a flag support").
-  cmd_no_msg=$(echo "$COMMAND" | sed 's/ -m ["\x27$].*//')
+  cmd_no_msg=$(printf '%s' "$COMMAND" | sed 's/ -m ["'"'"'$].*//')
   if echo "$cmd_no_msg" | grep -qE 'git\s+commit\s+.*(-a(\s|$)|-am(\s|$)|--all)'; then
     echo "BLOCKED: Do not use 'git commit -a' — it bypasses selective staging." >&2
     echo "" >&2
@@ -119,7 +124,7 @@ mkdir -p "$cache_dir" 2>/dev/null || true
 scope_cache="${cache_dir}/commit-scopes-${repo_key}"
 scope_age=999
 if [[ -f "$scope_cache" ]]; then
-  scope_age=$(( EPOCHSECONDS - $(stat -c %Y "$scope_cache" 2>/dev/null || echo 0) ))
+  scope_age=$(( EPOCHSECONDS - $(file_mtime "$scope_cache") ))
 fi
 if (( scope_age > 60 )); then
   known_scopes=$(git log --format='%s' -200 2>/dev/null \
