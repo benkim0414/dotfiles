@@ -71,47 +71,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash $HOME/.claude/hooks/worktree-guard.sh"
-          },
-          {
-            "type": "command",
-            "command": "bash $HOME/.claude/hooks/git-main-guard.sh"
-          },
-          {
-            "type": "command",
-            "command": "bash $HOME/.claude/hooks/commit-guard.sh"
+            "command": "bash $HOME/.claude/hooks/bash-pretool.sh"
           }
         ]
       },
       {
-        "matcher": "Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash $HOME/.claude/hooks/worktree-guard.sh"
-          }
-        ]
-      },
-      {
-        "matcher": "Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash $HOME/.claude/hooks/worktree-guard.sh"
-          }
-        ]
-      },
-      {
-        "matcher": "MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash $HOME/.claude/hooks/worktree-guard.sh"
-          }
-        ]
-      },
-      {
-        "matcher": "NotebookEdit",
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit",
         "hooks": [
           {
             "type": "command",
