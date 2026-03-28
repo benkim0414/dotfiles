@@ -56,6 +56,10 @@
         "hooks": [
           {
             "type": "command",
+            "command": "find $HOME/.claude/plugins -name '*.sh' ! -perm -u+x -exec chmod +x {} +"
+          },
+          {
+            "type": "command",
             "command": "bash $HOME/.claude/hooks/git-session-start.sh"
           }
         ]
