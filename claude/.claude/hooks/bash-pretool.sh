@@ -47,11 +47,11 @@ if [[ -n "$SESSION_ID" ]]; then
 fi
 
 # =====================================================================
-# 2. Git guards — only relevant for git add/commit/push commands
+# 2. Git guards — only relevant for git add/commit/push/merge/rebase/cherry-pick
 # =====================================================================
 
 # Fast exit for non-git commands (the vast majority of Bash calls).
-if [[ ! "$COMMAND" =~ git[[:space:]]+(add|commit|push) ]]; then
+if [[ ! "$COMMAND" =~ git[[:space:]]+(add|commit|push|merge|rebase|cherry-pick) ]]; then
   exit 0
 fi
 
@@ -81,19 +81,67 @@ if [[ "$COMMAND" =~ git[[:space:]]+commit ]]; then
   fi
 fi
 
-# --- Main branch guard (git commit/push only) ---
-if [[ "$COMMAND" =~ git[[:space:]]+(commit|push) ]]; then
-  if git rev-parse --git-dir >/dev/null 2>&1; then
-    BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)
-    REMOTE_HEAD=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null || true)
-    MAIN_BRANCH="${REMOTE_HEAD#refs/remotes/origin/}"
-    MAIN_BRANCH="${MAIN_BRANCH:-main}"
-    if [[ "$BRANCH" == "$MAIN_BRANCH" ]]; then
-      echo "BLOCKED: Cannot commit/push directly on '${MAIN_BRANCH}'." >&2
-      echo "Create a feature branch first:" >&2
-      echo "  git checkout -b <type>/<scope>-<description>" >&2
-      exit 2
+# --- Compute git context once (shared by all main-branch guards below) ---
+BRANCH="" MAIN_BRANCH="main"
+if git rev-parse --git-dir >/dev/null 2>&1; then
+  BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)
+  REMOTE_HEAD=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null || true)
+  MAIN_BRANCH="${REMOTE_HEAD#refs/remotes/origin/}"
+  MAIN_BRANCH="${MAIN_BRANCH:-main}"
+fi
+
+# --- Block commit on main ---
+if [[ "$COMMAND" =~ git[[:space:]]+commit && "$BRANCH" == "$MAIN_BRANCH" ]]; then
+  echo "BLOCKED: Cannot commit directly on '${MAIN_BRANCH}'." >&2
+  echo "Call EnterWorktree() and commit on the isolated feature branch." >&2
+  exit 2
+fi
+
+# --- Block merge/rebase/cherry-pick on main (enforce PR workflow) ---
+# These bypass the PR review process by bringing changes into main locally.
+if [[ "$COMMAND" =~ git[[:space:]]+(merge|rebase|cherry-pick) && "$BRANCH" == "$MAIN_BRANCH" ]]; then
+  echo "BLOCKED: Cannot merge/rebase/cherry-pick directly on '${MAIN_BRANCH}'." >&2
+  echo "" >&2
+  echo "  Push your feature branch and open a PR instead:" >&2
+  echo "    git push origin <branch>   # from within the worktree" >&2
+  echo "    gh pr create" >&2
+  exit 2
+fi
+
+# --- Block push to main (checks destination ref, not just current branch) ---
+# Allows pushing a feature branch even when HEAD is main (e.g., after ExitWorktree).
+if [[ "$COMMAND" =~ git[[:space:]]+push ]]; then
+  block_push=false
+
+  # Case 1: On main with no explicit non-main destination.
+  if [[ "$BRANCH" == "$MAIN_BRANCH" ]]; then
+    if [[ "$COMMAND" =~ git[[:space:]]+push([[:space:]]+-[^[:space:]]+)*[[:space:]]+(origin)[[:space:]]+([^[:space:]]+) ]]; then
+      dest="${BASH_REMATCH[3]}"
+      # Block only if the explicit refspec targets main (e.g., main or feat:main).
+      if [[ "$dest" == "$MAIN_BRANCH" || "$dest" =~ :${MAIN_BRANCH}$ ]]; then
+        block_push=true
+      fi
+      # else: explicit non-main destination while on main → ALLOW (pushes feature branch)
+    else
+      # No explicit destination: bare `git push` or `git push origin` defaults to main.
+      block_push=true
     fi
+  fi
+
+  # Case 2: Explicit main destination from any branch (e.g., inside a worktree on
+  # a feature branch running `git push origin main` or `git push origin feat:main`).
+  if [[ "$block_push" != "true" ]]; then
+    if [[ "$COMMAND" =~ git[[:space:]]+push([[:space:]]+-[^[:space:]]+)*[[:space:]]+(origin)[[:space:]]+([^[:space:]]+:)?(${MAIN_BRANCH})([[:space:]]|$) ]]; then
+      block_push=true
+    fi
+  fi
+
+  if [[ "$block_push" == "true" ]]; then
+    echo "BLOCKED: Cannot push directly to '${MAIN_BRANCH}'." >&2
+    echo "" >&2
+    echo "  Push to your feature branch: git push origin <branch>" >&2
+    echo "  Then open a PR:              gh pr create" >&2
+    exit 2
   fi
 fi
 
