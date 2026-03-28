@@ -87,7 +87,8 @@ if [[ -n "$BRANCH" && "$BRANCH" != "$MAIN_BRANCH" && "$BRANCH" != "HEAD" ]]; the
 fi
 
 # List existing linked worktrees so Claude knows where to resume open PR work.
-# Uses only local git data — no network calls.
+# Prune stale entries first so only live worktrees appear. No network calls.
+git worktree prune 2>/dev/null || true
 linked_wts=$(git worktree list 2>/dev/null | tail -n +2 || true)
 if [[ -n "$linked_wts" ]]; then
   echo "[git-workflow] Existing worktrees (may have open PRs):"

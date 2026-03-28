@@ -25,7 +25,7 @@
   relevant files, commit with a conventional message, then proceed to the next change.
 - Do not batch multiple unrelated changes into a single commit.
 - When initial implementation is complete: push the feature branch and open a PR, then
-  STOP and wait for review — do NOT call ExitWorktree yet, stay in the worktree:
+  stay in the worktree — do NOT call ExitWorktree yet:
     ```
     git push origin HEAD:<branch>   # explicit refspec avoids push.default=upstream redirecting to main
     gh pr create
@@ -37,8 +37,8 @@
   Do NOT merge without explicit user approval. Do NOT run `gh pr merge` proactively.
 - After the user merges the PR: run `git pull` to land on the latest main.
 - To resume PR review in a new session: start Claude Code from within the worktree directory
-  (e.g. `claude` from `.claude/worktrees/<name>/`); the session-start hook detects the linked
-  worktree and skips the EnterWorktree requirement automatically.
+  (e.g. `claude` from `.claude/worktrees/<name>/` — paths listed at session start);
+  the session-start hook detects the linked worktree and skips the EnterWorktree requirement.
 - Never commit or push directly to main — the guard hook will block it.
 
 ## Git Discipline
