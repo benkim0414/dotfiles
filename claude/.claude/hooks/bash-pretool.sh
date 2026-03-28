@@ -28,7 +28,7 @@ if [[ -n "$SESSION_ID" ]]; then
     # Self-healing: if already in a linked worktree (PostToolUse may not have
     # fired for built-in tools), clear the stale file and pass through.
     GIT_ABS=$(git rev-parse --absolute-git-dir 2>/dev/null || true)
-    GIT_COM=$(git rev-parse --git-common-dir 2>/dev/null || true)
+    GIT_COM=$(cd "$(git rev-parse --git-common-dir 2>/dev/null)" 2>/dev/null && pwd || true)
     if [[ -n "$GIT_ABS" && -n "$GIT_COM" && "$GIT_ABS" != "$GIT_COM" ]]; then
       rm -f "$PENDING"
     else
