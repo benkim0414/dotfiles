@@ -3,6 +3,9 @@
 # Stdout is added to Claude's context; stderr is shown to the user.
 set -euo pipefail
 
+# shellcheck source=../lib/portability.sh
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../lib/portability.sh"
+
 INPUT=$(cat)
 SESSION_ID=$(printf '%s' "$INPUT" | jq -r '.session_id // empty' 2>/dev/null || true)
 # Reject anything that isn't a UUID to prevent unexpected jq output in file paths.
@@ -21,7 +24,7 @@ fi
 REPO=$(git rev-parse --show-toplevel 2>/dev/null || true)
 BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)
 GIT_ABS_DIR=$(git rev-parse --absolute-git-dir 2>/dev/null || true)
-GIT_COMMON_DIR=$(git rev-parse --git-common-dir 2>/dev/null || true)
+GIT_COMMON_DIR=$(cd "$(git rev-parse --git-common-dir 2>/dev/null)" 2>/dev/null && pwd || true)
 
 # State directory: one pending file per session needing a worktree.
 STATE_DIR="$HOME/.claude/session-worktrees"
@@ -46,7 +49,16 @@ MAIN_BRANCH="${MAIN_BRANCH:-main}"
 # If on a non-main branch, check whether it has been merged into remote main.
 # Covers the GitHub-web-merge case: user merges on GitHub, starts a new session.
 if [[ -n "$BRANCH" && "$BRANCH" != "$MAIN_BRANCH" && "$BRANCH" != "HEAD" ]]; then
-  git fetch origin "$MAIN_BRANCH" 2>/dev/null || true
+  # Only fetch if FETCH_HEAD is older than 5 minutes (avoids redundant network
+  # calls on rapid session restarts).
+  fetch_head="${GIT_ABS_DIR}/FETCH_HEAD"
+  fetch_age=999
+  if [[ -f "$fetch_head" ]]; then
+    fetch_age=$(( EPOCHSECONDS - $(file_mtime "$fetch_head") ))
+  fi
+  if (( fetch_age > 300 )); then
+    git fetch origin "$MAIN_BRANCH" 2>/dev/null || true
+  fi
   # Two detection strategies:
   # 1. Ancestry check: HEAD is reachable from origin/main (regular/fast-forward merge).
   # 2. Remote branch deleted: ls-remote exits 2 when the ref is absent (squash/rebase
@@ -60,12 +72,16 @@ if [[ -n "$BRANCH" && "$BRANCH" != "$MAIN_BRANCH" && "$BRANCH" != "HEAD" ]]; the
     [[ $ls_rc -eq 2 ]] && MERGED=true
   fi
   if [[ "$MERGED" == "true" ]]; then
-    git checkout "$MAIN_BRANCH" 2>/dev/null || true
-    BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)
-    if [[ "$BRANCH" == "$MAIN_BRANCH" ]]; then
-      git pull --ff-only origin "$MAIN_BRANCH" 2>/dev/null || \
-        git pull origin "$MAIN_BRANCH" 2>/dev/null || true
-      echo "[git-workflow] Merged branch detected; switched to ${MAIN_BRANCH} and pulled latest."
+    if [[ -n "$(git status --porcelain 2>/dev/null)" ]]; then
+      echo "[git-workflow] Warning: merged branch detected but worktree has uncommitted changes; skipping auto-checkout."
+    else
+      git checkout "$MAIN_BRANCH" 2>/dev/null || true
+      BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)
+      if [[ "$BRANCH" == "$MAIN_BRANCH" ]]; then
+        git pull --ff-only origin "$MAIN_BRANCH" 2>/dev/null || \
+          git pull origin "$MAIN_BRANCH" 2>/dev/null || true
+        echo "[git-workflow] Merged branch detected; switched to ${MAIN_BRANCH} and pulled latest."
+      fi
     fi
   fi
 fi
@@ -73,10 +89,12 @@ fi
 # Main working tree: require EnterWorktree() before file edits.
 if [[ -n "$SESSION_ID" ]]; then
   touch "$STATE_DIR/pending-${SESSION_ID}"
+  echo "[git-workflow] WORKTREE REQUIRED: You are in the main working tree of ${REPO}."
+  echo "[git-workflow] Current branch: ${BRANCH}"
+  echo "[git-workflow] ACTION REQUIRED: Call EnterWorktree() immediately before any file edits."
+  echo "[git-workflow] This creates an isolated worktree+branch so parallel sessions cannot conflict."
+  echo "[git-workflow] After entering the worktree, proceed with the task normally."
+else
+  echo "[git-workflow] Warning: Could not determine session ID; worktree isolation unavailable."
+  echo "[git-workflow] Current branch: ${BRANCH}, repo: ${REPO}"
 fi
-
-echo "[git-workflow] WORKTREE REQUIRED: You are in the main working tree of ${REPO}."
-echo "[git-workflow] Current branch: ${BRANCH}"
-echo "[git-workflow] ACTION REQUIRED: Call EnterWorktree() immediately before any file edits."
-echo "[git-workflow] This creates an isolated worktree+branch so parallel sessions cannot conflict."
-echo "[git-workflow] After entering the worktree, proceed with the task normally."

@@ -6,6 +6,9 @@
 # Exit 0 = allow (stdout → context). Exit 2 = block (stderr → Claude).
 set -euo pipefail
 
+# shellcheck source=../lib/portability.sh
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../lib/portability.sh"
+
 # --- Parse JSON once: extract both session_id and command ---
 INPUT=$(cat)
 IFS=$'\t' read -r SESSION_ID COMMAND <<< "$(
@@ -28,7 +31,7 @@ if [[ -n "$SESSION_ID" ]]; then
     # Self-healing: if already in a linked worktree (PostToolUse may not have
     # fired for built-in tools), clear the stale file and pass through.
     GIT_ABS=$(git rev-parse --absolute-git-dir 2>/dev/null || true)
-    GIT_COM=$(git rev-parse --git-common-dir 2>/dev/null || true)
+    GIT_COM=$(cd "$(git rev-parse --git-common-dir 2>/dev/null)" 2>/dev/null && pwd || true)
     if [[ -n "$GIT_ABS" && -n "$GIT_COM" && "$GIT_ABS" != "$GIT_COM" ]]; then
       rm -f "$PENDING"
     else
@@ -53,7 +56,7 @@ if [[ ! "$COMMAND" =~ git[[:space:]]+(add|commit|push) ]]; then
 fi
 
 # --- Block blanket staging commands ---
-if echo "$COMMAND" | grep -qE 'git\s+add\s+(-A|--all|--update|-u|\.(\s|$))'; then
+if [[ "$COMMAND" =~ git[[:space:]]+add[[:space:]]+(-A|--all|--update|-u|\.(\ |$)) ]]; then
   echo "BLOCKED: Stage specific files instead of everything." >&2
   echo "" >&2
   echo "  Use: git add <file1> <file2> ..." >&2
@@ -67,8 +70,8 @@ fi
 if [[ "$COMMAND" =~ git[[:space:]]+commit ]]; then
   # Strip the -m argument content to avoid false positives where -a appears
   # inside the commit message string (e.g., git commit -m "add -a flag support").
-  cmd_no_msg=$(echo "$COMMAND" | sed 's/ -m ["\x27$].*//')
-  if echo "$cmd_no_msg" | grep -qE 'git\s+commit\s+.*(-a(\s|$)|-am(\s|$)|--all)'; then
+  cmd_no_msg=$(printf '%s' "$COMMAND" | sed 's/ -m ["'"'"'$].*//')
+  if [[ "$cmd_no_msg" =~ git[[:space:]]+commit[[:space:]]+.*(-a(\ |$)|-am(\ |$)|--all) ]]; then
     echo "BLOCKED: Do not use 'git commit -a' — it bypasses selective staging." >&2
     echo "" >&2
     echo "  Stage specific files first, then commit:" >&2
@@ -79,7 +82,7 @@ if [[ "$COMMAND" =~ git[[:space:]]+commit ]]; then
 fi
 
 # --- Main branch guard (git commit/push only) ---
-if [[ "$COMMAND" =~ ^git[[:space:]]+(commit|push) ]]; then
+if [[ "$COMMAND" =~ git[[:space:]]+(commit|push) ]]; then
   if git rev-parse --git-dir >/dev/null 2>&1; then
     BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)
     REMOTE_HEAD=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null || true)
@@ -119,7 +122,7 @@ mkdir -p "$cache_dir" 2>/dev/null || true
 scope_cache="${cache_dir}/commit-scopes-${repo_key}"
 scope_age=999
 if [[ -f "$scope_cache" ]]; then
-  scope_age=$(( EPOCHSECONDS - $(stat -c %Y "$scope_cache" 2>/dev/null || echo 0) ))
+  scope_age=$(( EPOCHSECONDS - $(file_mtime "$scope_cache") ))
 fi
 if (( scope_age > 60 )); then
   known_scopes=$(git log --format='%s' -200 2>/dev/null \

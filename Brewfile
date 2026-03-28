@@ -1,4 +1,5 @@
 brew "antidote"
+brew "bash"
 brew "bat"
 brew "bitwarden-cli"
 brew "direnv"
