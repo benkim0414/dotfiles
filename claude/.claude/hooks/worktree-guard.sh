@@ -24,11 +24,11 @@ fi
 # Allow writes to paths outside the git working tree (plan files, temp files, etc.).
 # Resolve symlinks so that stow-managed files (e.g. ~/.claude/settings.json →
 # ~/workspace/dotfiles/claude/.claude/settings.json) are treated as repo files.
-FILE_PATH=$(printf '%s' "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null || true)
+FILE_PATH=$(printf '%s' "$INPUT" | jq -r '.tool_input.file_path // .tool_input.path // .tool_input.notebook_path // empty' 2>/dev/null || true)
 if [[ -n "$FILE_PATH" ]]; then
   REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || true)
   if [[ -n "$REPO_ROOT" ]]; then
-    resolved=$(realpath -m "$FILE_PATH" 2>/dev/null || echo "$FILE_PATH")
+    resolved=$(realpath -m "$FILE_PATH" 2>/dev/null || grealpath -m "$FILE_PATH" 2>/dev/null || echo "$FILE_PATH")
     if [[ "$resolved" != "${REPO_ROOT}"/* ]]; then
       exit 0  # Target is outside the repo working tree — allow unconditionally.
     fi
