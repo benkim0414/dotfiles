@@ -24,11 +24,17 @@
 - After each self-contained logical change (not per-file, per-logical-unit): stage only the
   relevant files, commit with a conventional message, then proceed to the next change.
 - Do not batch multiple unrelated changes into a single commit.
-- When the task is complete: call `ExitWorktree("keep")` to preserve the branch, then open
-  a PR from it. Use `ExitWorktree("remove")` only to discard exploratory work with no
-  commits worth keeping.
-- After `gh pr merge` succeeds: if in a worktree, call `ExitWorktree("keep")` first; then
-  run `git checkout main && git pull` to land on the latest state for the next task.
+- When the task is complete: while still inside the worktree, push the feature branch and
+  open a PR — then call `ExitWorktree("keep")` to return to main:
+    ```
+    git push origin <branch>
+    gh pr create
+    ExitWorktree("keep")
+    ```
+  Use `ExitWorktree("remove")` only to discard exploratory work with no commits worth keeping.
+- After ExitWorktree: STOP. Wait for the user to review and approve the PR on GitHub.
+  Do NOT merge without explicit user approval. Do NOT run `gh pr merge` proactively.
+- After the user merges the PR: run `git pull` to land on the latest main.
 - Never commit or push directly to main — the guard hook will block it.
 
 ## Git Discipline

@@ -90,6 +90,15 @@
             "command": "bash $HOME/.claude/hooks/worktree-entered.sh"
           }
         ]
+      },
+      {
+        "matcher": "ExitWorktree",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $HOME/.claude/hooks/worktree-exited.sh"
+          }
+        ]
       }
     ]
   },
