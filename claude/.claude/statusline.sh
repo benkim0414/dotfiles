@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# shellcheck source=lib/portability.sh
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/lib/portability.sh"
+
 # Catppuccin Mocha — 24-bit ANSI colors (hex values from starship.toml)
 RESET='\033[0m'
 MAUVE='\033[38;2;203;166;247m'   # #cba6f7
@@ -41,7 +44,7 @@ if [[ -n "$cwd" ]]; then
   git_cache="${cache_dir}/statusline-git-${cwd_key}"
   cache_age=999
   if [[ -f "$git_cache" ]]; then
-    cache_age=$(( EPOCHSECONDS - $(stat -c %Y "$git_cache" 2>/dev/null || echo 0) ))
+    cache_age=$(( EPOCHSECONDS - $(file_mtime "$git_cache") ))
   fi
   if (( cache_age > 5 )); then
     git_branch=$(git -C "$cwd" rev-parse --abbrev-ref HEAD 2>/dev/null || true)
