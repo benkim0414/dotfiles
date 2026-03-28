@@ -15,14 +15,21 @@
 - Ask for explicit confirmation before destructive operations (deletes, force-pushes, infrastructure-level changes)
 
 ## Git Session Workflow
-- At session start, check the current branch (the `[git-workflow]` context injection shows this).
-- If on main: immediately run `git checkout -b <type>/<scope>-<description>` before any file edit.
-  Branch naming: type = feat|fix|docs|chore|refactor; scope = affected component or app.
-- If using `claude --worktree <name>`: branch is auto-created (`worktree-<name>`); proceed directly.
+- At session start, check the `[git-workflow]` context injection.
+- If it says "WORKTREE REQUIRED": call `EnterWorktree()` as the absolute first action —
+  before any Write, Edit, Bash, or notebook edit. The hook blocks file-editing tools until you do.
+  Pass no argument; Claude Code auto-generates an isolated branch off HEAD.
+- If it says "Worktree session active": already isolated (started with `--worktree` or
+  a prior `EnterWorktree()` call); proceed directly with the task.
 - After each self-contained logical change (not per-file, per-logical-unit): stage only the
   relevant files, commit with a conventional message, then proceed to the next change.
 - Do not batch multiple unrelated changes into a single commit.
-- Never commit or push directly to main — the guard hook will block it, but branch first to avoid it.
+- When the task is complete: call `ExitWorktree("keep")` to preserve the branch, then open
+  a PR from it. Use `ExitWorktree("remove")` only to discard exploratory work with no
+  commits worth keeping.
+- After `gh pr merge` succeeds: if in a worktree, call `ExitWorktree("keep")` first; then
+  run `git checkout main && git pull` to land on the latest state for the next task.
+- Never commit or push directly to main — the guard hook will block it.
 
 ## Git Discipline
 - Conventional commits: `type(scope): description` — types: feat, fix, docs, chore, refactor, test, ci, perf
