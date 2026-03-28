@@ -1,29 +1,82 @@
 #!/usr/bin/env bash
-# SessionStart hook: inject git branch context into Claude's session.
+# SessionStart hook: inject git/worktree context into Claude's session.
 # Stdout is added to Claude's context; stderr is shown to the user.
 set -euo pipefail
 
-# Consume the JSON input Claude Code sends to every hook
 INPUT=$(cat)
+SESSION_ID=$(printf '%s' "$INPUT" | jq -r '.session_id // empty' 2>/dev/null || true)
+# Reject anything that isn't a UUID to prevent unexpected jq output in file paths.
+[[ "$SESSION_ID" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]] || SESSION_ID=""
 
-# Silently exit if not inside a git repository
+# Silently exit if not inside a git repository.
 if ! git rev-parse --git-dir >/dev/null 2>&1; then
   exit 0
 fi
 
-REPO=$(git rev-parse --show-toplevel)
-BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+# Skip bare repositories (no working tree to isolate).
+if [[ "$(git rev-parse --is-bare-repository 2>/dev/null)" == "true" ]]; then
+  exit 0
+fi
+
+REPO=$(git rev-parse --show-toplevel 2>/dev/null || true)
+BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)
+GIT_ABS_DIR=$(git rev-parse --absolute-git-dir 2>/dev/null || true)
+GIT_COMMON_DIR=$(git rev-parse --git-common-dir 2>/dev/null || true)
+
+# State directory: one pending file per session needing a worktree.
+STATE_DIR="$HOME/.claude/session-worktrees"
+mkdir -p "$STATE_DIR"
+# Clean up pending files older than 24 hours (abandoned sessions).
+find "$STATE_DIR" -name 'pending-*' -mmin +1440 -delete 2>/dev/null || true
+
+# Detect if already in a linked worktree.
+# Linked worktree: absolute-git-dir is under .git/worktrees/, differs from git-common-dir.
+if [[ -n "$GIT_ABS_DIR" && -n "$GIT_COMMON_DIR" && "$GIT_ABS_DIR" != "$GIT_COMMON_DIR" ]]; then
+  echo "[git-workflow] Worktree session active: branch=${BRANCH}, repo=${REPO}"
+  echo "[git-workflow] Isolation confirmed. Commit each logical change atomically."
+  exit 0
+fi
+
+# --- Main working tree path ---
+
 REMOTE_HEAD=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null || true)
 MAIN_BRANCH="${REMOTE_HEAD#refs/remotes/origin/}"
 MAIN_BRANCH="${MAIN_BRANCH:-main}"
 
-if [[ "$BRANCH" == "$MAIN_BRANCH" ]]; then
-  echo "[git-workflow] ATTENTION: You are on '${MAIN_BRANCH}' in ${REPO}."
-  echo "[git-workflow] Create a feature branch before making any edits:"
-  echo "[git-workflow]   git checkout -b <type>/<scope>-<description>"
-  echo "[git-workflow] Types: feat, fix, docs, chore, refactor"
-  echo "[git-workflow] Example: git checkout -b fix/home-assistant-startup-probe"
-else
-  echo "[git-workflow] Active branch: ${BRANCH} (in ${REPO})"
-  echo "[git-workflow] Commit each logical change atomically before moving to the next."
+# If on a non-main branch, check whether it has been merged into remote main.
+# Covers the GitHub-web-merge case: user merges on GitHub, starts a new session.
+if [[ -n "$BRANCH" && "$BRANCH" != "$MAIN_BRANCH" && "$BRANCH" != "HEAD" ]]; then
+  git fetch origin "$MAIN_BRANCH" 2>/dev/null || true
+  # Two detection strategies:
+  # 1. Ancestry check: HEAD is reachable from origin/main (regular/fast-forward merge).
+  # 2. Remote branch deleted: ls-remote exits 2 when the ref is absent (squash/rebase
+  #    merge + GitHub auto-delete). Non-2 failures (network error) are not treated as merged.
+  MERGED=false
+  if git merge-base --is-ancestor HEAD "origin/$MAIN_BRANCH" 2>/dev/null; then
+    MERGED=true
+  else
+    ls_rc=0
+    git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1 || ls_rc=$?
+    [[ $ls_rc -eq 2 ]] && MERGED=true
+  fi
+  if [[ "$MERGED" == "true" ]]; then
+    git checkout "$MAIN_BRANCH" 2>/dev/null || true
+    BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)
+    if [[ "$BRANCH" == "$MAIN_BRANCH" ]]; then
+      git pull --ff-only origin "$MAIN_BRANCH" 2>/dev/null || \
+        git pull origin "$MAIN_BRANCH" 2>/dev/null || true
+      echo "[git-workflow] Merged branch detected; switched to ${MAIN_BRANCH} and pulled latest."
+    fi
+  fi
 fi
+
+# Main working tree: require EnterWorktree() before file edits.
+if [[ -n "$SESSION_ID" ]]; then
+  touch "$STATE_DIR/pending-${SESSION_ID}"
+fi
+
+echo "[git-workflow] WORKTREE REQUIRED: You are in the main working tree of ${REPO}."
+echo "[git-workflow] Current branch: ${BRANCH}"
+echo "[git-workflow] ACTION REQUIRED: Call EnterWorktree() immediately before any file edits."
+echo "[git-workflow] This creates an isolated worktree+branch so parallel sessions cannot conflict."
+echo "[git-workflow] After entering the worktree, proceed with the task normally."
