@@ -15,4 +15,3 @@ PENDING="$HOME/.claude/session-worktrees/pending-${SESSION_ID}"
 rm -f "$PENDING"
 
 echo "[git-workflow] Worktree entered. Isolation confirmed; proceed with the task."
-exit 0
