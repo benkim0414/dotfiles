@@ -58,7 +58,7 @@ if [[ ! "$COMMAND" =~ git[[:space:]]+(add|commit|push) ]]; then
 fi
 
 # --- Block blanket staging commands ---
-if echo "$COMMAND" | grep -qE 'git\s+add\s+(-A|--all|--update|-u|\.(\s|$))'; then
+if [[ "$COMMAND" =~ git[[:space:]]+add[[:space:]]+(-A|--all|--update|-u|\.(\ |$)) ]]; then
   echo "BLOCKED: Stage specific files instead of everything." >&2
   echo "" >&2
   echo "  Use: git add <file1> <file2> ..." >&2
@@ -73,7 +73,7 @@ if [[ "$COMMAND" =~ git[[:space:]]+commit ]]; then
   # Strip the -m argument content to avoid false positives where -a appears
   # inside the commit message string (e.g., git commit -m "add -a flag support").
   cmd_no_msg=$(printf '%s' "$COMMAND" | sed 's/ -m ["'"'"'$].*//')
-  if echo "$cmd_no_msg" | grep -qE 'git\s+commit\s+.*(-a(\s|$)|-am(\s|$)|--all)'; then
+  if [[ "$cmd_no_msg" =~ git[[:space:]]+commit[[:space:]]+.*(-a(\ |$)|-am(\ |$)|--all) ]]; then
     echo "BLOCKED: Do not use 'git commit -a' — it bypasses selective staging." >&2
     echo "" >&2
     echo "  Stage specific files first, then commit:" >&2
