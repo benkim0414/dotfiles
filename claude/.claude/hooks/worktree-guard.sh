@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# PreToolUse hook (matchers: Bash, Write, Edit, MultiEdit, NotebookEdit):
-# Block file-touching tools until EnterWorktree() has been called this session.
+# PreToolUse hook (matchers: Write, Edit, MultiEdit, NotebookEdit):
+# Block file-editing tools until EnterWorktree() has been called this session.
+# Only applies to paths inside the git working tree; writes to external paths
+# (e.g. ~/.claude/plans/, /tmp/) are always allowed.
 # Exit 0 = allow. Exit 2 = block (stderr shown to Claude as error).
 set -euo pipefail
 
@@ -17,6 +19,20 @@ PENDING="$HOME/.claude/session-worktrees/pending-${SESSION_ID}"
 
 if [[ ! -f "$PENDING" ]]; then
   exit 0
+fi
+
+# Allow writes to paths outside the git working tree (plan files, temp files, etc.).
+# Resolve symlinks so that stow-managed files (e.g. ~/.claude/settings.json →
+# ~/workspace/dotfiles/claude/.claude/settings.json) are treated as repo files.
+FILE_PATH=$(printf '%s' "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null || true)
+if [[ -n "$FILE_PATH" ]]; then
+  REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || true)
+  if [[ -n "$REPO_ROOT" ]]; then
+    resolved=$(realpath -m "$FILE_PATH" 2>/dev/null || echo "$FILE_PATH")
+    if [[ "$resolved" != "${REPO_ROOT}"/* ]]; then
+      exit 0  # Target is outside the repo working tree — allow unconditionally.
+    fi
+  fi
 fi
 
 # Self-healing: if already in a linked worktree (PostToolUse may not have fired
