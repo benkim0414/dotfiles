@@ -61,10 +61,10 @@ sep="${OVERLAY} │ ${RESET}"
 out="${MAUVE}${model}${RESET}"
 if [[ -n "$cwd" ]]; then
   display_cwd="${cwd/#$HOME/\~}"
-  out+="${sep}${TEAL}${display_cwd}${RESET}"
+  out+="${sep}${BLUE}${display_cwd}${RESET}"
 fi
 if [[ -n "$git_branch" ]]; then
-  out+="${sep}${BLUE}${git_branch}${RESET}"
+  out+="${sep}${RED}${git_branch}${RESET}"
 fi
 out+="${sep}${ctx_color}ctx ${ctx_pct}%${RESET}"
 
