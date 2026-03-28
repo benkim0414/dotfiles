@@ -3,6 +3,11 @@
 # Stdout is added to Claude's context; stderr is shown to the user.
 set -euo pipefail
 
+# Portable fallbacks for macOS (system bash 3.2 lacks EPOCHSECONDS; BSD stat
+# uses -f %m instead of GNU -c %Y).
+: "${EPOCHSECONDS:=$(date +%s)}"
+file_mtime() { stat -c %Y "$1" 2>/dev/null || stat -f %m "$1" 2>/dev/null || echo 0; }
+
 INPUT=$(cat)
 SESSION_ID=$(printf '%s' "$INPUT" | jq -r '.session_id // empty' 2>/dev/null || true)
 # Reject anything that isn't a UUID to prevent unexpected jq output in file paths.
@@ -46,7 +51,16 @@ MAIN_BRANCH="${MAIN_BRANCH:-main}"
 # If on a non-main branch, check whether it has been merged into remote main.
 # Covers the GitHub-web-merge case: user merges on GitHub, starts a new session.
 if [[ -n "$BRANCH" && "$BRANCH" != "$MAIN_BRANCH" && "$BRANCH" != "HEAD" ]]; then
-  git fetch origin "$MAIN_BRANCH" 2>/dev/null || true
+  # Only fetch if FETCH_HEAD is older than 5 minutes (avoids redundant network
+  # calls on rapid session restarts).
+  fetch_head="$(git rev-parse --git-dir 2>/dev/null)/FETCH_HEAD"
+  fetch_age=999
+  if [[ -f "$fetch_head" ]]; then
+    fetch_age=$(( EPOCHSECONDS - $(file_mtime "$fetch_head") ))
+  fi
+  if (( fetch_age > 300 )); then
+    git fetch origin "$MAIN_BRANCH" 2>/dev/null || true
+  fi
   # Two detection strategies:
   # 1. Ancestry check: HEAD is reachable from origin/main (regular/fast-forward merge).
   # 2. Remote branch deleted: ls-remote exits 2 when the ref is absent (squash/rebase
