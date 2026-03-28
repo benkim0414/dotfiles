@@ -1,29 +1,47 @@
 #!/usr/bin/env bash
-# SessionStart hook: inject git branch context into Claude's session.
+# SessionStart hook: inject git/worktree context into Claude's session.
 # Stdout is added to Claude's context; stderr is shown to the user.
 set -euo pipefail
 
-# Consume the JSON input Claude Code sends to every hook
 INPUT=$(cat)
+SESSION_ID=$(printf '%s' "$INPUT" | jq -r '.session_id // empty')
 
-# Silently exit if not inside a git repository
+# Silently exit if not inside a git repository.
 if ! git rev-parse --git-dir >/dev/null 2>&1; then
+  exit 0
+fi
+
+# Skip bare repositories (no working tree to isolate).
+if [[ "$(git rev-parse --is-bare-repository 2>/dev/null)" == "true" ]]; then
   exit 0
 fi
 
 REPO=$(git rev-parse --show-toplevel)
 BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
-REMOTE_HEAD=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null || true)
-MAIN_BRANCH="${REMOTE_HEAD#refs/remotes/origin/}"
-MAIN_BRANCH="${MAIN_BRANCH:-main}"
+GIT_ABS_DIR=$(git rev-parse --absolute-git-dir 2>/dev/null)
+GIT_COMMON_DIR=$(git rev-parse --git-common-dir 2>/dev/null)
 
-if [[ "$BRANCH" == "$MAIN_BRANCH" ]]; then
-  echo "[git-workflow] ATTENTION: You are on '${MAIN_BRANCH}' in ${REPO}."
-  echo "[git-workflow] Create a feature branch before making any edits:"
-  echo "[git-workflow]   git checkout -b <type>/<scope>-<description>"
-  echo "[git-workflow] Types: feat, fix, docs, chore, refactor"
-  echo "[git-workflow] Example: git checkout -b fix/home-assistant-startup-probe"
-else
-  echo "[git-workflow] Active branch: ${BRANCH} (in ${REPO})"
-  echo "[git-workflow] Commit each logical change atomically before moving to the next."
+# State directory: one pending file per session needing a worktree.
+STATE_DIR="$HOME/.claude/session-worktrees"
+mkdir -p "$STATE_DIR"
+# Clean up pending files older than 24 hours (abandoned sessions).
+find "$STATE_DIR" -name 'pending-*' -mmin +1440 -delete 2>/dev/null || true
+
+# Detect if already in a linked worktree.
+# Linked worktree: absolute-git-dir is under .git/worktrees/, differs from git-common-dir.
+if [[ -n "$GIT_ABS_DIR" && -n "$GIT_COMMON_DIR" && "$GIT_ABS_DIR" != "$GIT_COMMON_DIR" ]]; then
+  echo "[git-workflow] Worktree session active: branch=${BRANCH}, repo=${REPO}"
+  echo "[git-workflow] Isolation confirmed. Commit each logical change atomically."
+  exit 0
 fi
+
+# Main working tree: require EnterWorktree() before file edits.
+if [[ -n "$SESSION_ID" ]]; then
+  touch "$STATE_DIR/pending-${SESSION_ID}"
+fi
+
+echo "[git-workflow] WORKTREE REQUIRED: You are in the main working tree of ${REPO}."
+echo "[git-workflow] Current branch: ${BRANCH}"
+echo "[git-workflow] ACTION REQUIRED: Call EnterWorktree() immediately before any file edits."
+echo "[git-workflow] This creates an isolated worktree+branch so parallel sessions cannot conflict."
+echo "[git-workflow] After entering the worktree, proceed with the task normally."

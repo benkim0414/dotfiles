@@ -71,11 +71,53 @@
         "hooks": [
           {
             "type": "command",
+            "command": "bash $HOME/.claude/hooks/worktree-guard.sh"
+          },
+          {
+            "type": "command",
             "command": "bash $HOME/.claude/hooks/git-main-guard.sh"
           },
           {
             "type": "command",
             "command": "bash $HOME/.claude/hooks/commit-guard.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $HOME/.claude/hooks/worktree-guard.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $HOME/.claude/hooks/worktree-guard.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $HOME/.claude/hooks/worktree-guard.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "EnterWorktree",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $HOME/.claude/hooks/worktree-entered.sh"
           }
         ]
       }
