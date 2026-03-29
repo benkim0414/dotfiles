@@ -54,8 +54,8 @@
 - Audit new tool installations and third-party scripts before running them
 
 ## Domain Rules
-@rules/iac.md
-@rules/kubernetes.md
-@rules/cicd.md
-@rules/observability.md
-@rules/shell.md
+@includes/iac.md
+@includes/kubernetes.md
+@includes/cicd.md
+@includes/observability.md
+@includes/shell.md
