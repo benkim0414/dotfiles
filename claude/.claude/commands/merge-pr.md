@@ -1,5 +1,5 @@
 ---
-allowed-tools: Bash(gh pr view:*), Bash(gh pr edit:*), Bash(gh pr merge:*), Bash(gh pr checks:*), Bash(gh pr diff:*), Bash(mktemp:*), Bash(rm:*), Bash(git branch:*), Bash(git pull:*), Read, Grep, Glob
+allowed-tools: Bash(gh pr view:*), Bash(gh pr edit:*), Bash(gh pr merge:*), Bash(gh pr checks:*), Bash(mktemp:*), Bash(rm:*), Bash(git branch:*), Bash(git pull:*), Read, Grep, Glob
 description: Verify PR test plan, tick completed items, and merge
 ---
 
@@ -36,19 +36,21 @@ c. Track as PASS or FAIL (with reason).
 
 Update the PR body: replace `- [ ]` with `- [x]` for each PASS item. Leave FAIL, post-merge, and unverifiable items as `- [ ]`.
 
-Write the updated body to a tmpfile and apply:
+Only perform the update if at least one item changed from `- [ ]` to `- [x]`. If no items passed, skip the edit call.
+
+To apply the update, write the full updated body to a tmpfile using the Write tool (path under `/tmp/`), then run:
 ```bash
-TMPFILE=$(mktemp /tmp/pr-body-XXXXXX.md)
-cat > "$TMPFILE" << 'BODY'
-<updated body here>
-BODY
-gh pr edit <number> --body-file "$TMPFILE"
+gh pr edit <PR_NUMBER> --body-file "$TMPFILE"
 rm -f "$TMPFILE"
 ```
 
+Use the PR number extracted from the context in Step 1.
+
 ### Step 4: Check CI status
 
-Run `gh pr checks` and report failing or pending checks.
+Run `gh pr checks` and report failing or pending checks. This step is independent of the test plan and must always run, even if there is no `## Test plan` section.
+
+If `statusCheckRollup` is null in the PR details, there are no configured CI checks — treat CI as not applicable rather than as a failure.
 If any required checks are failing, report this clearly and do not proceed without user acknowledgement.
 
 ### Step 5: Pre-merge summary
@@ -72,9 +74,9 @@ If there are UNVERIFIABLE items, ask the user to confirm they were manually veri
 
 ### Step 6: Merge
 
-When all pre-merge concerns are resolved, run:
+When all pre-merge concerns are resolved, run using the PR number from Step 1:
 ```bash
-gh pr merge <number> --merge
+gh pr merge <PR_NUMBER> --merge
 ```
 
 Never use `--squash` or `--rebase`.
@@ -83,3 +85,4 @@ Never use `--squash` or `--rebase`.
 
 After merge, run `git pull` to update local main, then verify deferred items against the merged state.
 Update the PR body with remaining `- [x]` ticks using the same tmpfile approach from Step 3.
+Note: `gh pr edit` works on merged PRs — it is correct to update the body of a PR in MERGED state.
