@@ -1,20 +1,25 @@
 ---
-allowed-tools: Bash(gh pr view:*), Bash(gh pr edit:*), Bash(gh pr merge:*), Bash(gh pr checks:*), Bash(rm:*), Bash(git fetch:*), Read, Grep, Glob, Write
+allowed-tools: Bash(gh pr view:*), Bash(gh pr edit:*), Bash(gh pr merge:*), Bash(gh pr checks:*), Bash(rm:*), Bash(git fetch:*), Bash(git show:*), Read, Grep, Glob, Write
+argument-hint: "[pr-number]"
 description: Verify PR test plan, tick completed items, and merge
 ---
 
 ## Context
 
 - Current branch: !`git branch --show-current`
-- PR details: !`gh pr view --json number,title,body,state,statusCheckRollup,reviewDecision,url`
+- Arguments: $ARGUMENTS
 
 ## Your task
 
 Follow these steps in order.
 
-### Step 1: Parse the PR
+### Step 1: Fetch and parse the PR
 
-From the injected PR details, extract the PR number, title, URL, full body text, state, and reviewDecision.
+Run `gh pr view` to fetch the PR details as JSON:
+- If a PR number was provided in the arguments above, use it: `gh pr view <number> --json number,title,body,state,statusCheckRollup,reviewDecision,url`
+- If no argument was provided, omit the number to auto-detect from the current branch: `gh pr view --json number,title,body,state,statusCheckRollup,reviewDecision,url`
+
+From the result, extract the PR number, title, URL, full body text, state, and reviewDecision.
 
 **Guard check**: If the PR state is `CLOSED`, `DRAFT`, or `MERGED`, or if reviewDecision is `CHANGES_REQUESTED`, stop immediately and report why the PR is not mergeable. Do not proceed to further steps.
 
@@ -33,7 +38,7 @@ For each `- [ ]` item, decide whether it can be verified before or after merge:
 
 For each pre-merge item, attempt automated verification:
 
-a. **Shell commands in backticks**: Run the command. Exit 0 = PASS. Capture stdout and stderr; include them as the failure reason on non-zero exit.
+a. **Shell commands in backticks**: If the command is within the allowed-tools scope (gh, git), run it. Exit 0 = PASS. Capture stdout and stderr; include them as the failure reason on non-zero exit. Commands outside the allowed-tools scope (e.g., stow, npm, make) cannot be run -- classify these as UNVERIFIABLE.
 b. **File/code conditions**: Use Read, Grep, Glob to check the stated condition. Condition met = PASS.
 c. Track as PASS or FAIL (with reason).
 
@@ -80,7 +85,7 @@ If there are UNVERIFIABLE items, ask the user to confirm they were manually veri
 
 When all pre-merge concerns are resolved, run using the PR number from Step 1:
 ```bash
-gh pr merge <PR_NUMBER> --merge --yes
+gh pr merge <PR_NUMBER> --merge
 ```
 
 Never use `--squash` or `--rebase`.
