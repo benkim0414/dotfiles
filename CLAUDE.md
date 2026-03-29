@@ -12,6 +12,16 @@ mkdir -p ~/.local/bin
 stow -t ~ bat bin claude direnv eza ghostty git kitty lazygit mise nvim starship tmux yazi zsh
 ```
 
+After stowing, register the sequential-thinking MCP server globally so it
+is available in all Claude Code projects (not just this repo):
+
+```sh
+claude mcp add --scope user sequential-thinking -- npx -y @modelcontextprotocol/server-sequential-thinking
+```
+
+This writes to `~/.claude.json`, which is managed by Claude Code and cannot
+be stowed.
+
 ## Daily workflow
 
 ```sh
