@@ -14,8 +14,11 @@ Follow these steps in order.
 
 ### Step 1: Parse the PR
 
-From the injected PR details, extract the PR number, title, URL, and full body text.
-Find the `## Test plan` section and extract every `- [ ]` checklist item under it.
+From the injected PR details, extract the PR number, title, URL, full body text, state, and reviewDecision.
+
+**Guard check**: If the PR state is `CLOSED`, `DRAFT`, or `MERGED`, or if reviewDecision is `CHANGES_REQUESTED`, stop immediately and report why the PR is not mergeable. Do not proceed to further steps.
+
+Find the `## Test plan` section. Extract every `- [ ]` (unchecked) and `- [x]` (already checked) item under it. Track already-checked items separately as PREVIOUSLY VERIFIED -- they require no re-verification.
 If there is no `## Test plan` section, skip to Step 4.
 
 ### Step 2: Categorize items by when they can be verified
@@ -61,10 +64,11 @@ PR #<number>: <title>
 URL: <url>
 
 Test plan:
-  PASS         (<n> items ticked off)
-  FAIL         (<n> items)  [list with reasons]
-  DEFERRED     (<n> items)  [will verify after merge]
-  UNVERIFIABLE (<n> items)  [list — manual verification required]
+  PASS              (<n> items ticked off)
+  PREVIOUSLY VERIFIED (<n> items — ticked in a prior run)
+  FAIL              (<n> items)  [list with reasons]
+  DEFERRED          (<n> items)  [will verify after merge]
+  UNVERIFIABLE      (<n> items)  [list — manual verification required]
 
 CI: <PASS | FAIL | PENDING | N/A>
 ```
@@ -88,6 +92,6 @@ After merge, land the merged commits locally with:
 git fetch origin main:main
 ```
 
-This updates the local main ref from any branch or worktree without requiring a checkout. Then verify deferred items against the merged state using the updated local main.
+This updates the local main ref from any branch or worktree without requiring a checkout. Then verify deferred items against the merged state. To read files from the updated main ref without leaving the worktree, use `git show main:<path>` or the Read tool on the main working tree.
 Update the PR body with remaining `- [x]` ticks using the same tmpfile approach from Step 3.
 Note: `gh pr edit` works on merged PRs — it is correct to update the body of a PR in MERGED state.
