@@ -28,10 +28,7 @@
       "TaskOutput",
       "TaskStop",
       "TaskUpdate",
-      "CronCreate",
-      "CronDelete",
       "CronList",
-      "RemoteTrigger",
       "mcp__sequential-thinking__*",
       "mcp__github__*"
     ],
@@ -68,7 +65,21 @@
       "Bash(gh api -X DELETE *)",
       "Bash(kubectl delete *)",
       "Bash(terraform destroy*)",
-      "Bash(helm uninstall *)"
+      "Bash(helm uninstall *)",
+      "CronCreate",
+      "CronDelete",
+      "RemoteTrigger",
+      "mcp__github__actions_run_trigger",
+      "mcp__github__create_branch",
+      "mcp__github__create_or_update_file",
+      "mcp__github__create_pull_request",
+      "mcp__github__create_repository",
+      "mcp__github__delete_file",
+      "mcp__github__fork_repository",
+      "mcp__github__merge_pull_request",
+      "mcp__github__pull_request_review_write",
+      "mcp__github__push_files",
+      "mcp__github__update_pull_request"
     ]
   },
   "hooks": {
