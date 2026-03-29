@@ -19,12 +19,10 @@
 - After each self-contained logical change (not per-file, per-logical-unit): stage only the
   relevant files, commit with a conventional message, then proceed to the next change.
 - Do not batch multiple unrelated changes into a single commit.
-- When initial implementation is complete: push the feature branch and open a PR, then
-  stay in the worktree -- do NOT call ExitWorktree yet:
-    ```
-    git push origin HEAD:<branch>   # explicit refspec avoids push.default=upstream redirecting to main
-    gh pr create
-    ```
+- When initial implementation is complete: run `/review-cl` to self-review all changes,
+  fix issues iteratively, and create the PR. This starts a Ralph Loop that diffs against
+  main, reviews every changed file, commits fixes, and only creates the PR when the review
+  is clean. Stay in the worktree after the PR is created -- do NOT call ExitWorktree yet.
   Address any review feedback with additional commits in the same worktree, then re-push.
 - When the PR is approved and ready to merge: call `ExitWorktree("keep")` to return to main.
   Use `ExitWorktree("remove")` only to discard exploratory work with no commits worth keeping.
