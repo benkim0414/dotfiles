@@ -6,7 +6,6 @@
 - Always invoke sequential-thinking MCP before implementing non-trivial changes
 - Use the fetch MCP to look up current docs, API versions, chart versions, or image digests -- training data goes stale; never guess at versions
 - Explain the reasoning behind config choices, not just what to set
-- When generating YAML or IaC, self-review for: missing resource requests/limits, deprecated API versions, missing labels, and security context issues before presenting
 - Before any state-changing command, state what resources will be affected and the blast radius
 - Present the dry-run/plan/diff form of a command before the apply form; let the user review first
 
