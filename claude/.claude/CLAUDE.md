@@ -4,19 +4,15 @@
 - Editor: nvim
 - Never use emojis in responses
 - Always invoke sequential-thinking MCP before implementing non-trivial changes
-- Read existing code and configs before proposing changes; understand before modifying
-- Use the fetch MCP to look up current docs, API versions, chart versions, or image digests — training data goes stale; never guess at versions
+- Use the fetch MCP to look up current docs, API versions, chart versions, or image digests -- training data goes stale; never guess at versions
 - Explain the reasoning behind config choices, not just what to set
-- When uncertain about behavior of a tool or API, say so explicitly rather than presenting a guess as fact
-- Prefer targeted edits over full file rewrites
 - When generating YAML or IaC, self-review for: missing resource requests/limits, deprecated API versions, missing labels, and security context issues before presenting
 - Before any state-changing command, state what resources will be affected and the blast radius
 - Present the dry-run/plan/diff form of a command before the apply form; let the user review first
-- Ask for explicit confirmation before destructive operations (deletes, force-pushes, infrastructure-level changes)
 
 ## Git Session Workflow
 - At session start, check the `[git-workflow]` context injection.
-- If it says "WORKTREE REQUIRED": call `EnterWorktree()` as the absolute first action —
+- If it says "WORKTREE REQUIRED": call `EnterWorktree()` as the absolute first action --
   before any Write, Edit, Bash, or notebook edit. The hook blocks file-editing tools until you do.
   Pass no argument; Claude Code auto-generates an isolated branch off HEAD.
 - If it says "Worktree session active": already isolated (started with `--worktree` or
@@ -25,7 +21,7 @@
   relevant files, commit with a conventional message, then proceed to the next change.
 - Do not batch multiple unrelated changes into a single commit.
 - When initial implementation is complete: push the feature branch and open a PR, then
-  stay in the worktree — do NOT call ExitWorktree yet:
+  stay in the worktree -- do NOT call ExitWorktree yet:
     ```
     git push origin HEAD:<branch>   # explicit refspec avoids push.default=upstream redirecting to main
     gh pr create
@@ -37,18 +33,18 @@
   Do NOT merge without explicit user approval. Do NOT run `gh pr merge` proactively.
 - After the user merges the PR: run `git pull` to land on the latest main.
 - To resume PR review in a new session: start Claude Code from within the worktree directory
-  (e.g. `claude` from `.claude/worktrees/<name>/` — paths listed at session start);
+  (e.g. `claude` from `.claude/worktrees/<name>/` -- paths listed at session start);
   the session-start hook detects the linked worktree and skips the EnterWorktree requirement.
-- Never commit or push directly to main — the guard hook will block it.
+- Never commit or push directly to main -- the guard hook will block it.
 
 ## Git Discipline
-- Conventional commits: `type(scope): description` — types: feat, fix, docs, chore, refactor, test, ci, perf
+- Conventional commits: `type(scope): description` -- types: feat, fix, docs, chore, refactor, test, ci, perf
 - Atomic commits: one logical change per commit; keep unrelated changes separate
 - Write a commit body when the why is not obvious from the title
 - Branch workflow: feature branches off main, open PR
 - Never force-push to main or shared branches
 - Review diffs for accidental secrets before every commit
-- Always use merge commits (`gh pr merge --merge`), never squash or rebase — preserve full commit history
+- Always use merge commits (`gh pr merge --merge`), never squash or rebase -- preserve full commit history
 
 ## Security
 - Never hardcode secrets, tokens, or credentials in version-controlled files
@@ -57,56 +53,9 @@
 - Prefer dedicated secret management tools over environment variables or config files
 - Audit new tool installations and third-party scripts before running them
 
-## Infrastructure as Code
-- All infra changes go through version control; no manual changes that bypass the repo
-- Idempotent by default: applying the same config twice must be safe
-- Declarative over imperative; describe desired state, let systems reconcile
-- Pin versions: chart versions, image tags/digests, tool versions — avoid floating refs
-- Validate before apply: use dry-run, diff, or plan output before making changes
-- Document why decisions were made, not just what the config does
-
-## Kubernetes and Containers
-- Always set resource requests and limits on every container
-- Use readiness and liveness probes on every workload
-- Pin image tags — never use `:latest` in committed manifests
-- Label every resource consistently: app, component, version
-- Use namespaces for isolation; avoid the default namespace for workloads
-- Run containers as non-root; drop unnecessary Linux capabilities
-- Prefer minimal base images (distroless, alpine) to reduce attack surface
-
-## GitOps
-- Git is the single source of truth; out-of-band changes will be overwritten by reconciliation
-- Never mutate controller-managed resources directly; patch the repo instead
-- Review resource diffs before syncing; investigate drift before applying
-- Secrets in GitOps repos must be encrypted — never commit plaintext Secret manifests
-- Break large changes into smaller PRs; one logical change per PR where reasonable
-
-## CI/CD
-- Never merge to main without a passing pipeline; treat a red pipeline as a blocker
-- Keep pipelines fast: split slow steps into separate jobs, cache dependency installs keyed on lockfile hash
-- Pipelines are code: version-control workflow files, use reusable workflows/templates to avoid duplication
-- Secrets in CI must use the platform's secret store — never pass them as plain environment variables in logs
-- Pin action/orb/plugin versions by commit SHA, not tag, to prevent supply-chain drift
-- Fail fast: put lint and unit tests first, expensive integration tests last
-
-## Observability
-- Structured logs (JSON preferred); always include relevant context (resource, namespace, request ID)
-- Metrics: expose a `/metrics` endpoint; use consistent labels for cross-service dashboards
-- Alert on symptoms (error rate, latency, SLO burn), not causes (high CPU, pod restarted)
-- Validate deployments by inspecting metrics and logs, not just rollout status
-- Every alert rule must have a corresponding runbook or investigation guide
-
-## Shell Scripting
-- Always start scripts with `#!/usr/bin/env bash` and `set -euo pipefail`
-- Quote all variable expansions: `"$var"` not `$var`
-- Use `[[ ]]` for conditionals and `local` for function-scoped variables
-- Provide a usage/help message; exit 1 on invalid arguments
-- Log messages to stderr (`>&2`); reserve stdout for pipeline-consumable data
-- ShellCheck must pass with no warnings before committing any script
-- Prefer clarity over cleverness; scripts are read under pressure during incidents
-
-## DevOps Philosophy
-- Make changes reversible before making them; design for rollback from the start
-- Automate repetitive tasks; document manual procedures until automation exists
-- Every alert that fires should result in a fix, tuning, or suppression — never ignore
-- Reduce toil continuously; if you do something manually twice, automate it the third time
+## Domain Rules
+@rules/iac.md
+@rules/kubernetes.md
+@rules/cicd.md
+@rules/observability.md
+@rules/shell.md
