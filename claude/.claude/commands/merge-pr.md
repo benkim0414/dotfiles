@@ -16,7 +16,7 @@ Follow these steps in order.
 ### Step 1: Fetch and parse the PR
 
 First, determine the PR number:
-- Extract the numeric PR number from the arguments. The user may pass it as `13`, `#13`, `PR #13`, a URL like `https://github.com/.../pull/13`, or similar -- strip everything except the digits.
+- Extract the numeric PR number from the arguments. Common formats: `13`, `#13`, `PR #13`, or a URL ending in `/pull/13`. For URLs, take only the number after `/pull/`. For other formats, take the last sequence of digits.
 - If no number can be extracted from the arguments AND the current branch is `main` or `master`, stop immediately with: "Error: no PR number provided and current branch is main. Usage: `/merge-pr <number>`"
 - If no number can be extracted but the current branch is a feature branch, omit the number to auto-detect from the current branch.
 
