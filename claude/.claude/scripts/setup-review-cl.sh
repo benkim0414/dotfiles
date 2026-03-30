@@ -39,13 +39,29 @@ HELP
   esac
 done
 
+# Guard: must be in a worktree (not on main)
+CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || true)
+if [[ "$CURRENT_BRANCH" == "main" || "$CURRENT_BRANCH" == "master" ]]; then
+  echo "Error: /review-cl must be run from a worktree branch, not $CURRENT_BRANCH" >&2
+  echo "Call EnterWorktree() first to create an isolated branch." >&2
+  exit 1
+fi
+
+# Guard: abort if a Ralph Loop is already active
+if [[ -f .claude/ralph-loop.local.md ]]; then
+  EXISTING_ITER=$(sed -n 's/^iteration: *//p' .claude/ralph-loop.local.md)
+  echo "Error: a Ralph Loop is already active (iteration ${EXISTING_ITER:-?})" >&2
+  echo "Run /cancel-ralph first, then retry." >&2
+  exit 1
+fi
+
 mkdir -p .claude
 
 cat > .claude/ralph-loop.local.md <<STATEEOF
 ---
 active: true
 iteration: 1
-session_id: ${CLAUDE_CODE_SESSION_ID:-}
+session_id: "${CLAUDE_CODE_SESSION_ID:-}"
 max_iterations: $MAX_ITERATIONS
 completion_promise: "PR_CREATED"
 started_at: "$(date -u +%Y-%m-%dT%H:%M:%SZ)"

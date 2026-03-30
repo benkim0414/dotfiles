@@ -1,7 +1,6 @@
 ---
 description: "Review all worktree changes iteratively, then create a PR"
 argument-hint: "[--max-iterations N]"
-allowed-tools: ["Bash($HOME/.claude/scripts/setup-review-cl.sh:*)"]
 ---
 
 # Pre-PR Review Loop
