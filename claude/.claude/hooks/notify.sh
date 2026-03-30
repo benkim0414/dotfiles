@@ -52,6 +52,7 @@ if [[ -n "$CWD" ]]; then
 fi
 
 # --- Build notification title and body ---
+TITLE="Claude Code"
 case "$NTYPE" in
   permission_prompt)  TITLE="Approval Needed" ;;
   idle_prompt)        TITLE="Task Complete" ;;
@@ -66,16 +67,19 @@ elif [[ -n "$PROJECT" ]]; then
 elif [[ -n "$PANE_LABEL" ]]; then
   BODY="$PANE_LABEL"
 fi
+# Strip control characters (BEL, ESC, etc.) from message to prevent
+# premature termination of the OSC 777 / DCS passthrough sequences.
+MESSAGE=$(printf '%s' "$MESSAGE" | tr -d '\000-\037\177')
 if [[ -n "$MESSAGE" ]]; then
   BODY="${BODY:+${BODY} - }${MESSAGE}"
 fi
 
 # --- Send Ghostty desktop notification via OSC 777 ---
+# shellcheck disable=SC1003  # ShellCheck misreads \a\e\\ as a quote escape; \a is BEL in printf
 send_osc777() {
   local title="$1" body="$2" target="$3"
   if [[ -n "${TMUX:-}" ]]; then
     # Wrap in DCS passthrough so tmux forwards to Ghostty.
-    # shellcheck disable=SC1003  # \a is BEL in printf format strings, not a quote escape
     printf '\ePtmux;\e\e]777;notify;%s;%s\a\e\\' "$title" "$body" > "$target"
   else
     # Direct Ghostty (no tmux).
