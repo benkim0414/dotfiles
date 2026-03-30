@@ -22,7 +22,9 @@
 - When initial implementation is complete: run `/review-cl` to self-review all changes,
   fix issues iteratively, and create the PR. This starts a Ralph Loop that diffs against
   main, reviews every changed file, commits fixes, and only creates the PR when the review
-  is clean. Stay in the worktree after the PR is created -- do NOT call ExitWorktree yet.
+  is clean. Always push with an explicit refspec (`git push origin HEAD:<branch>`) to avoid
+  `push.default=upstream` redirecting to main. Stay in the worktree after the PR is created
+  -- do NOT call ExitWorktree yet.
   Address any review feedback with additional commits in the same worktree, then re-push.
 - When the PR is approved and ready to merge: call `ExitWorktree("keep")` to return to main.
   Use `ExitWorktree("remove")` only to discard exploratory work with no commits worth keeping.
