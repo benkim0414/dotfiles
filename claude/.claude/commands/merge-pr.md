@@ -15,9 +15,14 @@ Follow these steps in order.
 
 ### Step 1: Fetch and parse the PR
 
+First, determine the PR number:
+- Extract the numeric PR number from the arguments. Common formats: `13`, `#13`, `PR #13`, or a URL ending in `/pull/13`. For URLs, take only the number after `/pull/`. For other formats, take the last sequence of digits.
+- If no number can be extracted from the arguments AND the current branch is `main` or `master`, stop immediately with: "Error: no PR number provided and current branch is main. Usage: `/merge-pr <number>`"
+- If no number can be extracted but the current branch is a feature branch, omit the number to auto-detect from the current branch.
+
 Run `gh pr view` to fetch the PR details as JSON:
-- If a PR number was provided in the arguments above, use it: `gh pr view <number> --json number,title,body,state,statusCheckRollup,reviewDecision,url`
-- If no argument was provided, omit the number to auto-detect from the current branch: `gh pr view --json number,title,body,state,statusCheckRollup,reviewDecision,url`
+- With a PR number: `gh pr view <number> --json number,title,body,state,statusCheckRollup,reviewDecision,url`
+- Without (auto-detect from branch): `gh pr view --json number,title,body,state,statusCheckRollup,reviewDecision,url`
 
 From the result, extract the PR number, title, URL, full body text, state, and reviewDecision.
 
