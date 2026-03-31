@@ -1,0 +1,141 @@
+#!/usr/bin/env bash
+# tmux-attention: jump to tmux pane(s) needing Claude Code user attention.
+# Invoked via tmux keybinding (Prefix+a).
+# Usage:
+#   tmux-attention         -- dispatch mode (run-shell): 0/1 direct, N opens popup
+#   tmux-attention --pick  -- picker mode (display-popup): fzf selection
+set -euo pipefail
+
+ATTN_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/claude/attention"
+TTL=300 # 5 minutes
+
+# --- Helpers ---
+
+# Read a single field from a marker file.
+read_field() {
+  grep "^${1}=" "$2" 2>/dev/null | cut -d= -f2-
+}
+
+# Collect valid (non-stale, pane-alive) marker paths, one per line.
+collect_markers() {
+  [[ -d "$ATTN_DIR" ]] || return 0
+
+  local now marker ts pane_id
+  now=$(date +%s)
+
+  for marker in "$ATTN_DIR"/%*; do
+    [[ -f "$marker" ]] || continue
+
+    ts=$(read_field timestamp "$marker")
+    pane_id=$(read_field pane_id "$marker")
+
+    # Stale marker -- remove.
+    if [[ -n "$ts" ]] && (( now - ts > TTL )); then
+      rm -f "$marker"
+      continue
+    fi
+
+    # Pane no longer exists -- remove.
+    if [[ -z "$pane_id" ]] || ! tmux display-message -t "$pane_id" -p '' >/dev/null 2>&1; then
+      rm -f "$marker"
+      continue
+    fi
+
+    printf '%s\n' "$marker"
+  done
+}
+
+# Switch to a pane (works across tmux sessions).
+# Queries tmux directly for the session name to handle sessions with colons.
+switch_to_pane() {
+  local pane_id="$1" marker="$2"
+  local session
+  session=$(tmux display-message -t "$pane_id" -p '#{session_name}' 2>/dev/null || true)
+
+  if [[ -n "$session" ]]; then
+    tmux switch-client -t "$session" 2>/dev/null || true
+  fi
+  tmux select-pane -t "$pane_id" 2>/dev/null || true
+
+  rm -f "$marker"
+}
+
+# Format a marker for fzf display. Output: "display_text\tpane_id\tmarker_path"
+format_marker() {
+  local marker="$1"
+  local pane_label ntype project pane_id label
+
+  pane_label=$(read_field pane_label "$marker")
+  ntype=$(read_field notification_type "$marker")
+  project=$(read_field project "$marker")
+  pane_id=$(read_field pane_id "$marker")
+
+  case "$ntype" in
+    permission_prompt)  label="Approval" ;;
+    idle_prompt)        label="Complete" ;;
+    elicitation_dialog) label="Input" ;;
+    *)                  label="$ntype" ;;
+  esac
+
+  printf '[%s] %s (%s)\t%s\t%s\n' "$label" "$project" "$pane_label" "$pane_id" "$marker"
+}
+
+# === PICKER MODE (called inside display-popup with a TTY) ===
+if [[ "${1:-}" == "--pick" ]]; then
+  markers=()
+  while IFS= read -r line; do
+    [[ -n "$line" ]] && markers+=("$line")
+  done < <(collect_markers)
+
+  if [[ ${#markers[@]} -eq 0 ]]; then
+    echo "No panes need attention."
+    sleep 1
+    exit 0
+  fi
+
+  if [[ ${#markers[@]} -eq 1 ]]; then
+    pane_id=$(read_field pane_id "${markers[0]}")
+    switch_to_pane "$pane_id" "${markers[0]}"
+    exit 0
+  fi
+
+  fzf_input=""
+  for marker in "${markers[@]}"; do
+    fzf_input+="$(format_marker "$marker")"
+  done
+
+  selected=$(printf '%s' "$fzf_input" | fzf \
+    --delimiter=$'\t' \
+    --with-nth=1 \
+    --header="Select pane needing attention" \
+    --reverse \
+    --no-sort) || exit 0
+
+  if [[ -n "$selected" ]]; then
+    pane_id=$(printf '%s' "$selected" | cut -f2)
+    marker_path=$(printf '%s' "$selected" | cut -f3)
+    switch_to_pane "$pane_id" "$marker_path"
+  fi
+  exit 0
+fi
+
+# === DISPATCH MODE (called from run-shell, no TTY) ===
+markers=()
+while IFS= read -r line; do
+  [[ -n "$line" ]] && markers+=("$line")
+done < <(collect_markers)
+
+count=${#markers[@]}
+
+case "$count" in
+  0)
+    tmux display-message "No panes need attention"
+    ;;
+  1)
+    pane_id=$(read_field pane_id "${markers[0]}")
+    switch_to_pane "$pane_id" "${markers[0]}"
+    ;;
+  *)
+    tmux display-popup -E -w 60% -h 40% "tmux-attention --pick"
+    ;;
+esac

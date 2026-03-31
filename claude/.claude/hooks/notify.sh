@@ -20,20 +20,9 @@ case "$NTYPE" in
   *) exit 0 ;;
 esac
 
-# --- Deduplication: 10-second cooldown per session ---
+# --- Shared state ---
 CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/claude"
 mkdir -p "$CACHE_DIR" 2>/dev/null || true
-if [[ -n "$SESSION_ID" ]]; then
-  COOLDOWN_FILE="${CACHE_DIR}/notify-${SESSION_ID}"
-  NOW=$(date +%s)
-  if [[ -f "$COOLDOWN_FILE" ]]; then
-    LAST=$(cat "$COOLDOWN_FILE" 2>/dev/null || echo 0)
-    if (( NOW - LAST < 10 )); then
-      exit 0
-    fi
-  fi
-  printf '%s' "$NOW" > "$COOLDOWN_FILE" 2>/dev/null || true
-fi
 
 # --- Resolve tmux pane context ---
 PANE_LABEL=""
@@ -49,6 +38,40 @@ fi
 PROJECT=""
 if [[ -n "$CWD" ]]; then
   PROJECT=$(basename "$CWD")
+fi
+
+# --- Write attention marker for tmux-attention switcher ---
+# Written before the dedup cooldown so rapid re-prompts still register a
+# marker even when the desktop notification is suppressed.
+if [[ -n "${TMUX_PANE:-}" ]]; then
+  ATTN_DIR="${CACHE_DIR}/attention"
+  mkdir -p "$ATTN_DIR" 2>/dev/null || true
+  MARKER_TMP=$(mktemp "${ATTN_DIR}/.tmp.XXXXXX" 2>/dev/null) || true
+  if [[ -n "${MARKER_TMP:-}" ]]; then
+    printf '%s\n' \
+      "pane_id=${TMUX_PANE}" \
+      "pane_label=${PANE_LABEL}" \
+      "notification_type=${NTYPE}" \
+      "project=${PROJECT}" \
+      "cwd=${CWD}" \
+      "timestamp=$(date +%s)" \
+      > "$MARKER_TMP" 2>/dev/null || true
+    mv -f "$MARKER_TMP" "${ATTN_DIR}/${TMUX_PANE}" 2>/dev/null || true
+  fi
+fi
+
+# --- Deduplication: 10-second cooldown per session ---
+# Only gates desktop notifications and bell below -- markers are already written.
+if [[ -n "$SESSION_ID" ]]; then
+  COOLDOWN_FILE="${CACHE_DIR}/notify-${SESSION_ID}"
+  NOW=$(date +%s)
+  if [[ -f "$COOLDOWN_FILE" ]]; then
+    LAST=$(cat "$COOLDOWN_FILE" 2>/dev/null || echo 0)
+    if (( NOW - LAST < 10 )); then
+      exit 0
+    fi
+  fi
+  printf '%s' "$NOW" > "$COOLDOWN_FILE" 2>/dev/null || true
 fi
 
 # --- Build notification title and body ---
