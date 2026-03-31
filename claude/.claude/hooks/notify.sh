@@ -51,6 +51,20 @@ if [[ -n "$CWD" ]]; then
   PROJECT=$(basename "$CWD")
 fi
 
+# --- Write attention marker for tmux-attention switcher ---
+if [[ -n "${TMUX_PANE:-}" ]]; then
+  ATTN_DIR="${CACHE_DIR}/attention"
+  mkdir -p "$ATTN_DIR" 2>/dev/null || true
+  printf '%s\n' \
+    "pane_id=${TMUX_PANE}" \
+    "pane_label=${PANE_LABEL}" \
+    "notification_type=${NTYPE}" \
+    "project=${PROJECT}" \
+    "cwd=${CWD}" \
+    "timestamp=$(date +%s)" \
+    > "${ATTN_DIR}/${TMUX_PANE}" 2>/dev/null || true
+fi
+
 # --- Build notification title and body ---
 TITLE="Claude Code"
 case "$NTYPE" in
