@@ -46,11 +46,15 @@ collect_markers() {
 }
 
 # Switch to a pane (works across tmux sessions).
+# Queries tmux directly for the session name to handle sessions with colons.
 switch_to_pane() {
-  local pane_id="$1" marker="$2" pane_label="$3"
-  local session="${pane_label%%:*}"
+  local pane_id="$1" marker="$2"
+  local session
+  session=$(tmux display-message -t "$pane_id" -p '#{session_name}' 2>/dev/null || true)
 
-  tmux switch-client -t "$session" 2>/dev/null || true
+  if [[ -n "$session" ]]; then
+    tmux switch-client -t "$session" 2>/dev/null || true
+  fi
   tmux select-pane -t "$pane_id" 2>/dev/null || true
 
   rm -f "$marker"
@@ -91,8 +95,7 @@ if [[ "${1:-}" == "--pick" ]]; then
 
   if [[ ${#markers[@]} -eq 1 ]]; then
     pane_id=$(read_field pane_id "${markers[0]}")
-    pane_label=$(read_field pane_label "${markers[0]}")
-    switch_to_pane "$pane_id" "${markers[0]}" "$pane_label"
+    switch_to_pane "$pane_id" "${markers[0]}"
     exit 0
   fi
 
@@ -111,8 +114,7 @@ if [[ "${1:-}" == "--pick" ]]; then
   if [[ -n "$selected" ]]; then
     pane_id=$(printf '%s' "$selected" | cut -f2)
     marker_path=$(printf '%s' "$selected" | cut -f3)
-    pane_label=$(read_field pane_label "$marker_path")
-    switch_to_pane "$pane_id" "$marker_path" "$pane_label"
+    switch_to_pane "$pane_id" "$marker_path"
   fi
   exit 0
 fi
@@ -131,8 +133,7 @@ case "$count" in
     ;;
   1)
     pane_id=$(read_field pane_id "${markers[0]}")
-    pane_label=$(read_field pane_label "${markers[0]}")
-    switch_to_pane "$pane_id" "${markers[0]}" "$pane_label"
+    switch_to_pane "$pane_id" "${markers[0]}"
     ;;
   *)
     tmux display-popup -E -w 60% -h 40% "tmux-attention --pick"
