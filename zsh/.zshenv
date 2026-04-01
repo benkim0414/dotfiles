@@ -34,18 +34,18 @@ export BAT_THEME="Catppuccin Mocha"
 
 # SSH agent socket: ensure every shell (including new tmux panes) finds
 # the running ssh-agent.
-# - Linux: point to the systemd user service socket.
-# - macOS: the launchd agent socket path changes on reboot and is lost
-#   inside tmux. Outside tmux, create a stable symlink from a fixed path
-#   to the real launchd socket. All shells (including tmux panes) use the
-#   fixed path.
+# - Linux: systemd user service manages the agent; just point to its socket.
+# - macOS: the launchd agent is unreachable in tmux and SSH sessions.
+#   Use a fixed socket and start our own agent if none is reachable.
+#   UseKeychain in ssh_config reads the passphrase from Keychain on first
+#   use, so the agent only needs to be seeded once per boot.
 if [[ "$OSTYPE" == "linux"* ]]; then
     export SSH_AUTH_SOCK="$XDG_RUNTIME_DIR/ssh-agent.socket"
 elif [[ "$OSTYPE" == "darwin"* ]]; then
-    _fixed_sock="$HOME/.ssh/agent.sock"
-    if [[ -z "$TMUX" && -S "$SSH_AUTH_SOCK" && "$SSH_AUTH_SOCK" != "$_fixed_sock" ]]; then
-        ln -sf "$SSH_AUTH_SOCK" "$_fixed_sock"
+    export SSH_AUTH_SOCK="$HOME/.ssh/agent.sock"
+    ssh-add -l &>/dev/null
+    if [[ $? -eq 2 ]]; then
+        rm -f "$SSH_AUTH_SOCK"
+        eval "$(ssh-agent -a "$SSH_AUTH_SOCK")" >/dev/null
     fi
-    export SSH_AUTH_SOCK="$_fixed_sock"
-    unset _fixed_sock
 fi
