@@ -40,7 +40,6 @@ stow -t ~ -R <package>       # re-stow after restructuring
 
 Bitwarden via direnv (`use_bw` in `.envrc`).
 Requires `BW_SESSION` in your shell: `export BW_SESSION="$(bw unlock --raw)"`.
-The GitHub MCP server token flows through this mechanism.
 Never commit `.env*` files -- they are gitignored and permission-denied in Claude settings.
 
 # Stow gotchas
