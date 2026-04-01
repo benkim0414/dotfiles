@@ -166,6 +166,5 @@
     "atomic-agents@claude-plugins-official": true,
     "remember@claude-plugins-official": true
   },
-  "effortLevel": "medium",
-  "model": "opusplan"
+  "effortLevel": "medium"
 }
