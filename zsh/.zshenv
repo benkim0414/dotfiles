@@ -31,3 +31,9 @@ export EZA_CONFIG_DIR="$XDG_CONFIG_HOME/eza"
 export EZA_ICONS_AUTO=true
 
 export BAT_THEME="Catppuccin Mocha"
+
+# SSH agent socket: on Linux, point to the systemd-managed agent.
+# On macOS, launchd sets SSH_AUTH_SOCK automatically.
+if [[ "$OSTYPE" == "linux"* ]]; then
+    export SSH_AUTH_SOCK="$XDG_RUNTIME_DIR/ssh-agent.socket"
+fi
