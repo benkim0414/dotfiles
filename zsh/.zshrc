@@ -64,4 +64,12 @@ alias lt="eza -al --sort=modified"
 
 alias lg="lazygit"
 
+# Claude Code
+alias cc="claude"
+alias cca="claude --permission-mode auto"
+alias ccc="claude --continue"
+alias ccr="claude --resume"
+alias ccw="claude --worktree --tmux"
+alias ccp="claude --print"
+
 sz() { source ~/.zshrc }
