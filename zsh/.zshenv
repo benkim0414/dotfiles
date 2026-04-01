@@ -35,14 +35,11 @@ export BAT_THEME="Catppuccin Mocha"
 # SSH agent socket: ensure every shell (including new tmux panes) finds
 # the running ssh-agent.
 # - Linux: point to the systemd user service socket.
-# - macOS: re-read the current launchd socket so tmux panes never get a
-#   stale path after reboot or re-login.
+# - macOS: inside tmux, read SSH_AUTH_SOCK from the session environment
+#   that tmux captured on attach (via update-environment). Outside tmux,
+#   launchd sets it automatically.
 if [[ "$OSTYPE" == "linux"* ]]; then
     export SSH_AUTH_SOCK="$XDG_RUNTIME_DIR/ssh-agent.socket"
-elif [[ "$OSTYPE" == "darwin"* ]]; then
-    SSH_AUTH_SOCK_LAUNCHD="$(launchctl getenv SSH_AUTH_SOCK 2>/dev/null)"
-    if [[ -S "$SSH_AUTH_SOCK_LAUNCHD" ]]; then
-        export SSH_AUTH_SOCK="$SSH_AUTH_SOCK_LAUNCHD"
-    fi
-    unset SSH_AUTH_SOCK_LAUNCHD
+elif [[ "$OSTYPE" == "darwin"* && -n "$TMUX" ]]; then
+    eval "$(tmux show-environment -s SSH_AUTH_SOCK 2>/dev/null)"
 fi
