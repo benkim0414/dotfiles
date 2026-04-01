@@ -29,8 +29,7 @@
       "TaskStop",
       "TaskUpdate",
       "CronList",
-      "mcp__sequential-thinking__*",
-      "mcp__github__*"
+      "mcp__sequential-thinking__*"
     ],
     "deny": [
       "Read(.env)",
@@ -68,22 +67,7 @@
       "Bash(helm uninstall *)",
       "CronCreate",
       "CronDelete",
-      "RemoteTrigger",
-      "mcp__github__actions_run_trigger",
-      "mcp__github__create_branch",
-      "mcp__github__create_or_update_file",
-      "mcp__github__create_pull_request",
-      "mcp__github__create_repository",
-      "mcp__github__delete_file",
-      "mcp__github__fork_repository",
-      "mcp__github__issue_write",
-      "mcp__github__label_write",
-      "mcp__github__merge_pull_request",
-      "mcp__github__projects_write",
-      "mcp__github__pull_request_review_write",
-      "mcp__github__push_files",
-      "mcp__github__update_pull_request",
-      "mcp__github__update_pull_request_branch"
+      "RemoteTrigger"
     ]
   },
   "hooks": {
@@ -158,7 +142,6 @@
     "command": "~/.claude/statusline.sh"
   },
   "enabledPlugins": {
-    "github@claude-plugins-official": true,
     "claude-md-management@claude-plugins-official": true,
     "commit-commands@claude-plugins-official": true,
     "ralph-loop@claude-plugins-official": true,
