@@ -6,7 +6,11 @@
 
 set -euo pipefail
 
+# shellcheck source=../lib/portability.sh
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../lib/portability.sh"
+
 MAX_ITERATIONS=10
+FORCE=false
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -18,22 +22,27 @@ while [[ $# -gt 0 ]]; do
       MAX_ITERATIONS="$2"
       shift 2
       ;;
+    --force)
+      FORCE=true
+      shift
+      ;;
     -h|--help)
       cat <<'HELP'
-Usage: /review-cl [--max-iterations N]
+Usage: /review-cl [--max-iterations N] [--force]
 
 Review all worktree changes iteratively, fix issues, then create a PR.
 Uses Ralph Loop to iterate until the review is clean.
 
 Options:
   --max-iterations N   Maximum review iterations (default: 10)
+  --force              Remove any existing state file and start fresh
   -h, --help           Show this help message
 HELP
       exit 0
       ;;
     *)
       echo "Error: unknown argument: $1" >&2
-      echo "Usage: /review-cl [--max-iterations N]" >&2
+      echo "Usage: /review-cl [--max-iterations N] [--force]" >&2
       exit 1
       ;;
   esac
@@ -47,17 +56,52 @@ if [[ "$CURRENT_BRANCH" == "main" || "$CURRENT_BRANCH" == "master" ]]; then
   exit 1
 fi
 
-# Guard: abort if a Ralph Loop is already active
-if [[ -f .claude/ralph-loop.local.md ]]; then
-  EXISTING_ITER=$(sed -n 's/^iteration: *//p' .claude/ralph-loop.local.md)
-  echo "Error: a Ralph Loop is already active (iteration ${EXISTING_ITER:-?})" >&2
-  echo "Run /cancel-ralph first, then retry." >&2
-  exit 1
+# Guard: check for existing Ralph Loop state file
+STATE_FILE=.claude/ralph-loop.local.md
+if [[ -f "$STATE_FILE" ]]; then
+  if [[ "$FORCE" == "true" ]]; then
+    echo "Warning: removing existing state file (--force)" >&2
+    rm -f "$STATE_FILE"
+  else
+    STORED_ACTIVE=$(sed -n 's/^active: *//p' "$STATE_FILE")
+    STORED_SESSION=$(sed -n 's/^session_id: *"\(.*\)"/\1/p' "$STATE_FILE")
+    STORED_STARTED=$(sed -n 's/^started_at: *"\(.*\)"/\1/p' "$STATE_FILE")
+    EXISTING_ITER=$(sed -n 's/^iteration: *//p' "$STATE_FILE")
+    CURRENT_SESSION="${CLAUDE_CODE_SESSION_ID:-}"
+
+    STALE=false
+
+    # Signal 1: loop marked inactive
+    if [[ "$STORED_ACTIVE" != "true" ]]; then
+      STALE=true
+    # Signal 2: current session known and differs from stored
+    elif [[ -n "$CURRENT_SESSION" && "$CURRENT_SESSION" != "$STORED_SESSION" ]]; then
+      STALE=true
+    # Signal 3: both session IDs empty -- fall back to age check
+    elif [[ -z "$CURRENT_SESSION" && -z "$STORED_SESSION" && -n "$STORED_STARTED" ]]; then
+      STARTED_EPOCH=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "$STORED_STARTED" +%s 2>/dev/null \
+                      || date -d "$STORED_STARTED" +%s 2>/dev/null \
+                      || echo 0)
+      AGE_HOURS=$(( (EPOCHSECONDS - STARTED_EPOCH) / 3600 ))
+      if (( AGE_HOURS >= 6 )); then
+        STALE=true
+      fi
+    fi
+
+    if [[ "$STALE" == "true" ]]; then
+      echo "Note: cleaning up stale Ralph Loop state (iteration ${EXISTING_ITER:-?})." >&2
+      rm -f "$STATE_FILE"
+    else
+      echo "Error: a Ralph Loop is already active (iteration ${EXISTING_ITER:-?})" >&2
+      echo "Run /cancel-ralph first, or use --force to override." >&2
+      exit 1
+    fi
+  fi
 fi
 
 mkdir -p .claude
 
-cat > .claude/ralph-loop.local.md <<STATEEOF
+cat > "$STATE_FILE" <<STATEEOF
 ---
 active: true
 iteration: 1
@@ -97,9 +141,11 @@ For each issue:
 When the full diff has been reviewed and no issues remain:
 1. Push the branch: \`git push origin HEAD:\$(git branch --show-current)\`
 2. Create a PR with \`gh pr create\` including a summary and test plan
-3. Output: <promise>PR_CREATED</promise>
+3. Clean up the loop state file: \`rm -f .claude/ralph-loop.local.md\`
+4. Output: <promise>PR_CREATED</promise>
 
 Only output the promise when the PR has been successfully created.
+The state file MUST be removed before outputting the promise.
 STATEEOF
 
 cat <<EOF

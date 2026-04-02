@@ -1,6 +1,6 @@
 ---
 description: "Review all worktree changes iteratively, then create a PR"
-argument-hint: "[--max-iterations N]"
+argument-hint: "[--max-iterations N] [--force]"
 ---
 
 # Pre-PR Review Loop
