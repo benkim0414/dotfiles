@@ -103,6 +103,16 @@
             "command": "bash $HOME/.claude/hooks/worktree-guard.sh"
           }
         ]
+      },
+      {
+        "matcher": "AskUserQuestion|ExitPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $HOME/.claude/hooks/notify.sh",
+            "async": true
+          }
+        ]
       }
     ],
     "PostToolUse": [
