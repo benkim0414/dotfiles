@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# claude-sync -- merge base + overlay Claude Code settings and stow the claude package.
+#
+# Base settings:   $DOTFILES/claude/.claude/settings.base.json   (always present)
+# Overlay:         $CLAUDE_SKILLS_DIR/settings.overlay.json      (optional, from claude-skills)
+# Output:          ~/.claude/settings.json                       (generated, not a symlink)
+#
+# Merge semantics:
+#   - String arrays: concatenate + deduplicate  (permissions.allow, deny, ask)
+#   - Object arrays: concatenate                (hooks -- each group is distinct)
+#   - Objects:       deep merge, overlay wins   (enabledPlugins)
+#   - Scalars:       overlay wins if present    (effortLevel, statusLine)
+#
+# If the overlay file is absent (claude-skills not cloned), the base is copied as-is.
+set -euo pipefail
+
+DOTFILES="${DOTFILES_DIR:-$HOME/workspace/dotfiles}"
+SKILLS="${CLAUDE_SKILLS_DIR:-$HOME/workspace/claude-skills}"
+BASE="$DOTFILES/claude/.claude/settings.base.json"
+OVERLAY="$SKILLS/settings.overlay.json"
+OUTPUT="$HOME/.claude/settings.json"
+
+command -v jq >/dev/null 2>&1 || { echo >&2 "error: jq is required but not installed"; exit 1; }
+
+if [[ ! -f "$BASE" ]]; then
+  echo >&2 "error: base settings not found: $BASE"
+  exit 1
+fi
+
+# Stow base claude config (creates symlinks for everything except settings.json)
+stow -d "$DOTFILES" -t ~ -R claude
+
+# Merge settings: base + overlay -> output
+if [[ -f "$OVERLAY" ]]; then
+  jq -n --slurpfile base "$BASE" --slurpfile over "$OVERLAY" '
+    def merge(b):
+      if (type == "array") and (b | type == "array") then
+        if all(type == "string") and (b | all(type == "string"))
+        then reduce (. + b)[] as $x ([]; if index($x) then . else . + [$x] end)
+        else . + b
+        end
+      elif (type == "object") and (b | type == "object") then
+        reduce (b | to_entries[]) as $e (.;
+          if has($e.key) then .[$e.key] |= merge($e.value)
+          else . + {($e.key): $e.value} end)
+      else b end;
+    $base[0] | merge($over[0])
+  ' > "$OUTPUT.tmp" && mv "$OUTPUT.tmp" "$OUTPUT"
+  echo "settings.json: merged base + overlay -> $OUTPUT"
+else
+  cp "$BASE" "$OUTPUT"
+  echo "settings.json: copied base (no overlay found) -> $OUTPUT"
+fi
