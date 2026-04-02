@@ -1,24 +1,49 @@
 #!/usr/bin/env bash
-# Notification hook: alert the user via Ghostty OSC 777 desktop notification
+# Attention hook: alert the user via Ghostty OSC 777 desktop notification
 # and tmux bell when Claude Code needs attention.
+#
+# Called from two hook contexts:
+#   Notification   -- permission_prompt, idle_prompt, elicitation_dialog
+#   PreToolUse     -- AskUserQuestion, ExitPlanMode
+#
+# The script detects its context via hook_event_name in the JSON payload.
 # Runs async (non-blocking) -- must never slow down Claude Code.
 set -euo pipefail
 
 INPUT=$(cat)
-IFS=$'\t' read -r NTYPE MESSAGE SESSION_ID CWD <<< "$(
-  printf '%s' "$INPUT" | jq -r '[
-    (.notification_type // ""),
-    (.message // ""),
-    (.session_id // ""),
-    (.cwd // "")
-  ] | @tsv'
-)"
+HOOK_EVENT=$(printf '%s' "$INPUT" | jq -r '.hook_event_name // ""')
 
-# Only notify for types where Claude is blocked waiting for the user.
-case "$NTYPE" in
-  permission_prompt|idle_prompt|elicitation_dialog) ;;
-  *) exit 0 ;;
-esac
+if [[ "$HOOK_EVENT" == "PreToolUse" ]]; then
+  # Called from PreToolUse -- map tool name to notification type.
+  IFS=$'\t' read -r TOOL_NAME SESSION_ID CWD <<< "$(
+    printf '%s' "$INPUT" | jq -r '[
+      (.tool_name // ""),
+      (.session_id // ""),
+      (.cwd // "")
+    ] | @tsv'
+  )"
+  case "$TOOL_NAME" in
+    AskUserQuestion) NTYPE="ask_user_question" ;;
+    ExitPlanMode)    NTYPE="plan_approval" ;;
+    *)               exit 0 ;;
+  esac
+  MESSAGE=""
+else
+  # Called from Notification hook.
+  IFS=$'\t' read -r NTYPE MESSAGE SESSION_ID CWD <<< "$(
+    printf '%s' "$INPUT" | jq -r '[
+      (.notification_type // ""),
+      (.message // ""),
+      (.session_id // ""),
+      (.cwd // "")
+    ] | @tsv'
+  )"
+  # Only notify for types where Claude is blocked waiting for the user.
+  case "$NTYPE" in
+    permission_prompt|idle_prompt|elicitation_dialog) ;;
+    *) exit 0 ;;
+  esac
+fi
 
 # --- Shared state ---
 CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/claude"
@@ -80,6 +105,8 @@ case "$NTYPE" in
   permission_prompt)  TITLE="Approval Needed" ;;
   idle_prompt)        TITLE="Task Complete" ;;
   elicitation_dialog) TITLE="Input Needed" ;;
+  ask_user_question)  TITLE="Question" ;;
+  plan_approval)      TITLE="Plan Review" ;;
 esac
 
 BODY=""

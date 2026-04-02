@@ -74,6 +74,8 @@ format_marker() {
     permission_prompt)  label="Approval" ;;
     idle_prompt)        label="Complete" ;;
     elicitation_dialog) label="Input" ;;
+    ask_user_question)  label="Question" ;;
+    plan_approval)      label="Plan" ;;
     *)                  label="$ntype" ;;
   esac
 
