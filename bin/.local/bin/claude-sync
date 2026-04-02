@@ -20,13 +20,15 @@ BASE="$DOTFILES/claude/.claude/settings.base.json"
 OVERLAY="$SKILLS/settings.overlay.json"
 OUTPUT="$HOME/.claude/settings.json"
 
+command -v jq >/dev/null 2>&1 || { echo >&2 "error: jq is required but not installed"; exit 1; }
+
 if [[ ! -f "$BASE" ]]; then
   echo >&2 "error: base settings not found: $BASE"
   exit 1
 fi
 
 # Stow base claude config (creates symlinks for everything except settings.json)
-stow -d "$DOTFILES" -t ~ -R claude 2>&1
+stow -d "$DOTFILES" -t ~ -R claude
 
 # Merge settings: base + overlay -> output
 if [[ -f "$OVERLAY" ]]; then
