@@ -90,7 +90,7 @@ If there are UNVERIFIABLE items, ask the user to confirm they were manually veri
 
 When all pre-merge concerns are resolved, run using the PR number from Step 1:
 ```bash
-gh pr merge <PR_NUMBER> --merge
+gh pr merge <PR_NUMBER> --merge --delete-branch
 ```
 
 Never use `--squash` or `--rebase`.
