@@ -36,7 +36,7 @@ if [[ -f "$OVERLAY" ]]; then
     def merge(b):
       if (type == "array") and (b | type == "array") then
         if all(type == "string") and (b | all(type == "string"))
-        then (. + b) | unique
+        then reduce (. + b)[] as $x ([]; if index($x) then . else . + [$x] end)
         else . + b
         end
       elif (type == "object") and (b | type == "object") then
