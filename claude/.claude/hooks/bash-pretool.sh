@@ -18,6 +18,10 @@ IFS=$'\t' read -r SESSION_ID COMMAND <<< "$(
   ] | @tsv'
 )"
 
+# Per-repo opt-out of PR workflow.
+NO_PR=false
+[[ "${CLAUDE_GIT_WORKFLOW:-}" == "no-pr" ]] && NO_PR=true
+
 # =====================================================================
 # 1. Worktree guard — block file-touching tools until EnterWorktree()
 # =====================================================================
@@ -99,7 +103,7 @@ fi
 
 # --- Block merge/rebase/cherry-pick on main (enforce PR workflow) ---
 # These bypass the PR review process by bringing changes into main locally.
-if [[ "$COMMAND" =~ git[[:space:]]+(merge|rebase|cherry-pick) && "$BRANCH" == "$MAIN_BRANCH" ]]; then
+if [[ "$NO_PR" != "true" && "$COMMAND" =~ git[[:space:]]+(merge|rebase|cherry-pick) && "$BRANCH" == "$MAIN_BRANCH" ]]; then
   echo "BLOCKED: Cannot merge/rebase/cherry-pick directly on '${MAIN_BRANCH}'." >&2
   echo "" >&2
   echo "  Push your feature branch and open a PR instead:" >&2
@@ -110,7 +114,7 @@ fi
 
 # --- Block push to main (checks destination ref, not just current branch) ---
 # Allows pushing a feature branch even when HEAD is main (e.g., after ExitWorktree).
-if [[ "$COMMAND" =~ git[[:space:]]+push ]]; then
+if [[ "$NO_PR" != "true" && "$COMMAND" =~ git[[:space:]]+push ]]; then
   block_push=false
 
   # Case 1: On main with no explicit non-main destination.
