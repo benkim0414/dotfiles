@@ -40,11 +40,12 @@ stow -t ~ -R <package>       # re-stow after restructuring
 
 # Secrets
 
-Bitwarden via mise (`mise-load-bw` sourced by `[env] _.source` in `.mise.local.toml`).
-Secrets are defined in `.env.bw` files (`VAR=uuid:field` format).
-1Password via `mise-load-op` (same pattern with `.env.op` files).
-Requires `BW_SESSION` in your shell: `export BW_SESSION="$(bw unlock --raw)"`.
-Never commit `.env*` or `.mise.local.toml` files -- they are gitignored and permission-denied in Claude settings.
+Bitwarden via mise: `mise-load-bw` resolves `.env.bw` (`VAR=uuid:field` format) into
+a cached `.env.local` file. Load it with `[env] _.file = [".env.local"]` in `.mise.toml`
+and add a task: `[tasks.secrets] run = "mise-load-bw"`. Run `mise run secrets` after
+first clone or secret rotation. 1Password: same pattern with `mise-load-op` and `.env.op`.
+Never use `_.source` for secret scripts -- mise re-runs them on every prompt.
+Never commit `.env*` or `.mise.local.toml` files -- they are gitignored.
 
 # Stow gotchas
 
