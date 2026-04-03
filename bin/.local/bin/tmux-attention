@@ -111,6 +111,14 @@ format_marker() {
   printf '[%s] %s (%s)\t%s\t%s\n' "$label" "$project" "$pane_label" "$pane_id" "$marker"
 }
 
+# === CLEAR-FOCUSED MODE (called from pane-focus-in hook) ===
+if [[ "${1:-}" == "--clear-focused" ]]; then
+  [[ -d "$ATTN_DIR" ]] || exit 0
+  pane_id=$(tmux display-message -p '#{pane_id}' 2>/dev/null || true)
+  [[ -n "$pane_id" ]] && rm -f "${ATTN_DIR}/${pane_id}"
+  exit 0
+fi
+
 # === PICKER MODE (called inside display-popup with a TTY) ===
 if [[ "${1:-}" == "--pick" ]]; then
   markers=()
