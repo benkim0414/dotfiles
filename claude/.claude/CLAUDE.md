@@ -16,6 +16,10 @@
   Pass no argument; Claude Code auto-generates an isolated branch off HEAD.
 - If it says "Worktree session active": already isolated (started with `--worktree` or
   a prior `EnterWorktree()` call); proceed directly with the task.
+- If the context includes "MODE: no-pr": use worktrees for isolation, but after
+  committing on the branch, ExitWorktree("keep"), merge the branch to main
+  (`git merge <branch> --no-edit`), and push (`git push origin main`).
+  Do not create PRs or run `/review-cl`.
 - After each self-contained logical change (not per-file, per-logical-unit): stage only the
   relevant files, commit with a conventional message, then proceed to the next change.
 - Do not batch multiple unrelated changes into a single commit.
@@ -34,7 +38,8 @@
 - To resume PR review in a new session: start Claude Code from within the worktree directory
   (e.g. `claude` from `.claude/worktrees/<name>/` -- paths listed at session start);
   the session-start hook detects the linked worktree and skips the EnterWorktree requirement.
-- Never commit or push directly to main -- the guard hook will block it.
+- Never commit or push directly to main -- the guard hook will block it --
+  unless the session context includes "MODE: no-pr" (merge + push allowed).
 
 ## Git Discipline
 - Conventional commits: `type(scope): description` -- types: feat, fix, docs, chore, refactor, test, ci, perf

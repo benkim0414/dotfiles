@@ -114,6 +114,9 @@ if [[ -n "$SESSION_ID" ]]; then
   echo "[git-workflow] ACTION REQUIRED: Call EnterWorktree() immediately before any file edits."
   echo "[git-workflow] This creates an isolated worktree+branch so parallel sessions cannot conflict."
   echo "[git-workflow] After entering the worktree, proceed with the task normally."
+  if [[ "${CLAUDE_GIT_WORKFLOW:-}" == "no-pr" ]]; then
+    echo "[git-workflow] MODE: no-pr -- after work, merge branch to main and push directly. No PRs."
+  fi
 else
   echo "[git-workflow] Warning: Could not determine session ID; worktree isolation unavailable."
   echo "[git-workflow] Current branch: ${BRANCH}, repo: ${REPO}"
