@@ -6,7 +6,6 @@ bolt
 btop
 chromium
 clang
-direnv
 docker
 docker-buildx
 docker-compose
