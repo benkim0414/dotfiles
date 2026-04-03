@@ -37,6 +37,7 @@ while IFS='=' read -r key value || [[ -n "${key:-}" ]]; do
 
   secret="$(NODE_NO_WARNINGS=1 bw get "$field" "$item_id" 2>/dev/null)" || {
     echo "mise-load-bw: failed to retrieve ${key} (item: ${item_id}, field: ${field})" >&2
+    rm -f "$out_file"
     exit 1
   }
   printf '%s=%s\n' "$key" "$secret" >> "$out_file"
