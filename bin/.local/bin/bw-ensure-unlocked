@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+# Ensure Bitwarden vault is unlocked.
+# Exports BW_SESSION if an unlock is performed.
+if ! bw status 2>/dev/null | jq -e '.status == "unlocked"' &>/dev/null; then
+  echo "Bitwarden vault is locked. Unlocking..." >&2
+  BW_SESSION="$(bw unlock --raw)"
+  export BW_SESSION
+fi
