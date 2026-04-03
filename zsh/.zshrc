@@ -74,10 +74,4 @@ alias ccp="claude --print"
 
 sz() { source ~/.zshrc }
 
-bw() {
-  if [[ $# -eq 0 ]]; then
-    export BW_SESSION="$(command bw unlock --raw)"
-  else
-    command bw "$@"
-  fi
-}
+bwu() { export BW_SESSION="$(bw unlock --raw)" }
