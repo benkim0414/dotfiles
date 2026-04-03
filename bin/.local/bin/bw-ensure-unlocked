@@ -1,9 +1,34 @@
 #!/usr/bin/env bash
 set -euo pipefail
 # Ensure Bitwarden vault is unlocked.
-# Exports BW_SESSION if an unlock is performed.
-if ! bw status 2>/dev/null | jq -e '.status == "unlocked"' &>/dev/null; then
-  echo "Bitwarden vault is locked. Unlocking..." >&2
-  BW_SESSION="$(bw unlock --raw)"
-  export BW_SESSION
+# Persists BW_SESSION to ~/.local/state/bw/session so it survives across
+# subshell invocations (e.g., mise _.source re-evaluations).
+
+_bw_session_file="${XDG_STATE_HOME:-$HOME/.local/state}/bw/session"
+
+_bw_is_unlocked() {
+  NODE_NO_WARNINGS=1 bw status 2>/dev/null | jq -e '.status == "unlocked"' &>/dev/null
+}
+
+# 1. Already set in env and valid — nothing to do.
+if [[ -n "${BW_SESSION:-}" ]] && _bw_is_unlocked; then
+  return 0 2>/dev/null || exit 0
 fi
+
+# 2. Try loading from persisted session file.
+if [[ -f "$_bw_session_file" ]]; then
+  BW_SESSION="$(cat "$_bw_session_file")"
+  export BW_SESSION
+  if _bw_is_unlocked; then
+    return 0 2>/dev/null || exit 0
+  fi
+fi
+
+# 3. Prompt for master password, persist the new session.
+echo "Bitwarden vault is locked. Unlocking..." >&2
+BW_SESSION="$(NODE_NO_WARNINGS=1 bw unlock --raw)"
+export BW_SESSION
+
+mkdir -p "$(dirname "$_bw_session_file")"
+printf '%s' "$BW_SESSION" > "$_bw_session_file"
+chmod 600 "$_bw_session_file"
