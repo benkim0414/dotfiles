@@ -32,6 +32,14 @@ mkdir -p "$STATE_DIR"
 # Clean up pending files older than 24 hours (abandoned sessions).
 find "$STATE_DIR" -name 'pending-*' -mmin +1440 -delete 2>/dev/null || true
 
+# Clean up stale cache files from hooks and statusline.
+CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/claude"
+if [[ -d "$CACHE_DIR" ]]; then
+  find "$CACHE_DIR" -name 'notify-*' -mmin +1440 -delete 2>/dev/null || true
+  find "$CACHE_DIR" -name 'statusline-git-*' -mmin +10080 -delete 2>/dev/null || true
+  find "$CACHE_DIR" -name 'commit-scopes-*' -mmin +10080 -delete 2>/dev/null || true
+fi
+
 # Detect if already in a linked worktree.
 # Linked worktree: absolute-git-dir is under .git/worktrees/, differs from git-common-dir.
 if [[ -n "$GIT_ABS_DIR" && -n "$GIT_COMMON_DIR" && "$GIT_ABS_DIR" != "$GIT_COMMON_DIR" ]]; then
