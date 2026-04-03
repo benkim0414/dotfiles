@@ -138,12 +138,7 @@ if [[ "${1:-}" == "--pick" ]]; then
     exit 0
   fi
 
-  fzf_input=""
-  for marker in "${markers[@]}"; do
-    fzf_input+="$(format_marker "$marker")"
-  done
-
-  selected=$(printf '%s' "$fzf_input" | fzf \
+  selected=$(for marker in "${markers[@]}"; do format_marker "$marker"; done | fzf \
     --delimiter=$'\t' \
     --with-nth=1 \
     --header="Select pane needing attention" \
