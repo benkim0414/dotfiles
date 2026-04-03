@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# tmux-attention-badge: output attention count for the tmux status bar.
+# Returns " [N waiting]" when markers exist, empty string otherwise.
+# Called by tmux via #() in status-right on every status-interval.
+set -euo pipefail
+
+ATTN_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/claude/attention"
+[[ -d "$ATTN_DIR" ]] || exit 0
+
+count=0
+for f in "$ATTN_DIR"/%*; do
+  [[ -f "$f" ]] && (( count++ ))
+done
+
+(( count > 0 )) && printf ' %d waiting' "$count"
