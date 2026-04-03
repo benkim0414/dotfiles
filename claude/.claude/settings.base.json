@@ -93,6 +93,11 @@
       "Bash(kubectl delete *)",
       "Bash(terraform destroy*)",
       "Bash(helm uninstall *)",
+      "Bash(docker rm *)",
+      "Bash(docker rmi *)",
+      "Bash(docker system prune*)",
+      "Bash(docker volume rm *)",
+      "Bash(docker network rm *)",
       "CronCreate",
       "CronDelete",
       "RemoteTrigger"
