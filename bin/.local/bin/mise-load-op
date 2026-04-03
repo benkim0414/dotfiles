@@ -25,6 +25,7 @@ done < "$env_file"
 
 # op run resolves secret references and injects them into the command's env.
 # We run `env -0` to capture resolved values, then filter to only our vars.
+# --no-masking is required to capture plaintext values (op redacts by default).
 while IFS= read -r -d '' line; do
   key="${line%%=*}"
   for name in "${var_names[@]}"; do
