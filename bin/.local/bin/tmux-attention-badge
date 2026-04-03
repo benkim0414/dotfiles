@@ -9,7 +9,9 @@ ATTN_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/claude/attention"
 
 count=0
 for f in "$ATTN_DIR"/%*; do
-  [[ -f "$f" ]] && (( count++ ))
+  [[ -f "$f" ]] && { (( count++ )) || true; }
 done
 
-(( count > 0 )) && printf ' %d waiting' "$count"
+if (( count > 0 )); then
+  printf ' %d waiting' "$count"
+fi
