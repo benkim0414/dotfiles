@@ -36,14 +36,42 @@
       "Read(.env.*)",
       "Read(**/.env)",
       "Read(**/.env.*)",
+      "Write(.env)",
+      "Write(.env.*)",
+      "Write(**/.env)",
+      "Write(**/.env.*)",
+      "Edit(.env)",
+      "Edit(.env.*)",
+      "Edit(**/.env)",
+      "Edit(**/.env.*)",
       "Read(~/.ssh/*)",
+      "Write(~/.ssh/*)",
+      "Edit(~/.ssh/*)",
       "Read(~/.gnupg/*)",
+      "Write(~/.gnupg/*)",
+      "Edit(~/.gnupg/*)",
       "Read(~/.aws/credentials)",
-      "Read(~/.claude/.credentials.json)"
+      "Write(~/.aws/credentials)",
+      "Edit(~/.aws/credentials)",
+      "Read(~/.claude/.credentials.json)",
+      "Write(~/.claude/.credentials.json)",
+      "Edit(~/.claude/.credentials.json)",
+      "Read(~/.kube/config)",
+      "Write(~/.kube/config)",
+      "Edit(~/.kube/config)",
+      "Read(~/.docker/config.json)",
+      "Write(~/.docker/config.json)",
+      "Edit(~/.docker/config.json)",
+      "Read(~/.netrc)",
+      "Write(~/.netrc)",
+      "Edit(~/.netrc)",
+      "Read(~/.config/gh/hosts.yml)",
+      "Write(~/.config/gh/hosts.yml)",
+      "Edit(~/.config/gh/hosts.yml)"
     ],
     "ask": [
       "Bash(rm -rf *)",
-      "Bash(sudo rm *)",
+      "Bash(sudo *)",
       "Bash(git push --force *)",
       "Bash(git push -f *)",
       "Bash(git reset --hard *)",
@@ -65,6 +93,11 @@
       "Bash(kubectl delete *)",
       "Bash(terraform destroy*)",
       "Bash(helm uninstall *)",
+      "Bash(docker rm *)",
+      "Bash(docker rmi *)",
+      "Bash(docker system prune*)",
+      "Bash(docker volume rm *)",
+      "Bash(docker network rm *)",
       "CronCreate",
       "CronDelete",
       "RemoteTrigger"
@@ -74,10 +107,6 @@
     "SessionStart": [
       {
         "hooks": [
-          {
-            "type": "command",
-            "command": "find $HOME/.claude/plugins -name '*.sh' ! -perm -u+x -exec chmod +x {} +"
-          },
           {
             "type": "command",
             "command": "bash $HOME/.claude/hooks/git-session-start.sh"
@@ -158,6 +187,5 @@
     "claude-code-setup@claude-plugins-official": true,
     "atomic-agents@claude-plugins-official": true,
     "remember@claude-plugins-official": true
-  },
-  "effortLevel": "medium"
+  }
 }
