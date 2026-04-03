@@ -6,3 +6,6 @@ trusted_config_paths = ["/home/benkim0414/workspace"]
 status.missing_tools = "never"
 status.show_env = false
 status.show_tools = false
+
+[tools]
+node = "25.8.0"
