@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # setup-review-cl.sh
 # Creates a ralph-loop state file with a baked-in pre-PR code review prompt.
