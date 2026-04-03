@@ -11,7 +11,7 @@ brew bundle --file=Brewfile
 mkdir -p ~/.local/bin
 stow -t ~ bin                         # stow bin first (includes claude-sync)
 claude-sync                           # merge base + work overlay, stow claude
-stow -t ~ bat direnv eza ghostty git lazygit mise nvim ssh starship tmux yazi zsh
+stow -t ~ bat eza ghostty git lazygit mise nvim ssh starship tmux yazi zsh
 ```
 
 After stowing, register the sequential-thinking MCP server globally so it
@@ -40,9 +40,11 @@ stow -t ~ -R <package>       # re-stow after restructuring
 
 # Secrets
 
-Bitwarden via direnv (`use_bw` in `.envrc`).
+Bitwarden via mise (`mise-load-bw` sourced by `[env] _.source` in `.mise.local.toml`).
+Secrets are defined in `.env.bw` files (`VAR=uuid:field` format).
+1Password via `mise-load-op` (same pattern with `.env.op` files).
 Requires `BW_SESSION` in your shell: `export BW_SESSION="$(bw unlock --raw)"`.
-Never commit `.env*` files -- they are gitignored and permission-denied in Claude settings.
+Never commit `.env*` or `.mise.local.toml` files -- they are gitignored and permission-denied in Claude settings.
 
 # Stow gotchas
 

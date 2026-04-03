@@ -1,3 +1,8 @@
 [settings]
 # Auto-trust mise.toml files under ~/workspace without prompting
 trusted_config_paths = ["/home/benkim0414/workspace"]
+
+# Reduce hook-env overhead: suppress status messages on every prompt
+status.missing_tools = "never"
+status.show_env = false
+status.show_tools = false

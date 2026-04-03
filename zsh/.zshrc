@@ -33,7 +33,7 @@ bindkey "^[[C" forward-char
 bindkey "^[[D" backward-char
 
 autoload -Uz compinit
-compinit
+compinit -C
 zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}' 'r:|=* l:|=*'
 zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
 zstyle ':completion:*' file-list all
@@ -43,15 +43,23 @@ zstyle ':completion:*' select-prompt ''
 source ~/.antidote/antidote.zsh
 antidote load
 
-source <(fzf --zsh)
+_eval_cache() {
+  local name="$1"; shift
+  local cache="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/eval-cache-${name}.zsh"
+  local bin_path
+  bin_path="$(command -v "$1" 2>/dev/null)"
+  if [[ ! -s "$cache" || ( -n "$bin_path" && "$bin_path" -nt "$cache" ) ]]; then
+    mkdir -p "${cache:h}"
+    "$@" > "$cache"
+  fi
+  source "$cache"
+}
 
-if [[ $- == *i* ]]; then
-  eval "$(zoxide init zsh --cmd cd)"
-fi
+_eval_cache fzf fzf --zsh
+_eval_cache zoxide zoxide init zsh --cmd cd
 
 eval "$(starship init zsh)"
 eval "$(mise activate zsh)"
-eval "$(direnv hook zsh)"
 
 alias vi="nvim"
 alias vim="nvim"
