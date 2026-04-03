@@ -7,7 +7,7 @@ set -euo pipefail
 _bw_session_file="${XDG_STATE_HOME:-$HOME/.local/state}/bw/session"
 
 _bw_is_unlocked() {
-  bw status 2>/dev/null | jq -e '.status == "unlocked"' &>/dev/null
+  NODE_NO_WARNINGS=1 bw status 2>/dev/null | jq -e '.status == "unlocked"' &>/dev/null
 }
 
 # 1. Already set in env and valid — nothing to do.
@@ -26,7 +26,7 @@ fi
 
 # 3. Prompt for master password, persist the new session.
 echo "Bitwarden vault is locked. Unlocking..." >&2
-BW_SESSION="$(bw unlock --raw)"
+BW_SESSION="$(NODE_NO_WARNINGS=1 bw unlock --raw)"
 export BW_SESSION
 
 mkdir -p "$(dirname "$_bw_session_file")"
