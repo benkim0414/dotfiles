@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -euo pipefail
+# Load 1Password secrets into the environment for mise [env] _.source.
+#
+# Reads a .env.op file (default) containing 1Password secret references
+# (e.g., VAR_NAME=op://vault/item/field) and resolves them via `op run`.
+#
+# Usage in .mise.local.toml:
+#   [env]
+#   _.source = ["~/.local/bin/mise-load-op"]
+
+env_file="${1:-.env.op}"
+[[ -f "$env_file" ]] || return 0 2>/dev/null || exit 0
+
+# Collect variable names defined in the env file so we only export those,
+# not the entire inherited environment.
+declare -a var_names=()
+while IFS='=' read -r key _; do
+  [[ "$key" =~ ^[[:space:]]*# ]] && continue
+  [[ -z "${key// /}" ]] && continue
+  var_names+=("$key")
+done < "$env_file"
+
+(( ${#var_names[@]} )) || return 0 2>/dev/null || exit 0
+
+# op run resolves secret references and injects them into the command's env.
+# We run `env -0` to capture resolved values, then filter to only our vars.
+while IFS= read -r -d '' line; do
+  key="${line%%=*}"
+  for name in "${var_names[@]}"; do
+    if [[ "$key" == "$name" ]]; then
+      export "$line"
+      break
+    fi
+  done
+done < <(op run --env-file="$env_file" --no-masking -- env -0)
