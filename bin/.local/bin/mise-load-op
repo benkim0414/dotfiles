@@ -1,19 +1,23 @@
 #!/usr/bin/env bash
 set -euo pipefail
-# Load 1Password secrets into the environment for mise [env] _.source.
+# Resolve 1Password secrets from a .env.op file and write them to .env.local.
+# Designed for mise [tasks]: run once, then load the cached file via [env] _.file.
 #
-# Reads a .env.op file (default) containing 1Password secret references
-# (e.g., VAR_NAME=op://vault/item/field) and resolves them via `op run`.
+# .env.op format -- each non-comment line:
+#   VAR_NAME=op://vault/item/field
 #
-# Usage in .mise.local.toml:
+# Usage in .mise.toml:
 #   [env]
-#   _.source = ["~/.local/bin/mise-load-op"]
+#   _.file = [".env.local"]
+#   [tasks.secrets]
+#   run = "mise-load-op"
 
 env_file="${1:-.env.op}"
-[[ -f "$env_file" ]] || return 0 2>/dev/null || exit 0
+out_file="${2:-.env.local}"
 
-# Collect variable names defined in the env file so we only export those,
-# not the entire inherited environment.
+[[ -f "$env_file" ]] || { echo "mise-load-op: ${env_file} not found" >&2; exit 1; }
+
+# Collect variable names defined in the env file so we only capture those.
 declare -a var_names=()
 while IFS='=' read -r key _; do
   [[ "$key" =~ ^[[:space:]]*# ]] && continue
@@ -21,17 +25,21 @@ while IFS='=' read -r key _; do
   var_names+=("$key")
 done < "$env_file"
 
-(( ${#var_names[@]} )) || return 0 2>/dev/null || exit 0
+(( ${#var_names[@]} )) || { echo "mise-load-op: no variables in ${env_file}" >&2; exit 1; }
+
+: > "$out_file"
 
 # op run resolves secret references and injects them into the command's env.
-# We run `env -0` to capture resolved values, then filter to only our vars.
 # --no-masking is required to capture plaintext values (op redacts by default).
 while IFS= read -r -d '' line; do
   key="${line%%=*}"
   for name in "${var_names[@]}"; do
     if [[ "$key" == "$name" ]]; then
-      export "$line"
+      printf '%s\n' "$line" >> "$out_file"
       break
     fi
   done
 done < <(op run --env-file="$env_file" --no-masking -- env -0)
+
+chmod 600 "$out_file"
+echo "Wrote secrets to ${out_file}"

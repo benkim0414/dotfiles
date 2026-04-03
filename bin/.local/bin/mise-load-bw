@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
-# Load Bitwarden secrets into the environment for mise [env] _.source.
+# Resolve Bitwarden secrets from a .env.bw file and write them to .env.local.
+# Designed for mise [tasks]: run once, then load the cached file via [env] _.file.
 #
-# Reads a .env.bw file (default) where each non-comment line has the form:
+# .env.bw format -- each non-comment line:
 #   VAR_NAME=<item-uuid>:<field>
 #
 # Supported fields: password (default), username, notes
@@ -10,15 +11,21 @@ set -euo pipefail
 #   GITHUB_TOKEN=88a52664-df43-4c8a-b33b-b32300817bb0:notes
 #   DB_PASSWORD=e3e46a6b-a643-4f13-9820-ae4313fe75nd:password
 #
-# Usage in .mise.local.toml:
+# Usage in .mise.toml:
 #   [env]
-#   _.source = ["~/.local/bin/mise-load-bw"]
+#   _.file = [".env.local"]
+#   [tasks.secrets]
+#   run = "mise-load-bw"
 
 env_file="${1:-.env.bw}"
-[[ -f "$env_file" ]] || return 0 2>/dev/null || exit 0
+out_file="${2:-.env.local}"
+
+[[ -f "$env_file" ]] || { echo "mise-load-bw: ${env_file} not found" >&2; exit 1; }
 
 # shellcheck source=bw-ensure-unlocked
 source "$(dirname "${BASH_SOURCE[0]}")/bw-ensure-unlocked"
+
+: > "$out_file"
 
 while IFS='=' read -r key value || [[ -n "${key:-}" ]]; do
   [[ "$key" =~ ^[[:space:]]*# ]] && continue
@@ -30,7 +37,11 @@ while IFS='=' read -r key value || [[ -n "${key:-}" ]]; do
 
   secret="$(NODE_NO_WARNINGS=1 bw get "$field" "$item_id" 2>/dev/null)" || {
     echo "mise-load-bw: failed to retrieve ${key} (item: ${item_id}, field: ${field})" >&2
+    rm -f "$out_file"
     exit 1
   }
-  export "${key}=${secret}"
+  printf '%s=%s\n' "$key" "$secret" >> "$out_file"
 done < "$env_file"
+
+chmod 600 "$out_file"
+echo "Wrote secrets to ${out_file}"
