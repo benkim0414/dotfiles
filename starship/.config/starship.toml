@@ -61,8 +61,6 @@ detect_folders = ['k8s', 'helm', 'charts', '.kube']
 symbol = '󰸏'
 format = '[$symbol $region]($style)'
 style = '#ff9900'
-detect_files = ['samconfig.toml', 'template.yaml', 'serverless.yml']
-detect_folders = ['.aws-sam', 'cdk.out']
 
 [palettes.catppuccin_mocha]
 rosewater = "#f5e0dc"
