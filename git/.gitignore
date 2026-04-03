@@ -4,3 +4,4 @@
 .env.bw
 .env.op
 .env.local
+.mise.local.toml

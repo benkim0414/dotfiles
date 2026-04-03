@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -euo pipefail
+# Load Bitwarden secrets into the environment for mise [env] _.source.
+#
+# Reads a .env.bw file (default) where each non-comment line has the form:
+#   VAR_NAME=<item-uuid>:<field>
+#
+# Supported fields: password (default), username, notes
+# Example .env.bw:
+#   GITHUB_TOKEN=88a52664-df43-4c8a-b33b-b32300817bb0:notes
+#   DB_PASSWORD=e3e46a6b-a643-4f13-9820-ae4313fe75nd:password
+#
+# Usage in .mise.local.toml:
+#   [env]
+#   _.source = ["~/.local/bin/mise-load-bw"]
+
+env_file="${1:-.env.bw}"
+[[ -f "$env_file" ]] || return 0 2>/dev/null || exit 0
+
+# shellcheck source=bw-ensure-unlocked
+source "$(dirname "${BASH_SOURCE[0]}")/bw-ensure-unlocked"
+
+while IFS='=' read -r key value || [[ -n "${key:-}" ]]; do
+  [[ "$key" =~ ^[[:space:]]*# ]] && continue
+  [[ -z "${key// /}" ]] && continue
+
+  item_id="${value%%:*}"
+  field="${value#*:}"
+  [[ "$field" == "$value" ]] && field="password"
+
+  secret="$(NODE_NO_WARNINGS=1 bw get "$field" "$item_id" 2>/dev/null)" || {
+    echo "mise-load-bw: failed to retrieve ${key} (item: ${item_id}, field: ${field})" >&2
+    exit 1
+  }
+  export "${key}=${secret}"
+done < "$env_file"
