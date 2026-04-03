@@ -55,7 +55,19 @@
       "Edit(~/.aws/credentials)",
       "Read(~/.claude/.credentials.json)",
       "Write(~/.claude/.credentials.json)",
-      "Edit(~/.claude/.credentials.json)"
+      "Edit(~/.claude/.credentials.json)",
+      "Read(~/.kube/config)",
+      "Write(~/.kube/config)",
+      "Edit(~/.kube/config)",
+      "Read(~/.docker/config.json)",
+      "Write(~/.docker/config.json)",
+      "Edit(~/.docker/config.json)",
+      "Read(~/.netrc)",
+      "Write(~/.netrc)",
+      "Edit(~/.netrc)",
+      "Read(~/.config/gh/hosts.yml)",
+      "Write(~/.config/gh/hosts.yml)",
+      "Edit(~/.config/gh/hosts.yml)"
     ],
     "ask": [
       "Bash(rm -rf *)",
