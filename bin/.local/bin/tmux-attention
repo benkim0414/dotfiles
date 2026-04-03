@@ -169,6 +169,8 @@ case "$count" in
     switch_to_pane "$pane_id" "${markers[0]}"
     ;;
   *)
-    tmux display-popup -E -w 60% -h 40% "tmux-attention --pick"
+    # Switch to the most urgent pane; use Prefix+A for the full picker.
+    pane_id=$(read_field pane_id "${markers[0]}")
+    switch_to_pane "$pane_id" "${markers[0]}"
     ;;
 esac
