@@ -77,10 +77,10 @@ if [[ -f "$STATE_FILE" ]]; then
     # Signal 2: current session known and differs from stored
     elif [[ -n "$CURRENT_SESSION" && "$CURRENT_SESSION" != "$STORED_SESSION" ]]; then
       STALE=true
-    # Signal 3: both session IDs empty -- fall back to age check
-    elif [[ -z "$CURRENT_SESSION" && -z "$STORED_SESSION" && -n "$STORED_STARTED" ]]; then
-      STARTED_EPOCH=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "$STORED_STARTED" +%s 2>/dev/null \
-                      || date -d "$STORED_STARTED" +%s 2>/dev/null \
+    # Signal 3: current session unknown -- fall back to age check
+    elif [[ -z "$CURRENT_SESSION" && -n "$STORED_STARTED" ]]; then
+      STARTED_EPOCH=$(TZ=UTC date -j -f "%Y-%m-%dT%H:%M:%SZ" "$STORED_STARTED" +%s 2>/dev/null \
+                      || date -u -d "$STORED_STARTED" +%s 2>/dev/null \
                       || echo 0)
       AGE_HOURS=$(( (EPOCHSECONDS - STARTED_EPOCH) / 3600 ))
       if (( AGE_HOURS >= 6 )); then
