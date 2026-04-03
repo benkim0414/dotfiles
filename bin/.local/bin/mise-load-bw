@@ -18,7 +18,7 @@ env_file="${1:-.env.bw}"
 [[ -f "$env_file" ]] || return 0 2>/dev/null || exit 0
 
 # shellcheck source=bw-ensure-unlocked
-source bw-ensure-unlocked
+source "$(dirname "${BASH_SOURCE[0]}")/bw-ensure-unlocked"
 
 while IFS='=' read -r key value || [[ -n "${key:-}" ]]; do
   [[ "$key" =~ ^[[:space:]]*# ]] && continue

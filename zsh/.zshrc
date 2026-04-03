@@ -46,7 +46,9 @@ antidote load
 _eval_cache() {
   local name="$1"; shift
   local cache="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/eval-cache-${name}.zsh"
-  if [[ ! -f "$cache" || ! -s "$cache" ]]; then
+  local bin_path
+  bin_path="$(command -v "$1" 2>/dev/null)"
+  if [[ ! -s "$cache" || ( -n "$bin_path" && "$bin_path" -nt "$cache" ) ]]; then
     mkdir -p "${cache:h}"
     "$@" > "$cache"
   fi
