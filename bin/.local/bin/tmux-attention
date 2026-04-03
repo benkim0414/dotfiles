@@ -2,8 +2,9 @@
 # tmux-attention: jump to tmux pane(s) needing Claude Code user attention.
 # Invoked via tmux keybinding (Prefix+a).
 # Usage:
-#   tmux-attention         -- dispatch mode (run-shell): 0/1 direct, N opens popup
-#   tmux-attention --pick  -- picker mode (display-popup): fzf selection
+#   tmux-attention                -- dispatch: 0 msg, 1 direct, N cycle to most urgent
+#   tmux-attention --pick         -- picker: fzf selection with pane preview
+#   tmux-attention --clear-focused -- auto-dismiss: clear marker for focused pane
 set -euo pipefail
 
 ATTN_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/claude/attention"
@@ -60,6 +61,34 @@ switch_to_pane() {
   rm -f "$marker"
 }
 
+# Return numeric priority for a notification type (lower = more urgent).
+ntype_priority() {
+  case "$(read_field notification_type "$1")" in
+    permission_prompt)  echo 1 ;;
+    plan_approval)      echo 2 ;;
+    ask_user_question)  echo 3 ;;
+    elicitation_dialog) echo 4 ;;
+    idle_prompt)        echo 5 ;;
+    *)                  echo 9 ;;
+  esac
+}
+
+# Sort marker paths by priority (then timestamp for tie-breaking).
+# Reads paths from stdin, writes sorted paths to stdout.
+sort_markers() {
+  local markers=()
+  while IFS= read -r m; do
+    [[ -n "$m" ]] && markers+=("$m")
+  done
+
+  [[ ${#markers[@]} -eq 0 ]] && return 0
+
+  local m
+  for m in "${markers[@]}"; do
+    printf '%s\t%s\t%s\n' "$(ntype_priority "$m")" "$(read_field timestamp "$m")" "$m"
+  done | sort -t$'\t' -k1,1n -k2,2n | cut -f3
+}
+
 # Format a marker for fzf display. Output: "display_text\tpane_id\tmarker_path"
 format_marker() {
   local marker="$1"
@@ -82,12 +111,20 @@ format_marker() {
   printf '[%s] %s (%s)\t%s\t%s\n' "$label" "$project" "$pane_label" "$pane_id" "$marker"
 }
 
+# === CLEAR-FOCUSED MODE (called from pane-focus-in hook) ===
+if [[ "${1:-}" == "--clear-focused" ]]; then
+  [[ -d "$ATTN_DIR" ]] || exit 0
+  pane_id=$(tmux display-message -p '#{pane_id}' 2>/dev/null || true)
+  [[ -n "$pane_id" ]] && rm -f "${ATTN_DIR}/${pane_id}"
+  exit 0
+fi
+
 # === PICKER MODE (called inside display-popup with a TTY) ===
 if [[ "${1:-}" == "--pick" ]]; then
   markers=()
   while IFS= read -r line; do
     [[ -n "$line" ]] && markers+=("$line")
-  done < <(collect_markers)
+  done < <(collect_markers | sort_markers)
 
   if [[ ${#markers[@]} -eq 0 ]]; then
     echo "No panes need attention."
@@ -101,17 +138,14 @@ if [[ "${1:-}" == "--pick" ]]; then
     exit 0
   fi
 
-  fzf_input=""
-  for marker in "${markers[@]}"; do
-    fzf_input+="$(format_marker "$marker")"
-  done
-
-  selected=$(printf '%s' "$fzf_input" | fzf \
+  selected=$(for marker in "${markers[@]}"; do format_marker "$marker"; done | fzf \
     --delimiter=$'\t' \
     --with-nth=1 \
     --header="Select pane needing attention" \
     --reverse \
-    --no-sort) || exit 0
+    --no-sort \
+    --preview='tmux capture-pane -t {2} -p -S -10 2>/dev/null || echo "(pane unavailable)"' \
+    --preview-window=down:12:wrap) || exit 0
 
   if [[ -n "$selected" ]]; then
     pane_id=$(printf '%s' "$selected" | cut -f2)
@@ -125,7 +159,7 @@ fi
 markers=()
 while IFS= read -r line; do
   [[ -n "$line" ]] && markers+=("$line")
-done < <(collect_markers)
+done < <(collect_markers | sort_markers)
 
 count=${#markers[@]}
 
@@ -138,6 +172,8 @@ case "$count" in
     switch_to_pane "$pane_id" "${markers[0]}"
     ;;
   *)
-    tmux display-popup -E -w 60% -h 40% "tmux-attention --pick"
+    # Switch to the most urgent pane; use Prefix+A for the full picker.
+    pane_id=$(read_field pane_id "${markers[0]}")
+    switch_to_pane "$pane_id" "${markers[0]}"
     ;;
 esac
