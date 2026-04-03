@@ -2,4 +2,4 @@
 set -euo pipefail
 # Usage: bw-field <item-uuid> <field-name>
 # Extracts a custom field value from a Bitwarden item.
-bw get item "$1" | jq -r --arg f "$2" '.fields[] | select(.name==$f) | .value'
+NODE_NO_WARNINGS=1 bw get item "$1" | jq -r --arg f "$2" '.fields[] | select(.name==$f) | .value'
