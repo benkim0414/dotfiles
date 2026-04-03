@@ -140,7 +140,9 @@ if [[ "${1:-}" == "--pick" ]]; then
     --with-nth=1 \
     --header="Select pane needing attention" \
     --reverse \
-    --no-sort) || exit 0
+    --no-sort \
+    --preview='tmux capture-pane -t {2} -p -S -10 2>/dev/null || echo "(pane unavailable)"' \
+    --preview-window=down:12:wrap) || exit 0
 
   if [[ -n "$selected" ]]; then
     pane_id=$(printf '%s' "$selected" | cut -f2)
