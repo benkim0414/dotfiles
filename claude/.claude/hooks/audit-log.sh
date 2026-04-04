@@ -3,22 +3,37 @@
 # Runs async — must never block Claude Code.
 set -euo pipefail
 
-# shellcheck source=../lib/portability.sh
-source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../lib/portability.sh"
+# --- Build JSONL entry in a single jq pass (avoids extra process spawns) ---
+TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+ENTRY=$(cat | jq -c --arg ts "$TIMESTAMP" '
+  # Extract fields
+  (.tool_name // "") as $tool |
+  (.session_id // "") as $sid |
+  (.cwd // "") as $cwd |
+  ((.tool_input.command // "") | gsub("\n"; "\\n") | .[0:500]) as $cmd |
+  (.tool_input.file_path // .tool_input.path // .tool_input.notebook_path // "") as $path |
+  (.tool_input.description // "") as $desc |
+  ((.tool_output // "") | tostring | .[0:200]) as $out |
 
-INPUT=$(cat)
+  # Build summary based on tool type
+  (if   $tool == "Bash"         then $cmd
+   elif $tool == "Write"        then "write \($path)"
+   elif $tool == "Edit" or $tool == "MultiEdit" then "edit \($path)"
+   elif $tool == "NotebookEdit" then "notebook-edit \($path)"
+   else "" end) as $summary |
 
-# --- Parse fields with a single jq call ---
-IFS=$'\t' read -r TOOL SESSION_ID CWD COMMAND FILE_PATH DESCRIPTION <<< "$(
-  printf '%s' "$INPUT" | jq -r '[
-    (.tool_name // ""),
-    (.session_id // ""),
-    (.cwd // ""),
-    ((.tool_input.command // "") | gsub("\n"; "\\n") | .[0:500]),
-    (.tool_input.file_path // .tool_input.path // .tool_input.notebook_path // ""),
-    (.tool_input.description // "")
-  ] | @tsv'
-)"
+  {
+    timestamp: $ts,
+    session_id: $sid,
+    tool: $tool,
+    cwd: $cwd,
+    summary: $summary,
+    description: $desc,
+    output_snippet: $out
+  }
+') || true
+
+[[ -z "$ENTRY" ]] && exit 0
 
 # --- Determine log directory and file ---
 LOG_DIR="${HOME}/.claude/logs"
@@ -40,39 +55,6 @@ if [[ -f "$LOG_FILE" ]]; then
   fi
 fi
 
-# --- Build summary field based on tool type ---
-SUMMARY=""
-case "$TOOL" in
-  Bash)          SUMMARY="$COMMAND" ;;
-  Write)         SUMMARY="write ${FILE_PATH}" ;;
-  Edit|MultiEdit) SUMMARY="edit ${FILE_PATH}" ;;
-  NotebookEdit)  SUMMARY="notebook-edit ${FILE_PATH}" ;;
-esac
-
-# --- Truncated output snippet (first 200 chars of tool_output) ---
-OUTPUT_SNIPPET=$(printf '%s' "$INPUT" | jq -r '
-  (.tool_output // "") | tostring | .[0:200]
-')
-
-# --- Build and append JSON log entry (single printf for atomic write) ---
-TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-ENTRY=$(jq -n -c \
-  --arg ts "$TIMESTAMP" \
-  --arg sid "$SESSION_ID" \
-  --arg tool "$TOOL" \
-  --arg cwd "$CWD" \
-  --arg summary "$SUMMARY" \
-  --arg desc "$DESCRIPTION" \
-  --arg output "$OUTPUT_SNIPPET" \
-  '{
-    timestamp: $ts,
-    session_id: $sid,
-    tool: $tool,
-    cwd: $cwd,
-    summary: $summary,
-    description: $desc,
-    output_snippet: $output
-  }') || true
-[[ -n "$ENTRY" ]] && printf '%s\n' "$ENTRY" >> "$LOG_FILE" 2>/dev/null || true
+printf '%s\n' "$ENTRY" >> "$LOG_FILE" 2>/dev/null || true
 
 exit 0
