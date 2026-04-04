@@ -16,11 +16,15 @@ ENTRY=$(cat | jq -c --arg ts "$TIMESTAMP" '
   ((.tool_output // "") | tostring | .[0:200]) as $out |
 
   # Build summary based on tool type
+  (.tool_input.url // "") as $url |
+  (.tool_input.query // "") as $query |
   (.tool_input | keys_unsorted | join(",")) as $input_keys |
   (if   $tool == "Bash"         then $cmd
    elif $tool == "Write"        then "write \($path)"
    elif $tool == "Edit" or $tool == "MultiEdit" then "edit \($path)"
    elif $tool == "NotebookEdit" then "notebook-edit \($path)"
+   elif $tool == "WebFetch"     then "fetch \($url | .[0:200])"
+   elif $tool == "WebSearch"    then "search \($query | .[0:200])"
    else "\($tool | ascii_downcase) \($input_keys)" end) as $summary |
 
   {
