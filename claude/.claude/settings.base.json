@@ -162,6 +162,26 @@
             "command": "bash $HOME/.claude/hooks/worktree-exited.sh"
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $HOME/.claude/hooks/audit-log.sh",
+            "async": true
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $HOME/.claude/hooks/audit-log.sh",
+            "async": true
+          }
+        ]
       }
     ],
     "Notification": [
