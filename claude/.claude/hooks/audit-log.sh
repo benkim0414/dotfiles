@@ -42,16 +42,19 @@ ENTRY=$(cat | jq -c --arg ts "$TIMESTAMP" '
 
 # --- Determine log directory and file ---
 LOG_DIR="${HOME}/.claude/logs"
-mkdir -p "$LOG_DIR" 2>/dev/null || exit 0
-chmod 700 "$LOG_DIR" 2>/dev/null || true
 TODAY=$(date -u +%Y-%m-%d)
 LOG_FILE="${LOG_DIR}/audit-${TODAY}.log"
 
+# Fast path: skip mkdir/chmod/size-check when today's log already exists.
+if [[ ! -f "$LOG_FILE" ]]; then
+  mkdir -p "$LOG_DIR" 2>/dev/null || exit 0
+  chmod 700 "$LOG_DIR" 2>/dev/null || true
+fi
+
 # --- Size guard: rotate if file exceeds 50 MB ---
-MAX_BYTES=52428800
 if [[ -f "$LOG_FILE" ]]; then
   SIZE=$(wc -c < "$LOG_FILE" 2>/dev/null || echo 0)
-  if (( SIZE > MAX_BYTES )); then
+  if (( SIZE > 52428800 )); then
     N=1
     while [[ -f "${LOG_FILE}.${N}" ]]; do
       N=$((N + 1))
