@@ -36,8 +36,13 @@ find "$STATE_DIR" -name 'pending-*' -mmin +1440 -delete 2>/dev/null || true
 CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/claude"
 if [[ -d "$CACHE_DIR" ]]; then
   find "$CACHE_DIR" -name 'notify-*' -mmin +1440 -delete 2>/dev/null || true
-  find "$CACHE_DIR" -name 'statusline-git-*' -mmin +10080 -delete 2>/dev/null || true
-  find "$CACHE_DIR" -name 'commit-scopes-*' -mmin +10080 -delete 2>/dev/null || true
+  find "$CACHE_DIR" \( -name 'statusline-git-*' -o -name 'commit-scopes-*' \) -mmin +10080 -delete 2>/dev/null || true
+fi
+
+# Clean up audit logs older than 90 days.
+AUDIT_LOG_DIR="$HOME/.claude/logs"
+if [[ -d "$AUDIT_LOG_DIR" ]]; then
+  find "$AUDIT_LOG_DIR" -name 'audit-*.log*' -mtime +90 -delete 2>/dev/null || true
 fi
 
 # Detect if already in a linked worktree.
