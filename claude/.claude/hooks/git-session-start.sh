@@ -40,6 +40,12 @@ if [[ -d "$CACHE_DIR" ]]; then
   find "$CACHE_DIR" -name 'commit-scopes-*' -mmin +10080 -delete 2>/dev/null || true
 fi
 
+# Clean up audit logs older than 90 days.
+AUDIT_LOG_DIR="$HOME/.claude/logs"
+if [[ -d "$AUDIT_LOG_DIR" ]]; then
+  find "$AUDIT_LOG_DIR" -name 'audit-*.log*' -mtime +90 -delete 2>/dev/null || true
+fi
+
 # Detect if already in a linked worktree.
 # Linked worktree: absolute-git-dir is under .git/worktrees/, differs from git-common-dir.
 if [[ -n "$GIT_ABS_DIR" && -n "$GIT_COMMON_DIR" && "$GIT_ABS_DIR" != "$GIT_COMMON_DIR" ]]; then
