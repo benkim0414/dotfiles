@@ -177,37 +177,7 @@
         ]
       },
       {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash $HOME/.claude/hooks/audit-log.sh",
-            "async": true
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit|MultiEdit|NotebookEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash $HOME/.claude/hooks/audit-log.sh",
-            "async": true
-          }
-        ]
-      },
-      {
-        "matcher": "WebFetch|WebSearch",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash $HOME/.claude/hooks/audit-log.sh",
-            "async": true
-          }
-        ]
-      },
-      {
-        "matcher": "CronCreate|CronDelete|RemoteTrigger",
+        "matcher": "Bash|Write|Edit|MultiEdit|NotebookEdit|WebFetch|WebSearch|CronCreate|CronDelete|RemoteTrigger",
         "hooks": [
           {
             "type": "command",
