@@ -184,6 +184,16 @@
         ]
       },
       {
+        "matcher": "WebFetch|WebSearch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $HOME/.claude/hooks/audit-log.sh",
+            "async": true
+          }
+        ]
+      },
+      {
         "matcher": "CronCreate|CronDelete|RemoteTrigger",
         "hooks": [
           {
