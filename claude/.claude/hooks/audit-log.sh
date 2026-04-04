@@ -56,7 +56,7 @@ if [[ -f "$LOG_FILE" ]]; then
   SIZE=$(wc -c < "$LOG_FILE" 2>/dev/null || echo 0)
   if (( SIZE > 52428800 )); then
     N=1
-    while [[ -f "${LOG_FILE}.${N}" ]]; do
+    while [[ -f "${LOG_FILE}.${N}" ]] && (( N < 100 )); do
       N=$((N + 1))
     done
     mv "$LOG_FILE" "${LOG_FILE}.${N}" 2>/dev/null || true
