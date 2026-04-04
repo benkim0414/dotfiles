@@ -14,7 +14,7 @@ IFS=$'\t' read -r TOOL SESSION_ID CWD COMMAND FILE_PATH DESCRIPTION <<< "$(
     (.tool_name // ""),
     (.session_id // ""),
     (.cwd // ""),
-    (.tool_input.command // ""),
+    ((.tool_input.command // "") | gsub("\n"; "\\n") | .[0:500]),
     (.tool_input.file_path // .tool_input.path // .tool_input.notebook_path // ""),
     (.tool_input.description // "")
   ] | @tsv'
@@ -23,6 +23,7 @@ IFS=$'\t' read -r TOOL SESSION_ID CWD COMMAND FILE_PATH DESCRIPTION <<< "$(
 # --- Determine log directory and file ---
 LOG_DIR="${HOME}/.claude/logs"
 mkdir -p "$LOG_DIR" 2>/dev/null || exit 0
+chmod 700 "$LOG_DIR" 2>/dev/null || true
 TODAY=$(date -u +%Y-%m-%d)
 LOG_FILE="${LOG_DIR}/audit-${TODAY}.log"
 
@@ -35,7 +36,7 @@ if [[ -f "$LOG_FILE" ]]; then
     while [[ -f "${LOG_FILE}.${N}" ]]; do
       N=$((N + 1))
     done
-    mv "$LOG_FILE" "${LOG_FILE}.${N}"
+    mv "$LOG_FILE" "${LOG_FILE}.${N}" 2>/dev/null || true
   fi
 fi
 
@@ -53,9 +54,9 @@ OUTPUT_SNIPPET=$(printf '%s' "$INPUT" | jq -r '
   (.tool_output // "") | tostring | .[0:200]
 ')
 
-# --- Build and append JSON log entry ---
+# --- Build and append JSON log entry (single printf for atomic write) ---
 TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-jq -n -c \
+ENTRY=$(jq -n -c \
   --arg ts "$TIMESTAMP" \
   --arg sid "$SESSION_ID" \
   --arg tool "$TOOL" \
@@ -71,6 +72,7 @@ jq -n -c \
     summary: $summary,
     description: $desc,
     output_snippet: $output
-  }' >> "$LOG_FILE" 2>/dev/null || true
+  }') || true
+[[ -n "$ENTRY" ]] && printf '%s\n' "$ENTRY" >> "$LOG_FILE" 2>/dev/null || true
 
 exit 0
