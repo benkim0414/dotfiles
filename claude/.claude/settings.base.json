@@ -86,6 +86,7 @@
       "Bash(sudo *)",
       "Bash(git push --force *)",
       "Bash(git push -f *)",
+      "Bash(git push --force-with-lease *)",
       "Bash(git reset --hard *)",
       "Bash(git clean -f*)",
       "Bash(git branch -D *)",
