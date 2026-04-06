@@ -17,20 +17,20 @@ case "$subject" in
     ;;
 esac
 
-# Enforce: type(scope)[!]: description
+# Enforce: type[(scope)][!]: description
 # - type: one of the allowed values (from CLAUDE.md)
-# - scope: required, lowercase alphanumeric with hyphens/underscores
+# - scope: optional, lowercase alphanumeric with hyphens/underscores
 # - !: optional, marks a breaking change
 # - description: must have at least one non-whitespace character after the space
-PATTERN='^(feat|fix|docs|chore|refactor|test|ci|perf)\([a-z0-9][a-z0-9_-]*\)!?:[[:space:]].+'
+PATTERN='^(feat|fix|docs|chore|refactor|test|ci|perf)(\([a-z0-9][a-z0-9_-]*\))?!?:[[:space:]].+'
 
 if ! printf '%s\n' "$subject" | grep -qE "$PATTERN"; then
   echo "COMMIT REJECTED: subject does not follow conventional commits." >&2
   echo "" >&2
-  echo "  Required:  type(scope): description" >&2
-  echo "  Breaking:  type(scope)!: description" >&2
+  echo "  Required:  type(scope): description  or  type: description" >&2
+  echo "  Breaking:  type(scope)!: description  or  type!: description" >&2
   echo "  Types:     feat fix docs chore refactor test ci perf" >&2
-  echo "  Scope:     required — lowercase alphanumeric, hyphens, underscores" >&2
+  echo "  Scope:     optional — lowercase alphanumeric, hyphens, underscores" >&2
   echo "" >&2
   echo "  Got: $subject" >&2
   exit 1
