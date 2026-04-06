@@ -112,6 +112,15 @@ if [[ "$NO_PR" != "true" && "$COMMAND" =~ git[[:space:]]+(merge|rebase|cherry-pi
   exit 2
 fi
 
+# --- Allow remote branch deletion (not a push to any branch) ---
+if [[ "$COMMAND" =~ git[[:space:]]+push[[:space:]]+[^[:space:]]+[[:space:]]+(--delete|-d)[[:space:]]+([^[:space:]]+) ]]; then
+  delete_target="${BASH_REMATCH[2]}"
+  if [[ "$delete_target" != "$MAIN_BRANCH" ]]; then
+    exit 0
+  fi
+  # Deleting main falls through to the block below.
+fi
+
 # --- Block push to main (checks destination ref, not just current branch) ---
 # Allows pushing a feature branch even when HEAD is main (e.g., after ExitWorktree).
 if [[ "$NO_PR" != "true" && "$COMMAND" =~ git[[:space:]]+push ]]; then
