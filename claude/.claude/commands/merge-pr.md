@@ -1,5 +1,5 @@
 ---
-allowed-tools: Bash(gh pr view:*), Bash(gh pr edit:*), Bash(gh pr merge:*), Bash(gh pr checks:*), Bash(rm:*), Bash(git fetch:*), Bash(git show:*), Read, Grep, Glob, Write
+allowed-tools: Bash(gh pr view:*), Bash(gh pr edit:*), Bash(gh pr merge:*), Bash(gh pr checks:*), Bash(rm:*), Bash(git fetch:*), Bash(git push:*), Bash(git show:*), Read, Grep, Glob, Write
 argument-hint: "[pr-number]"
 description: Verify PR test plan, tick completed items, and merge
 ---
@@ -21,8 +21,8 @@ First, determine the PR number:
 - If no number can be extracted but the current branch is a feature branch, omit the number to auto-detect from the current branch.
 
 Run `gh pr view` to fetch the PR details as JSON:
-- With a PR number: `gh pr view <number> --json number,title,body,state,statusCheckRollup,reviewDecision,url`
-- Without (auto-detect from branch): `gh pr view --json number,title,body,state,statusCheckRollup,reviewDecision,url`
+- With a PR number: `gh pr view <number> --json number,title,body,state,statusCheckRollup,reviewDecision,url,headRefName`
+- Without (auto-detect from branch): `gh pr view --json number,title,body,state,statusCheckRollup,reviewDecision,url,headRefName`
 
 From the result, extract the PR number, title, URL, full body text, state, and reviewDecision.
 
@@ -90,18 +90,25 @@ If there are UNVERIFIABLE items, ask the user to confirm they were manually veri
 
 When all pre-merge concerns are resolved, run using the PR number from Step 1:
 ```bash
-gh pr merge <PR_NUMBER> --merge --delete-branch
+gh pr merge <PR_NUMBER> --merge
 ```
 
 Never use `--squash` or `--rebase`.
 
-### Step 7: Post-merge verification (if deferred items exist)
-
-After merge, land the merged commits locally with:
+After the merge succeeds, delete the remote branch using the `headRefName` from Step 1:
 ```bash
-git fetch origin main:main
+git push origin --delete <HEAD_BRANCH>
 ```
 
-This updates the local main ref from any branch or worktree without requiring a checkout. Then verify deferred items against the merged state. To read files from the updated main ref without leaving the worktree, use `git show main:<path>` or the Read tool on the main working tree.
+If the branch was already deleted (e.g., by GitHub's auto-delete setting), ignore the error.
+
+### Step 7: Post-merge verification (if deferred items exist)
+
+After merge, update the remote-tracking ref:
+```bash
+git fetch origin main
+```
+
+This updates `origin/main` without touching the local `main` ref, which avoids errors when `main` is checked out in another worktree. Then verify deferred items against the merged state using `git show origin/main:<path>` (not `main:<path>`).
 Update the PR body with remaining `- [x]` ticks using the same tmpfile approach from Step 3.
 Note: `gh pr edit` works on merged PRs — it is correct to update the body of a PR in MERGED state.
