@@ -1,5 +1,5 @@
 ---
-allowed-tools: Bash(gh pr view:*), Bash(gh pr edit:*), Bash(gh pr merge:*), Bash(gh pr checks:*), Bash(rm:*), Bash(git fetch:*), Bash(git push:*), Bash(git show:*), Read, Grep, Glob, Write
+allowed-tools: Bash(gh pr view:*), Bash(gh pr edit:*), Bash(gh pr merge:*), Bash(gh pr checks:*), Bash(rm:*), Bash(git fetch:*), Bash(git push:*), Bash(git show:*), Bash(git pull:*), Bash(git checkout:*), Bash(git worktree:*), Bash(git branch:*), Read, Grep, Glob, Write
 argument-hint: "[pr-number]"
 description: Verify PR test plan, tick completed items, and merge
 ---
@@ -112,3 +112,60 @@ git fetch origin main
 This updates `origin/main` without touching the local `main` ref, which avoids errors when `main` is checked out in another worktree. Then verify deferred items against the merged state using `git show origin/main:<path>` (not `main:<path>`).
 Update the PR body with remaining `- [x]` ticks using the same tmpfile approach from Step 3.
 Note: `gh pr edit` works on merged PRs — it is correct to update the body of a PR in MERGED state.
+
+### Step 8: Local finalization
+
+After all verification is complete, clean up local state so the workflow for this task is definitively finished.
+
+#### 8a. Find the worktree for the merged branch
+
+Using the `headRefName` from Step 1, find the matching linked worktree:
+```bash
+git worktree list --porcelain | awk -v branch="refs/heads/<HEAD_BRANCH>" '/^worktree /{wt=$2} $0 == "branch " branch {print wt}'
+```
+
+Replace `<HEAD_BRANCH>` with the actual `headRefName`. If no output, there is no worktree to remove — skip to step 8c.
+
+#### 8b. Remove the worktree
+
+If a worktree path was found:
+```bash
+git worktree remove <WORKTREE_PATH>
+```
+
+If this fails because the worktree has uncommitted changes, report the path and error to the user but do NOT force-remove it. Continue to step 8c regardless.
+
+After removal (or if it was already gone), prune stale metadata:
+```bash
+git worktree prune
+```
+
+#### 8c. Update local main
+
+```bash
+git checkout main
+git pull --ff-only origin main
+```
+
+If `--ff-only` fails (diverged history), fall back to:
+```bash
+git pull origin main
+```
+
+#### 8d. Delete the local branch
+
+```bash
+git branch -d <HEAD_BRANCH>
+```
+
+Use `-d` (safe delete), never `-D`. If the branch is already gone or the delete fails, ignore the error.
+
+#### 8e. Confirmation
+
+Output a summary:
+```
+Post-merge cleanup complete:
+  - Local main updated to <SHORT_SHA>
+  - Worktree removed: <WORKTREE_PATH>  (or "no worktree found")
+  - Local branch deleted: <HEAD_BRANCH>  (or "already gone")
+```
