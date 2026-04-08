@@ -17,6 +17,9 @@ else
 [git-workflow] REQUIRED next steps (in order):
 [git-workflow]   1. STOP — wait for the user to merge the PR on GitHub.
 [git-workflow]   2. Do NOT run 'gh pr merge' without explicit user approval.
-[git-workflow]   3. After the user merges: run 'git pull' to update local main.
+[git-workflow]   3. After the user merges: run '/merge-pr <number>' to merge, update local main,
+[git-workflow]      and clean up the worktree and local branch automatically.
+[git-workflow]      Or if the user merged via GitHub UI: run 'git pull' to update local main,
+[git-workflow]      then 'git worktree remove <path>' and 'git branch -d <branch>' to clean up.
 EOF
 fi
