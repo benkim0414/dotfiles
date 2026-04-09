@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# shellcheck source=lib/portability.sh
-source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/lib/portability.sh"
+# Inline portability helpers (avoids readlink/source subprocess per render).
+: "${EPOCHSECONDS:=$(date +%s)}"
+file_mtime() { stat -c %Y "$1" 2>/dev/null || stat -f %m "$1" 2>/dev/null || echo 0; }
 
 # Catppuccin Mocha — 24-bit ANSI colors (hex values from starship.toml)
 RESET='\033[0m'
