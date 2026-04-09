@@ -70,6 +70,9 @@ if [[ "$COMMAND" =~ git[[:space:]]+add[[:space:]]+(-A|--all|--update|-u|\.(\ |$)
   exit 2
 fi
 
+# Allowed git-add — no branch checks needed.
+[[ "$COMMAND" =~ git[[:space:]]+add ]] && exit 0
+
 # --- Block git commit -a (bypasses selective staging) ---
 if [[ "$COMMAND" =~ git[[:space:]]+commit ]]; then
   # Strip the -m argument content to avoid false positives where -a appears
@@ -222,8 +225,7 @@ if [[ -f "$scope_cache" ]]; then
 fi
 if (( scope_age > 60 )); then
   known_scopes=$(git log --format='%s' -200 2>/dev/null \
-    | sed -n 's/^[a-z]*(\([^)]*\)).*/\1/p' \
-    | sort -u | tr '\n' ', ' | sed 's/,$//' || true)
+    | awk -F'[()]' '/^[a-z]+\(/ && !seen[$2]++ { s = s (s?",":"") $2 } END { print s }' || true)
   printf '%s' "$known_scopes" > "$scope_cache" 2>/dev/null || true
 else
   known_scopes=$(cat "$scope_cache" 2>/dev/null || true)
