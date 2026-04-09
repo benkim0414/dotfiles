@@ -6,6 +6,12 @@
 # Exit 0 = allow. Exit 2 = block (stderr shown to Claude as error).
 set -euo pipefail
 
+# Fast exit: no sessions need worktrees → nothing to block.
+STATE_DIR="$HOME/.claude/session-worktrees"
+if [[ ! -d "$STATE_DIR" ]] || ! ls "$STATE_DIR"/pending-* >/dev/null 2>&1; then
+  exit 0
+fi
+
 # shellcheck source=../lib/session.sh
 source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../lib/session.sh"
 
