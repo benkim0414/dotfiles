@@ -26,12 +26,14 @@
 [interactive]
 	diffFilter = delta --color-only
 
+[include]
+	path = ~/.config/delta/catppuccin.gitconfig
+
 [delta]
+	features = catppuccin-mocha
 	navigate = true
 	line-numbers = true
-	dark = true
 	hyperlinks = true
-	syntax-theme = "Catppuccin Mocha"
 
 [diff]
 	tool = nvimdiff
