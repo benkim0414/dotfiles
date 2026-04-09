@@ -34,7 +34,10 @@
   Use `ExitWorktree("remove")` only to discard exploratory work with no commits worth keeping.
 - After ExitWorktree: wait for the user to merge the PR on GitHub.
   Do NOT merge without explicit user approval. Do NOT run `gh pr merge` proactively.
-- After the user merges the PR: run `git pull` to land on the latest main.
+- After the user merges the PR (or when the user runs `/merge-pr`): the merge-pr command
+  handles full finalization -- updates local main, removes the worktree, and deletes the
+  local branch. If the user merged via GitHub UI without `/merge-pr`, run `git pull`,
+  then `git worktree remove <path>` and `git branch -d <branch>` to clean up manually.
 - To resume PR review in a new session: start Claude Code from within the worktree directory
   (e.g. `claude` from `.claude/worktrees/<name>/` -- paths listed at session start);
   the session-start hook detects the linked worktree and skips the EnterWorktree requirement.
