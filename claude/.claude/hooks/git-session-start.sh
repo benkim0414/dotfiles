@@ -3,13 +3,11 @@
 # Stdout is added to Claude's context; stderr is shown to the user.
 set -euo pipefail
 
-# shellcheck source=../lib/portability.sh
-source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../lib/portability.sh"
+# shellcheck source=../lib/session.sh
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../lib/session.sh"
 
 INPUT=$(cat)
-SESSION_ID=$(printf '%s' "$INPUT" | jq -r '.session_id // empty' 2>/dev/null || true)
-# Reject anything that isn't a UUID to prevent unexpected jq output in file paths.
-[[ "$SESSION_ID" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]] || SESSION_ID=""
+SESSION_ID=$(parse_session_id "$INPUT")
 
 # Silently exit if not inside a git repository.
 if ! git rev-parse --git-dir >/dev/null 2>&1; then
