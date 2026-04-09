@@ -72,7 +72,22 @@
       "Read(~/.config/gh/hosts.yml)",
       "Write(~/.config/gh/hosts.yml)",
       "Edit(~/.config/gh/hosts.yml)",
-      "MultiEdit(~/.config/gh/hosts.yml)"
+      "MultiEdit(~/.config/gh/hosts.yml)",
+      "NotebookEdit(**/.env)",
+      "NotebookEdit(**/.env.*)",
+      "Bash(*~/.ssh/id_*)",
+      "Bash(*~/.ssh/config*)",
+      "Bash(*~/.gnupg/private*)",
+      "Bash(*~/.aws/credentials*)",
+      "Bash(*~/.claude/.credentials*)",
+      "Bash(*~/.kube/config*)",
+      "Bash(*~/.docker/config.json*)",
+      "Bash(*~/.netrc*)",
+      "Bash(*~/.config/gh/hosts.yml*)",
+      "Bash(bw get *)",
+      "Bash(bw list *)",
+      "Bash(op read *)",
+      "Bash(op item get *)"
     ],
     "ask": [
       "Bash(rm -rf *)",
@@ -194,11 +209,12 @@
   },
   "statusLine": {
     "type": "command",
-    "command": "~/.claude/statusline.sh"
+    "command": "$HOME/.claude/statusline.sh"
   },
   "enabledPlugins": {
     "claude-md-management@claude-plugins-official": true,
     "commit-commands@claude-plugins-official": true,
+    "feature-dev@claude-plugins-official": true,
     "ralph-loop@claude-plugins-official": true,
     "remember@claude-plugins-official": true
   }
