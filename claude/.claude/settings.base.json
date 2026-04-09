@@ -33,20 +33,12 @@
       "mcp__sequential-thinking__*"
     ],
     "deny": [
-      "Read(.env)",
-      "Read(.env.*)",
       "Read(**/.env)",
       "Read(**/.env.*)",
-      "Write(.env)",
-      "Write(.env.*)",
       "Write(**/.env)",
       "Write(**/.env.*)",
-      "Edit(.env)",
-      "Edit(.env.*)",
       "Edit(**/.env)",
       "Edit(**/.env.*)",
-      "MultiEdit(.env)",
-      "MultiEdit(.env.*)",
       "MultiEdit(**/.env)",
       "MultiEdit(**/.env.*)",
       "Read(~/.ssh/*)",
@@ -208,8 +200,6 @@
     "claude-md-management@claude-plugins-official": true,
     "commit-commands@claude-plugins-official": true,
     "ralph-loop@claude-plugins-official": true,
-    "claude-code-setup@claude-plugins-official": true,
-    "atomic-agents@claude-plugins-official": true,
     "remember@claude-plugins-official": true
   }
 }

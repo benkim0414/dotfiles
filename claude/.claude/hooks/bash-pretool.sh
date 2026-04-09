@@ -6,11 +6,15 @@
 # Exit 0 = allow (stdout → context). Exit 2 = block (stderr → Claude).
 set -euo pipefail
 
-# shellcheck source=../lib/portability.sh
-source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../lib/portability.sh"
+# --- Read stdin once; fast-exit for non-git commands ---
+INPUT=$(cat)
 
-# --- Parse command from hook input ---
-COMMAND=$(jq -r '.tool_input.command // ""')
+# ~90% of Bash calls are non-git — skip them without spawning jq or sourcing libs.
+if [[ "$INPUT" != *'"git '* ]]; then
+  exit 0
+fi
+
+COMMAND=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // ""')
 
 # Per-repo opt-out of PR workflow.
 NO_PR=false
@@ -176,6 +180,10 @@ file_count=$(echo "$staged" | wc -l)
 dirs=$(echo "$staged" | grep '/' | cut -d/ -f1 | sort -u | tr '\n' ', ' | sed 's/,$//')
 
 # Collect known scopes from recent history — cached with 60-second TTL.
+# Source portability.sh here (only place needing EPOCHSECONDS/file_mtime).
+# shellcheck source=../lib/portability.sh
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../lib/portability.sh"
+
 repo_path=$(git rev-parse --show-toplevel 2>/dev/null || true)
 repo_key=${repo_path//[^a-zA-Z0-9_]/_}
 cache_dir="${XDG_RUNTIME_DIR:-$HOME/.cache/claude}"

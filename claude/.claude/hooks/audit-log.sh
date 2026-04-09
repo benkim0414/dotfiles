@@ -3,9 +3,11 @@
 # Runs async — must never block Claude Code.
 set -euo pipefail
 
-# --- Build JSONL entry in a single jq pass (avoids extra process spawns) ---
-TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-ENTRY=$(cat | jq -c --arg ts "$TIMESTAMP" '
+# --- Build JSONL entry in a single jq pass (no external date/wc subprocesses) ---
+ENTRY=$(cat | jq -c '
+  # Generate timestamp inside jq (avoids date subprocess).
+  (now | strftime("%Y-%m-%dT%H:%M:%SZ")) as $ts |
+
   # Extract fields
   (.tool_name // "") as $tool |
   (.session_id // "") as $sid |
@@ -53,7 +55,7 @@ fi
 
 # --- Size guard: rotate if file exceeds 50 MB ---
 if [[ -f "$LOG_FILE" ]]; then
-  SIZE=$(wc -c < "$LOG_FILE" 2>/dev/null || echo 0)
+  SIZE=$(stat -c %s "$LOG_FILE" 2>/dev/null || stat -f %z "$LOG_FILE" 2>/dev/null || echo 0)
   if (( SIZE > 52428800 )); then
     N=1
     while [[ -f "${LOG_FILE}.${N}" ]] && (( N < 100 )); do
