@@ -22,7 +22,6 @@ gui:
 
   authorColors:
     '*': '#b4befe'
-
 git:
-  paging:
-    pager: delta --paging=never
+  pagers:
+    - pager: delta --paging=never
