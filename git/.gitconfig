@@ -29,12 +29,19 @@
 [delta]
 	navigate = true
 	line-numbers = true
-	side-by-side = true
+	dark = true
 	hyperlinks = true
 	syntax-theme = "Catppuccin Mocha"
 
-[merge]
-	conflictstyle = zdiff3
-
 [diff]
+	tool = nvimdiff
 	colorMoved = default
+[difftool]
+	prompt = false
+[merge]
+	tool = nvimdiff
+	conflictstyle = zdiff3
+[mergetool]
+	prompt = false
+[mergetool "nvimdiff"]
+	layout = "LOCAL,BASE,REMOTE / MERGED"
