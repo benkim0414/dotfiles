@@ -124,43 +124,36 @@ Using the `headRefName` from Step 1, find the matching linked worktree:
 git worktree list --porcelain | awk -v branch="refs/heads/<HEAD_BRANCH>" '/^worktree /{wt=$2} $0 == "branch " branch {print wt}'
 ```
 
-Replace `<HEAD_BRANCH>` with the actual `headRefName`. If no output, there is no worktree to remove — skip to step 8c.
+Replace `<HEAD_BRANCH>` with the actual `headRefName`. If no output, there is no worktree to remove — use the no-worktree variant in 8b.
 
-#### 8b. Remove the worktree
+#### 8b. Remove worktree, update main, delete branch
 
-If a worktree path was found, first move to the main worktree (in case CWD is inside the worktree being removed), then remove it:
-```bash
-cd "$(git worktree list | head -1 | awk '{print $1}')" && git worktree remove <WORKTREE_PATH>
-```
-
-If this fails because the worktree has uncommitted changes, report the path and error to the user but do NOT force-remove it. Continue to step 8c regardless.
-
-After removal (or if it was already gone), prune stale metadata:
-```bash
-git worktree prune
-```
-
-#### 8c. Update local main
+**CRITICAL**: Run all cleanup in a single Bash call. After `git worktree remove` deletes the worktree directory, the Bash tool's CWD no longer exists and any subsequent Bash call will fail with "Path does not exist". The `cd` at the start escapes the doomed directory before removal.
 
 ```bash
-git checkout main
-git pull --ff-only origin main
+cd "$(git worktree list | head -1 | awk '{print $1}')" && \
+git worktree remove <WORKTREE_PATH>; \
+git worktree prune && \
+git checkout main && \
+git pull --ff-only origin main || git pull origin main; \
+git branch -d <HEAD_BRANCH> 2>/dev/null; \
+git rev-parse --short HEAD
 ```
 
-If `--ff-only` fails (diverged history), fall back to:
+If `git worktree remove` fails because the worktree has uncommitted changes, report the path and error to the user (visible in stderr) but do NOT force-remove it. The remaining commands still run because the commands are joined with `;` after the remove.
+
+If no worktree was found in 8a, skip the remove and prune but still run the rest:
 ```bash
-git pull origin main
+cd "$(git worktree list | head -1 | awk '{print $1}')" && \
+git checkout main && \
+git pull --ff-only origin main || git pull origin main; \
+git branch -d <HEAD_BRANCH> 2>/dev/null; \
+git rev-parse --short HEAD
 ```
 
-#### 8d. Delete the local branch
+Capture the final `git rev-parse --short HEAD` output as `<SHORT_SHA>` for the summary.
 
-```bash
-git branch -d <HEAD_BRANCH>
-```
-
-Use `-d` (safe delete), never `-D`. If the branch is already gone or the delete fails, ignore the error.
-
-#### 8e. Confirmation
+#### 8c. Confirmation
 
 Output a summary:
 ```
