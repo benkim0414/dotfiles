@@ -138,7 +138,7 @@ dimension of quality. If a skill is not available, skip it gracefully.
 - Invoke: use the Skill tool with skill "simplify"
 - This skill auto-fixes issues it finds.
 - After it completes, if files were changed, \`git add <specific-files>\`
-  and \`git commit\` with a conventional message.
+  (never \`git add -A\` or \`git add .\`) and \`git commit\` with a conventional message.
 
 **Pass 2 -- /review** (general review)
 - Invoke: use the Skill tool with skill "review"
@@ -153,7 +153,9 @@ dimension of quality. If a skill is not available, skip it gracefully.
 ### Phase 3: Self-check
 
 After all skill passes, do a final manual review of the full diff:
+- **Correctness**: bugs, logic errors, off-by-one, edge cases
 - **Security**: hardcoded secrets, injection, missing input validation at boundaries
+- **Quality**: dead code, unreachable branches, unnecessary complexity
 - **Conventions**: adherence to CLAUDE.md and project-level conventions
 - **Shell scripts**: ShellCheck compliance (no warnings)
 
