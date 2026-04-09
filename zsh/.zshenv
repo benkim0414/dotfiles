@@ -49,3 +49,8 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then
         eval "$(ssh-agent -a "$SSH_AUTH_SOCK")" >/dev/null
     fi
 fi
+
+# Suppress zoxide's doctor diagnostic in non-interactive shells (e.g. Claude
+# Code's Bash tool) where chpwd_functions is not restored from the snapshot.
+# In interactive shells this is harmless: the chpwd hook check would pass anyway.
+export _ZO_DOCTOR=0
