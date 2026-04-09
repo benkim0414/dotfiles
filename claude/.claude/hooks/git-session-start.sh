@@ -9,6 +9,21 @@ source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${
 INPUT=$(cat)
 SESSION_ID=$(parse_session_id "$INPUT")
 
+# --- CWD health check ---
+if [[ ! -d "$PWD" ]]; then
+  repo_hint=""
+  if [[ "$PWD" =~ ^(.*)/\.claude/worktrees/ ]]; then
+    repo_hint="${BASH_REMATCH[1]}"
+  fi
+  echo "[git-workflow] WARNING: Current directory no longer exists: $PWD"
+  if [[ -n "$repo_hint" ]]; then
+    echo "[git-workflow] The worktree was deleted. Run: cd \"$repo_hint\""
+  else
+    echo "[git-workflow] Run cd to a valid project directory before proceeding."
+  fi
+  exit 0
+fi
+
 # Silently exit if not inside a git repository.
 if ! git rev-parse --git-dir >/dev/null 2>&1; then
   exit 0
