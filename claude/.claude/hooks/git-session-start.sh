@@ -17,9 +17,10 @@ if [[ ! -d "$PWD" ]]; then
   fi
   echo "[git-workflow] WARNING: Current directory no longer exists: $PWD"
   if [[ -n "$repo_hint" ]]; then
-    echo "[git-workflow] The worktree was deleted. Run: cd \"$repo_hint\""
+    echo "[git-workflow] The worktree was deleted. Type at the Claude Code prompt:"
+    echo "[git-workflow]   ! cd \"$repo_hint\""
   else
-    echo "[git-workflow] Run cd to a valid project directory before proceeding."
+    echo "[git-workflow] Type at the Claude Code prompt: ! cd <project-root>"
   fi
   exit 0
 fi
