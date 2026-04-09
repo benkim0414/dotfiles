@@ -27,18 +27,9 @@ injection at session start.
 
 ## Hook Architecture
 
-Seven hooks enforce workflow guardrails (configured in `settings.base.json`):
-
-- **SessionStart** (`git-session-start.sh`): inject git context, detect merged branches, set pending-worktree state
-- **PreToolUse/Bash** (`bash-pretool.sh`): block commit/push/merge on main, enforce selective staging, inject commit scopes
-- **PreToolUse/Write|Edit** (`worktree-guard.sh`): block file edits until EnterWorktree() is called
-- **PreToolUse/AskUser|ExitPlan** (`notify.sh`): desktop notification when Claude needs attention
-- **PostToolUse/EnterWorktree** (`worktree-entered.sh`): clear pending-worktree marker
-- **PostToolUse/ExitWorktree** (`worktree-exited.sh`): remind next steps (merge PR or push)
-- **PostToolUse/mutations** (`audit-log.sh`): JSONL audit trail in `~/.claude/logs/`
-
-If a hook blocks unexpectedly: check the stderr message. Emergency escape for worktree
-guard: `rm ~/.claude/session-worktrees/pending-<session-id>`.
+Seven hooks enforce workflow guardrails (git guards, worktree isolation,
+notifications, audit logging). If blocked, read the stderr message. Emergency
+worktree escape: `rm ~/.claude/session-worktrees/pending-<session-id>`.
 
 ## Git Discipline
 - Conventional commits: `type(scope): description` -- types: feat, fix, docs, chore, refactor, test, ci, perf
@@ -47,11 +38,9 @@ guard: `rm ~/.claude/session-worktrees/pending-<session-id>`.
 - Always use merge commits (`gh pr merge --merge`), never squash or rebase -- preserve full commit history
 
 ## Security
-- Never hardcode secrets, tokens, or credentials in version-controlled files
-- Rotate secrets immediately after accidental exposure; deleting commits is insufficient
-- Least privilege: grant only the permissions actually needed
-- Prefer dedicated secret management tools over environment variables or config files
-- Audit new tool installations and third-party scripts before running them
+
+Never hardcode secrets in version-controlled files. Rotate immediately after exposure.
+Audit third-party tools/scripts before running them.
 
 ## Domain Rules
 

@@ -8,7 +8,7 @@ set -euo pipefail
 
 # Fast exit: no sessions need worktrees → nothing to block.
 STATE_DIR="$HOME/.claude/session-worktrees"
-if [[ ! -d "$STATE_DIR" ]] || ! ls "$STATE_DIR"/pending-* >/dev/null 2>&1; then
+if [[ ! -d "$STATE_DIR" ]] || ! compgen -G "$STATE_DIR/pending-*" >/dev/null 2>&1; then
   exit 0
 fi
 
