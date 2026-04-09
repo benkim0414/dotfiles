@@ -18,6 +18,7 @@ fcitx5-gtk
 fcitx5-qt
 ffmpegthumbnailer
 ghostty
+git-delta
 github-cli
 gnome-calculator
 gnome-disk-utility

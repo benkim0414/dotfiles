@@ -6,6 +6,7 @@
 	editor = "nvim"
 	excludesfile = ~/.gitignore
 	hooksPath = ~/.config/git/hooks
+	pager = delta
 
 [init]
 	defaultBranch = "main"
@@ -19,5 +20,21 @@
 	helper = 
 	helper = !/usr/bin/gh auth git-credential
 [credential "https://gist.github.com"]
-	helper = 
+	helper =
 	helper = !/usr/bin/gh auth git-credential
+
+[interactive]
+	diffFilter = delta --color-only
+
+[delta]
+	navigate = true
+	line-numbers = true
+	side-by-side = true
+	hyperlinks = true
+	syntax-theme = "Catppuccin Mocha"
+
+[merge]
+	conflictstyle = zdiff3
+
+[diff]
+	colorMoved = default
