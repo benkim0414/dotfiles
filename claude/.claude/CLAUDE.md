@@ -25,6 +25,21 @@ injection at session start.
 - After merge: `/merge-pr` handles finalization (update main, remove worktree, delete branch).
 - To resume an open PR: start Claude Code from within the worktree directory.
 
+## Hook Architecture
+
+Seven hooks enforce workflow guardrails (configured in `settings.base.json`):
+
+- **SessionStart** (`git-session-start.sh`): inject git context, detect merged branches, set pending-worktree state
+- **PreToolUse/Bash** (`bash-pretool.sh`): block commit/push/merge on main, enforce selective staging, inject commit scopes
+- **PreToolUse/Write|Edit** (`worktree-guard.sh`): block file edits until EnterWorktree() is called
+- **PreToolUse/AskUser|ExitPlan** (`notify.sh`): desktop notification when Claude needs attention
+- **PostToolUse/EnterWorktree** (`worktree-entered.sh`): clear pending-worktree marker
+- **PostToolUse/ExitWorktree** (`worktree-exited.sh`): remind next steps (merge PR or push)
+- **PostToolUse/mutations** (`audit-log.sh`): JSONL audit trail in `~/.claude/logs/`
+
+If a hook blocks unexpectedly: check the stderr message. Emergency escape for worktree
+guard: `rm ~/.claude/session-worktrees/pending-<session-id>`.
+
 ## Git Discipline
 - Conventional commits: `type(scope): description` -- types: feat, fix, docs, chore, refactor, test, ci, perf
 - Write a commit body when the why is not obvious from the title
