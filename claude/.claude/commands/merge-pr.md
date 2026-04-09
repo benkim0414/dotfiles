@@ -124,15 +124,26 @@ Using the `headRefName` from Step 1, find the matching linked worktree:
 git worktree list --porcelain | awk -v branch="refs/heads/<HEAD_BRANCH>" '/^worktree /{wt=$2} $0 == "branch " branch {print wt}'
 ```
 
-Replace `<HEAD_BRANCH>` with the actual `headRefName`. If no output, there is no worktree to remove — use the no-worktree variant in 8b.
+Replace `<HEAD_BRANCH>` with the actual `headRefName`. If no output, there is no worktree to remove — skip to 8c.
 
-#### 8b. Remove worktree, update main, delete branch
+#### 8b. Escape CWD from the worktree
 
-**CRITICAL**: Run all cleanup in a single Bash call. After `git worktree remove` deletes the worktree directory, the Bash tool's CWD no longer exists and any subsequent Bash call will fail with "Path does not exist". The `cd` at the start escapes the doomed directory before removal.
+**CRITICAL**: The Bash tool tracks a persistent CWD across calls. If CWD is inside a worktree directory when that directory is deleted, every subsequent Bash call fails with "Path does not exist" — the harness rejects the command before execution, so even `cd /valid/path && ...` cannot run. Recovery requires the user to manually `cd` in their terminal.
+
+**Always run this step**, even if you believe CWD is already the main worktree. It is a no-op when CWD is already correct, but prevents an unrecoverable state when CWD is inside the worktree being removed.
 
 ```bash
-cd "$(git worktree list | head -1 | awk '{print $1}')" && \
-git worktree remove <WORKTREE_PATH>; \
+cd "$(git worktree list | head -1 | awk '{print $1}')" && pwd
+```
+
+This updates the Bash tool's persistent CWD to the primary (main) worktree. Verify the output is the main repo root, not a `.claude/worktrees/` path.
+
+#### 8c. Remove worktree, update main, delete branch
+
+Now that CWD is safely outside the worktree, remove it and update local state:
+
+```bash
+if [ -d "<WORKTREE_PATH>" ]; then git worktree remove "<WORKTREE_PATH>"; fi; \
 git worktree prune && \
 git checkout main && \
 git pull --ff-only origin main || git pull origin main; \
@@ -140,11 +151,12 @@ git branch -d <HEAD_BRANCH> 2>/dev/null; \
 git rev-parse --short HEAD
 ```
 
-If `git worktree remove` fails because the worktree has uncommitted changes, report the path and error to the user (visible in stderr) but do NOT force-remove it. The remaining commands still run because the commands are joined with `;` after the remove.
+The `[ -d ... ]` guard handles the case where the worktree directory was already deleted (e.g., by `ExitWorktree("remove")` or manual cleanup). `git worktree prune` cleans up stale metadata regardless.
+
+If `git worktree remove` fails because the worktree has uncommitted changes, report the path and error to the user (visible in stderr) but do NOT force-remove it. The remaining commands still run because the commands are joined with `;` after the conditional.
 
 If no worktree was found in 8a, skip the remove and prune but still run the rest:
 ```bash
-cd "$(git worktree list | head -1 | awk '{print $1}')" && \
 git checkout main && \
 git pull --ff-only origin main || git pull origin main; \
 git branch -d <HEAD_BRANCH> 2>/dev/null; \
@@ -153,7 +165,9 @@ git rev-parse --short HEAD
 
 Capture the final `git rev-parse --short HEAD` output as `<SHORT_SHA>` for the summary.
 
-#### 8c. Confirmation
+**Recovery**: If Bash calls fail with "Path does not exist", the CWD is stuck in a deleted directory. Ask the user to run `cd ~/workspace/<repo>` in their terminal (type `! cd ~/workspace/<repo>` at the Claude Code prompt), then retry from this step.
+
+#### 8d. Confirmation
 
 Output a summary:
 ```

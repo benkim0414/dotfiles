@@ -10,6 +10,11 @@ set -euo pipefail
 INPUT=$(cat)
 
 # --- CWD health check (pure builtins, ~0.3ms) ---
+# NOTE: The Bash tool harness validates CWD existence before running hooks.
+# If the CWD is a deleted directory, the harness rejects with "Error: Path
+# ... does not exist" and this check never executes.  This guard catches the
+# rarer case where the directory exists but is in an inconsistent state.
+# When stuck in a deleted CWD, the user must escape via: ! cd <project-root>
 if [[ ! -d "$PWD" ]]; then
   repo_hint=""
   if [[ "$PWD" =~ ^(.*)/\.claude/worktrees/ ]]; then
@@ -19,10 +24,13 @@ if [[ ! -d "$PWD" ]]; then
     echo "BLOCKED: Shell CWD no longer exists: $PWD"
     echo ""
     if [[ -n "$repo_hint" ]]; then
-      echo "  The worktree was deleted. Prefix your command with:"
-      echo "    cd \"$repo_hint\" && <command>"
+      echo "  The worktree was deleted. Type at the Claude Code prompt:"
+      echo "    ! cd \"$repo_hint\""
+      echo "  Then retry your command."
     else
-      echo "  Prefix your command with: cd <project-root> && <command>"
+      echo "  Type at the Claude Code prompt:"
+      echo "    ! cd <project-root>"
+      echo "  Then retry your command."
     fi
   } >&2
   exit 2
