@@ -1,58 +1,27 @@
 #!/usr/bin/env bash
-# PreToolUse hook (matcher: Bash): consolidated guard for all Bash tool calls.
-# Combines worktree-guard, git-main-guard, and commit-guard into a single
-# process with a single jq invocation — eliminates 2 redundant bash+jq spawns
-# per Bash call.
+# PreToolUse hook (matcher: Bash): guard for git-related Bash tool calls.
+# Enforces git-main-guard and commit-guard with a single jq invocation.
+# Worktree isolation is handled by the dedicated worktree-guard.sh hook
+# (matcher: Write|Edit|MultiEdit|NotebookEdit).
 # Exit 0 = allow (stdout → context). Exit 2 = block (stderr → Claude).
 set -euo pipefail
 
 # shellcheck source=../lib/portability.sh
 source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../lib/portability.sh"
 
-# --- Parse JSON once: extract both session_id and command ---
-INPUT=$(cat)
-IFS=$'\t' read -r SESSION_ID COMMAND <<< "$(
-  printf '%s' "$INPUT" | jq -r '[
-    (.session_id // ""),
-    (.tool_input.command // "")
-  ] | @tsv'
-)"
+# --- Parse command from hook input ---
+COMMAND=$(jq -r '.tool_input.command // ""')
 
 # Per-repo opt-out of PR workflow.
 NO_PR=false
 [[ "${CLAUDE_GIT_WORKFLOW:-}" == "no-pr" ]] && NO_PR=true
 
 # =====================================================================
-# 1. Worktree guard — block file-touching tools until EnterWorktree()
+# Git guards — only relevant for git add/commit/push/merge/rebase/cherry-pick
 # =====================================================================
-
-# Reject anything that isn't a UUID to prevent unexpected jq output in file paths.
-[[ "$SESSION_ID" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]] || SESSION_ID=""
-
-if [[ -n "$SESSION_ID" ]]; then
-  PENDING="$HOME/.claude/session-worktrees/pending-${SESSION_ID}"
-  if [[ -f "$PENDING" ]]; then
-    # Self-healing: if already in a linked worktree (PostToolUse may not have
-    # fired for built-in tools), clear the stale file and pass through.
-    GIT_ABS=$(git rev-parse --absolute-git-dir 2>/dev/null || true)
-    GIT_COM=$(cd "$(git rev-parse --git-common-dir 2>/dev/null)" 2>/dev/null && pwd || true)
-    if [[ -n "$GIT_ABS" && -n "$GIT_COM" && "$GIT_ABS" != "$GIT_COM" ]]; then
-      rm -f "$PENDING"
-    else
-      echo "BLOCKED: This session requires an isolated git worktree before file edits." >&2
-      echo "" >&2
-      echo "Call EnterWorktree() now — it creates an isolated branch off HEAD automatically." >&2
-      echo "File-editing tools are blocked until the worktree is entered." >&2
-      echo "" >&2
-      echo "  Emergency escape: rm \"${PENDING}\"" >&2
-      exit 2
-    fi
-  fi
-fi
-
-# =====================================================================
-# 2. Git guards — only relevant for git add/commit/push/merge/rebase/cherry-pick
-# =====================================================================
+# NOTE: Worktree isolation for file-editing tools (Write, Edit, MultiEdit,
+# NotebookEdit) is enforced by the dedicated worktree-guard.sh hook.
+# This hook only enforces git-command guards (no commit/push/merge on main).
 
 # Fast exit for non-git commands (the vast majority of Bash calls).
 if [[ ! "$COMMAND" =~ git[[:space:]]+(add|commit|push|merge|rebase|cherry-pick) ]]; then
