@@ -128,9 +128,9 @@ Replace `<HEAD_BRANCH>` with the actual `headRefName`. If no output, there is no
 
 #### 8b. Remove the worktree
 
-If a worktree path was found:
+If a worktree path was found, first move to the main worktree (in case CWD is inside the worktree being removed), then remove it:
 ```bash
-git worktree remove <WORKTREE_PATH>
+cd "$(git worktree list | head -1 | awk '{print $1}')" && git worktree remove <WORKTREE_PATH>
 ```
 
 If this fails because the worktree has uncommitted changes, report the path and error to the user but do NOT force-remove it. Continue to step 8c regardless.
