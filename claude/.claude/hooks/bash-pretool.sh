@@ -1,32 +1,27 @@
 #!/usr/bin/env bash
-# PreToolUse hook (matcher: Bash): consolidated guard for all Bash tool calls.
-# Combines worktree-guard, git-main-guard, and commit-guard into a single
-# process with a single jq invocation — eliminates 2 redundant bash+jq spawns
-# per Bash call.
+# PreToolUse hook (matcher: Bash): guard for git-related Bash tool calls.
+# Enforces git-main-guard and commit-guard with a single jq invocation.
+# Worktree isolation is handled by the dedicated worktree-guard.sh hook
+# (matcher: Write|Edit|MultiEdit|NotebookEdit).
 # Exit 0 = allow (stdout → context). Exit 2 = block (stderr → Claude).
 set -euo pipefail
 
-# shellcheck source=../lib/session.sh
-source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../lib/session.sh"
+# shellcheck source=../lib/portability.sh
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../lib/portability.sh"
 
-# --- Parse JSON once: extract both session_id and command ---
-INPUT=$(cat)
-SESSION_ID=$(parse_session_id "$INPUT")
-COMMAND=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // ""')
+# --- Parse command from hook input ---
+COMMAND=$(jq -r '.tool_input.command // ""')
 
 # Per-repo opt-out of PR workflow.
 NO_PR=false
 [[ "${CLAUDE_GIT_WORKFLOW:-}" == "no-pr" ]] && NO_PR=true
 
 # =====================================================================
-# 1. Worktree guard — block file-touching tools until EnterWorktree()
+# Git guards — only relevant for git add/commit/push/merge/rebase/cherry-pick
 # =====================================================================
-
-check_worktree_pending "$SESSION_ID"
-
-# =====================================================================
-# 2. Git guards — only relevant for git add/commit/push/merge/rebase/cherry-pick
-# =====================================================================
+# NOTE: Worktree isolation for file-editing tools (Write, Edit, MultiEdit,
+# NotebookEdit) is enforced by the dedicated worktree-guard.sh hook.
+# This hook only enforces git-command guards (no commit/push/merge on main).
 
 # Fast exit for non-git commands (the vast majority of Bash calls).
 if [[ ! "$COMMAND" =~ git[[:space:]]+(add|commit|push|merge|rebase|cherry-pick) ]]; then
