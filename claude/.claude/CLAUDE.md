@@ -3,7 +3,6 @@
 ## Claude Code Workflow
 - Editor: nvim
 - Never use emojis in responses
-- Always invoke sequential-thinking MCP before implementing non-trivial changes
 - Use the fetch MCP to look up current docs, API versions, chart versions, or image digests -- training data goes stale; never guess at versions
 - Explain the reasoning behind config choices, not just what to set
 - Before any state-changing command, state what resources will be affected and the blast radius
@@ -28,10 +27,7 @@ injection at session start.
 
 ## Git Discipline
 - Conventional commits: `type(scope): description` -- types: feat, fix, docs, chore, refactor, test, ci, perf
-- Atomic commits: one logical change per commit; keep unrelated changes separate
 - Write a commit body when the why is not obvious from the title
-- Branch workflow: feature branches off main, open PR
-- Never force-push to main or shared branches
 - Review diffs for accidental secrets before every commit
 - Always use merge commits (`gh pr merge --merge`), never squash or rebase -- preserve full commit history
 
@@ -43,4 +39,7 @@ injection at session start.
 - Audit new tool installations and third-party scripts before running them
 
 ## Domain Rules
-@includes/devops.md
+
+DevOps rules (K8s, Docker, GHA, Terraform, Helm, shell) are in
+`~/.claude/includes/devops.md`. Add `@includes/devops.md` to project-level
+CLAUDE.md files in repos that need them.
