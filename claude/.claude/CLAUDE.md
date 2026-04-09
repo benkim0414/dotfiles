@@ -10,39 +10,21 @@
 - Present the dry-run/plan/diff form of a command before the apply form; let the user review first
 
 ## Git Session Workflow
-- At session start, check the `[git-workflow]` context injection.
-- If it says "WORKTREE REQUIRED": call `EnterWorktree()` as the absolute first action --
-  before any Write, Edit, Bash, or notebook edit. The hook blocks file-editing tools until you do.
-  Pass no argument; Claude Code auto-generates an isolated branch off HEAD.
-- If it says "Worktree session active": already isolated (started with `--worktree` or
-  a prior `EnterWorktree()` call); proceed directly with the task.
-- If the context includes "MODE: no-pr": use worktrees for isolation, but after
-  committing on the branch, ExitWorktree("keep"), merge the branch to main
-  (`git merge <branch> --no-edit`), and push (`git push origin main`).
-  Do not create PRs or run `/review-cl`.
-- After each self-contained logical change (not per-file, per-logical-unit): stage only the
-  relevant files, commit with a conventional message, then proceed to the next change.
-- Do not batch multiple unrelated changes into a single commit.
-- When initial implementation is complete: run `/review-cl` to self-review all changes,
-  fix issues iteratively, and create the PR. This starts a Ralph Loop that diffs against
-  main, reviews every changed file, commits fixes, and only creates the PR when the review
-  is clean. Always push with an explicit refspec (`git push origin HEAD:<branch>`) to avoid
-  `push.default=upstream` redirecting to main. Stay in the worktree after the PR is created
-  -- do NOT call ExitWorktree yet.
-  Address any review feedback with additional commits in the same worktree, then re-push.
-- When the PR is approved and ready to merge: call `ExitWorktree("keep")` to return to main.
-  Use `ExitWorktree("remove")` only to discard exploratory work with no commits worth keeping.
-- After ExitWorktree: wait for the user to merge the PR on GitHub.
-  Do NOT merge without explicit user approval. Do NOT run `gh pr merge` proactively.
-- After the user merges the PR (or when the user runs `/merge-pr`): the merge-pr command
-  handles full finalization -- updates local main, removes the worktree, and deletes the
-  local branch. If the user merged via GitHub UI without `/merge-pr`, run `git pull`,
-  then `git worktree remove <path>` and `git branch -d <branch>` to clean up manually.
-- To resume PR review in a new session: start Claude Code from within the worktree directory
-  (e.g. `claude` from `.claude/worktrees/<name>/` -- paths listed at session start);
-  the session-start hook detects the linked worktree and skips the EnterWorktree requirement.
-- Never commit or push directly to main -- the guard hook will block it --
-  unless the session context includes "MODE: no-pr" (merge + push allowed).
+
+All work happens on isolated worktree branches. Hooks enforce worktree isolation,
+main-branch protection, and selective staging -- follow the `[git-workflow]` context
+injection at session start.
+
+- "MODE: no-pr": after committing, `ExitWorktree("keep")`, merge to main, push. No PRs.
+- Commit each self-contained logical change atomically with a conventional message.
+- When implementation is complete: run `/review-cl` to self-review and create the PR.
+  Push with an explicit refspec (`git push origin HEAD:<branch>`) to avoid
+  `push.default=upstream` redirecting to main. Stay in the worktree after PR creation.
+- When the PR is approved: `ExitWorktree("keep")` to return to main.
+  Use `ExitWorktree("remove")` only to discard exploratory work with no commits.
+- After ExitWorktree: wait for the user to merge. Do NOT run `gh pr merge` proactively.
+- After merge: `/merge-pr` handles finalization (update main, remove worktree, delete branch).
+- To resume an open PR: start Claude Code from within the worktree directory.
 
 ## Git Discipline
 - Conventional commits: `type(scope): description` -- types: feat, fix, docs, chore, refactor, test, ci, perf
