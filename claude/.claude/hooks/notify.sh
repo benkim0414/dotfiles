@@ -10,6 +10,8 @@
 # Runs async (non-blocking) -- must never slow down Claude Code.
 set -euo pipefail
 
+: "${EPOCHSECONDS:=$(date +%s)}"
+
 INPUT=$(cat)
 HOOK_EVENT=$(printf '%s' "$INPUT" | jq -r '.hook_event_name // ""')
 
@@ -79,7 +81,7 @@ if [[ -n "${TMUX_PANE:-}" ]]; then
       "notification_type=${NTYPE}" \
       "project=${PROJECT}" \
       "cwd=${CWD}" \
-      "timestamp=$(date +%s)" \
+      "timestamp=${EPOCHSECONDS}" \
       > "$MARKER_TMP" 2>/dev/null || true
     mv -f "$MARKER_TMP" "${ATTN_DIR}/${TMUX_PANE}" 2>/dev/null || true
   fi
@@ -89,7 +91,7 @@ fi
 # Only gates desktop notifications and bell below -- markers are already written.
 if [[ -n "$SESSION_ID" ]]; then
   COOLDOWN_FILE="${CACHE_DIR}/notify-${SESSION_ID}"
-  NOW=$(date +%s)
+  NOW=$EPOCHSECONDS
   if [[ -f "$COOLDOWN_FILE" ]]; then
     LAST=$(cat "$COOLDOWN_FILE" 2>/dev/null || echo 0)
     if (( NOW - LAST < 10 )); then
