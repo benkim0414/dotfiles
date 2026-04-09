@@ -30,14 +30,13 @@ mkdir -p "$STATE_DIR"
 # Clean up pending files older than 24 hours (abandoned sessions).
 find "$STATE_DIR" -name 'pending-*' -mmin +1440 -delete 2>/dev/null || true
 
-# Clean up stale cache files from hooks and statusline.
+# Clean up stale cache and audit files in a single find per directory.
 CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/claude"
 if [[ -d "$CACHE_DIR" ]]; then
-  find "$CACHE_DIR" -name 'notify-*' -mmin +1440 -delete 2>/dev/null || true
-  find "$CACHE_DIR" \( -name 'statusline-git-*' -o -name 'commit-scopes-*' \) -mmin +10080 -delete 2>/dev/null || true
+  find "$CACHE_DIR" \( \( -name 'notify-*' -mmin +1440 \) -o \
+    \( \( -name 'statusline-git-*' -o -name 'commit-scopes-*' \) -mmin +10080 \) \
+    \) -delete 2>/dev/null || true
 fi
-
-# Clean up audit logs older than 90 days.
 AUDIT_LOG_DIR="$HOME/.claude/logs"
 if [[ -d "$AUDIT_LOG_DIR" ]]; then
   find "$AUDIT_LOG_DIR" -name 'audit-*.log*' -mtime +90 -delete 2>/dev/null || true
@@ -112,15 +111,10 @@ fi
 # Main working tree: require EnterWorktree() before file edits.
 if [[ -n "$SESSION_ID" ]]; then
   touch "$STATE_DIR/pending-${SESSION_ID}"
-  echo "[git-workflow] WORKTREE REQUIRED: You are in the main working tree of ${REPO}."
-  echo "[git-workflow] Current branch: ${BRANCH}"
-  echo "[git-workflow] ACTION REQUIRED: Call EnterWorktree() immediately before any file edits."
-  echo "[git-workflow] This creates an isolated worktree+branch so parallel sessions cannot conflict."
-  echo "[git-workflow] After entering the worktree, proceed with the task normally."
+  echo "[git-workflow] Main worktree (branch: ${BRANCH}). Call EnterWorktree() before any edits."
   if [[ "${CLAUDE_GIT_WORKFLOW:-}" == "no-pr" ]]; then
-    echo "[git-workflow] MODE: no-pr -- after work, merge branch to main and push directly. No PRs."
+    echo "[git-workflow] MODE: no-pr -- merge to main and push directly after work. No PRs."
   fi
 else
-  echo "[git-workflow] Warning: Could not determine session ID; worktree isolation unavailable."
-  echo "[git-workflow] Current branch: ${BRANCH}, repo: ${REPO}"
+  echo "[git-workflow] Warning: no session ID; worktree isolation unavailable. Branch: ${BRANCH}"
 fi
