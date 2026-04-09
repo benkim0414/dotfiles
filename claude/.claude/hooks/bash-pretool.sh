@@ -9,6 +9,25 @@ set -euo pipefail
 # --- Read stdin once; fast-exit for non-git commands ---
 INPUT=$(cat)
 
+# --- CWD health check (pure builtins, ~0.3ms) ---
+if [[ ! -d "$PWD" ]]; then
+  repo_hint=""
+  if [[ "$PWD" =~ ^(.*)/\.claude/worktrees/ ]]; then
+    repo_hint="${BASH_REMATCH[1]}"
+  fi
+  {
+    echo "BLOCKED: Shell CWD no longer exists: $PWD"
+    echo ""
+    if [[ -n "$repo_hint" ]]; then
+      echo "  The worktree was deleted. Prefix your command with:"
+      echo "    cd \"$repo_hint\" && <command>"
+    else
+      echo "  Prefix your command with: cd <project-root> && <command>"
+    fi
+  } >&2
+  exit 2
+fi
+
 # ~90% of Bash calls are non-git — skip them without spawning jq or sourcing libs.
 if [[ "$INPUT" != *'"git '* ]]; then
   exit 0
