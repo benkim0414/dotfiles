@@ -107,6 +107,8 @@
       "Bash(gh repo archive *)",
       "Bash(gh release delete *)",
       "Bash(gh pr merge *)",
+      "Bash(gh issue close *)",
+      "Bash(gh issue lock *)",
       "Bash(gh issue delete *)",
       "Bash(gh run cancel *)",
       "Bash(gh workflow disable *)",
@@ -124,6 +126,10 @@
       "Bash(docker system prune*)",
       "Bash(docker volume rm *)",
       "Bash(docker network rm *)",
+      "Bash(pip install *)",
+      "Bash(npm install -g *)",
+      "Bash(cargo install *)",
+      "Bash(go install *)",
       "CronCreate",
       "CronDelete",
       "RemoteTrigger"
@@ -190,7 +196,7 @@
         ]
       },
       {
-        "matcher": "Bash|Write|Edit|MultiEdit|NotebookEdit|WebFetch|WebSearch|CronCreate|CronDelete|RemoteTrigger",
+        "matcher": "Bash|Write|Edit|MultiEdit|NotebookEdit|CronCreate|CronDelete|RemoteTrigger",
         "hooks": [
           {
             "type": "command",
@@ -221,6 +227,6 @@
     "commit-commands@claude-plugins-official": true,
     "feature-dev@claude-plugins-official": true,
     "ralph-loop@claude-plugins-official": true,
-    "remember@claude-plugins-official": true
+    "remember@claude-plugins-official": false
   }
 }
