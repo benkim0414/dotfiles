@@ -41,7 +41,7 @@ git_branch=""
 if [[ -n "$cwd" ]]; then
   cwd_key="${cwd//[^a-zA-Z0-9_]/_}_${#cwd}"
   cache_dir="${XDG_RUNTIME_DIR:-$HOME/.cache/claude}"
-  mkdir -p "$cache_dir" 2>/dev/null || true
+  [[ -d "$cache_dir" ]] || mkdir -p "$cache_dir" 2>/dev/null || true
   git_cache="${cache_dir}/statusline-git-${cwd_key}"
   cache_age=999
   if [[ -f "$git_cache" ]]; then
@@ -55,19 +55,6 @@ if [[ -n "$cwd" ]]; then
   fi
 fi
 
-# Abbreviate a single path component to its first printable character.
-# Hidden components (starting with .) keep the dot: .claude -> .c
-_abbrev_part() {
-  local part="$1"
-  [[ "$part" == ".." ]] && { printf '..'; return; }
-  if [[ "$part" == .* ]]; then
-    local rest="${part#.}"
-    printf '.%s' "${rest:0:1}"
-  else
-    printf '%s' "${part:0:1}"
-  fi
-}
-
 # Separator.
 sep="${OVERLAY} │ ${RESET}"
 
@@ -75,6 +62,7 @@ sep="${OVERLAY} │ ${RESET}"
 out="${MAUVE}${model}${RESET}"
 if [[ -n "$cwd" ]]; then
   # Fish-style path: abbreviate every component except the last.
+  # Inline abbreviation avoids subshell forks per path component.
   tilde_cwd="${cwd/#$HOME/\~}"
   IFS='/' read -ra _parts <<< "$tilde_cwd"
   _n="${#_parts[@]}"
@@ -82,11 +70,15 @@ if [[ -n "$cwd" ]]; then
   for (( _i=0; _i<_n; _i++ )); do
     _p="${_parts[$_i]}"
     if (( _i == _n - 1 )); then
-      display_cwd+="$_p"          # last component: full name
+      display_cwd+="$_p"
     elif [[ -z "$_p" ]]; then
-      display_cwd+="/"            # leading slash (absolute path)
+      display_cwd+="/"
+    elif [[ "$_p" == ".." ]]; then
+      display_cwd+="../"
+    elif [[ "$_p" == .* ]]; then
+      display_cwd+=".${_p:1:1}/"
     else
-      display_cwd+="$(_abbrev_part "$_p")/"
+      display_cwd+="${_p:0:1}/"
     fi
   done
   unset _parts _n _i _p
