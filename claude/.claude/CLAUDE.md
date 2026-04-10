@@ -16,7 +16,7 @@ injection at session start.
 
 - "MODE: no-pr": after committing, `ExitWorktree("keep")`, merge to main, push. No PRs.
 - Commit each self-contained logical change atomically with a conventional message.
-- When implementation is complete: run `/review-cl` to self-review and create the PR.
+- When implementation is complete: run `/create-pr` to review and create the PR.
   Push with an explicit refspec (`git push origin HEAD:<branch>`) to avoid
   `push.default=upstream` redirecting to main. Stay in the worktree after PR creation.
 - When the PR is approved: `ExitWorktree("keep")` to return to main.
