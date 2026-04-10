@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 
-# setup-review-cl.sh
-# Creates a ralph-loop state file with a baked-in pre-PR code review prompt.
-# The ralph-loop Stop hook (from the ralph-loop plugin) handles iteration.
+# setup-create-pr.sh
+# Creates a ralph-loop state file with a multi-pass review prompt.
+# Delegates review to pluggable skills (/simplify, /review, /codex:review)
+# then falls back to a manual self-check before creating the PR.
 
 set -euo pipefail
 
@@ -28,10 +29,16 @@ while [[ $# -gt 0 ]]; do
       ;;
     -h|--help)
       cat <<'HELP'
-Usage: /review-cl [--max-iterations N] [--force]
+Usage: /create-pr [--max-iterations N] [--force]
 
-Review all worktree changes iteratively, fix issues, then create a PR.
-Uses Ralph Loop to iterate until the review is clean.
+Multi-pass review of all worktree changes, then create a PR.
+Uses Ralph Loop to iterate until every review pass is clean.
+
+Review passes (in order):
+  1. /simplify     -- code quality, reuse, efficiency (auto-fixes)
+  2. /review       -- general review (skipped if unavailable)
+  3. /codex:review -- codex review (skipped if unavailable)
+  4. Self-check    -- security, conventions, ShellCheck
 
 Options:
   --max-iterations N   Maximum review iterations (default: 10)
@@ -42,7 +49,7 @@ HELP
       ;;
     *)
       echo "Error: unknown argument: $1" >&2
-      echo "Usage: /review-cl [--max-iterations N] [--force]" >&2
+      echo "Usage: /create-pr [--max-iterations N] [--force]" >&2
       exit 1
       ;;
   esac
@@ -51,7 +58,7 @@ done
 # Guard: must be in a worktree (not on main)
 CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || true)
 if [[ "$CURRENT_BRANCH" == "main" || "$CURRENT_BRANCH" == "master" ]]; then
-  echo "Error: /review-cl must be run from a worktree branch, not $CURRENT_BRANCH" >&2
+  echo "Error: /create-pr must be run from a worktree branch, not $CURRENT_BRANCH" >&2
   echo "Call EnterWorktree() first to create an isolated branch." >&2
   exit 1
 fi
@@ -111,34 +118,58 @@ completion_promise: "PR_CREATED"
 started_at: "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 ---
 
-## Pre-PR Code Review
+## Pre-PR Review & Create
 
-You are iteratively reviewing all changes in this worktree before creating a PR.
-Each iteration, review the full diff against main, fix any issues, and verify.
+You are iteratively reviewing all worktree changes before creating a PR.
+Each iteration runs multiple review passes, fixes issues, then re-checks.
 
-### Gather Changes
+### Phase 1: Gather Changes
 1. Run \`git log --oneline \$(git merge-base HEAD main)..HEAD\` to list all commits
 2. Run \`git diff \$(git merge-base HEAD main)..HEAD\` to see the full diff
 3. Run \`git status\` to check for uncommitted changes
 4. If uncommitted changes exist, stage and commit them first
 
-### Review Criteria
-For every changed file in the diff, check:
+### Phase 2: Run Review Skills
+
+Run each review skill via the Skill tool. Each pass targets a different
+dimension of quality. If a skill is not available, skip it gracefully.
+
+**Pass 1 -- /simplify** (code quality, reuse, efficiency)
+- Invoke: use the Skill tool with skill "simplify"
+- This skill auto-fixes issues it finds.
+- After it completes, if files were changed, \`git add <specific-files>\`
+  (never \`git add -A\` or \`git add .\`) and \`git commit\` with a conventional message.
+
+**Pass 2 -- /review** (general review)
+- Invoke: use the Skill tool with skill "review"
+- If the skill is unavailable (error), log "Pass 2 skipped: /review not available" and continue.
+- If it reports issues, fix them, then \`git add <specific-files>\` and \`git commit\`.
+
+**Pass 3 -- /codex:review** (codex review)
+- Invoke: use the Skill tool with skill "codex:review"
+- If the skill is unavailable (error), log "Pass 3 skipped: /codex:review not available" and continue.
+- If it reports issues, fix them, then \`git add <specific-files>\` and \`git commit\`.
+
+### Phase 3: Self-check
+
+After all skill passes, do a final manual review of the full diff:
 - **Correctness**: bugs, logic errors, off-by-one, edge cases
 - **Security**: hardcoded secrets, injection, missing input validation at boundaries
 - **Quality**: dead code, unreachable branches, unnecessary complexity
 - **Conventions**: adherence to CLAUDE.md and project-level conventions
 - **Shell scripts**: ShellCheck compliance (no warnings)
 
-### If Issues Found
-For each issue:
-1. Fix the issue
-2. \`git add <specific-files>\` (never \`git add -A\` or \`git add .\`)
-3. \`git commit\` with conventional commit format
-4. Continue reviewing -- do NOT output the completion promise yet
+If any issues found, fix and commit with conventional message.
 
-### If Review Is Clean
-When the full diff has been reviewed and no issues remain:
+### Phase 4: Decide
+
+- If ANY phase made changes this iteration -> continue to next iteration
+  (do NOT output the completion promise)
+- If all phases were clean (no changes) -> proceed to Phase 5
+
+### Phase 5: Create PR
+
+When all review passes are clean and no changes were made:
 1. Push the branch: \`git push origin HEAD:\$(git branch --show-current)\`
 2. Create a PR with \`gh pr create\` including a summary and test plan
 3. Clean up the loop state file: \`rm -f .claude/ralph-loop.local.md\`
@@ -152,8 +183,14 @@ cat <<EOF
 Review loop activated.
 
 Iterations: 1 / $(if [[ $MAX_ITERATIONS -gt 0 ]]; then echo "$MAX_ITERATIONS"; else echo "unlimited"; fi)
-Completion promise: PR_CREATED (only when review is clean and PR is created)
+Completion promise: PR_CREATED (only when all review passes are clean and PR is created)
 
-The Ralph Loop stop hook will iterate the review until clean.
+Review passes:
+  1. /simplify     (code quality, reuse, efficiency)
+  2. /review       (general review -- skipped if unavailable)
+  3. /codex:review (codex review -- skipped if unavailable)
+  4. Self-check    (security, conventions, ShellCheck)
+
+The Ralph Loop stop hook will iterate until clean.
 To cancel: /cancel-ralph
 EOF
