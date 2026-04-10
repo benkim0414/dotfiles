@@ -49,16 +49,16 @@ fi
 
 # --- Shared state ---
 CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/claude"
-mkdir -p "$CACHE_DIR" 2>/dev/null || true
+[[ -d "$CACHE_DIR" ]] || mkdir -p "$CACHE_DIR" 2>/dev/null || true
 
-# --- Resolve tmux pane context ---
+# --- Resolve tmux pane context (single tmux call) ---
 PANE_LABEL=""
 PANE_TTY=""
 if [[ -n "${TMUX_PANE:-}" ]]; then
-  PANE_LABEL=$(tmux display-message -t "$TMUX_PANE" \
-    -p '#{session_name}:#{window_index}.#{pane_index}' 2>/dev/null || true)
-  PANE_TTY=$(tmux display-message -t "$TMUX_PANE" \
-    -p '#{pane_tty}' 2>/dev/null || true)
+  IFS=$'\t' read -r PANE_LABEL PANE_TTY <<< "$(
+    tmux display-message -t "$TMUX_PANE" \
+      -p '#{session_name}:#{window_index}.#{pane_index}'$'\t''#{pane_tty}' 2>/dev/null || true
+  )"
 fi
 
 # Short project name from cwd.
@@ -72,7 +72,7 @@ fi
 # marker even when the desktop notification is suppressed.
 if [[ -n "${TMUX_PANE:-}" ]]; then
   ATTN_DIR="${CACHE_DIR}/attention"
-  mkdir -p "$ATTN_DIR" 2>/dev/null || true
+  [[ -d "$ATTN_DIR" ]] || mkdir -p "$ATTN_DIR" 2>/dev/null || true
   MARKER_TMP=$(mktemp "${ATTN_DIR}/.tmp.XXXXXX" 2>/dev/null) || true
   if [[ -n "${MARKER_TMP:-}" ]]; then
     printf '%s\n' \
