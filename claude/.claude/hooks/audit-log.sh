@@ -3,10 +3,11 @@
 # Runs async — must never block Claude Code.
 set -euo pipefail
 
-# --- Build JSONL entry in a single jq pass (no external date/wc subprocesses) ---
-ENTRY=$(cat | jq -c '
-  # Generate timestamp inside jq (avoids date subprocess).
+# --- Build JSONL entry + today's date in a single jq pass (no subprocesses) ---
+IFS=$'\t' read -r ENTRY TODAY <<< "$(cat | jq -r '
+  # Generate timestamp and today inside jq (avoids date subprocess).
   (now | strftime("%Y-%m-%dT%H:%M:%SZ")) as $ts |
+  (now | strftime("%Y-%m-%d")) as $today |
 
   # Extract fields
   (.tool_name // "") as $tool |
@@ -29,22 +30,24 @@ ENTRY=$(cat | jq -c '
    elif $tool == "WebSearch"    then "search \($query | .[0:200])"
    else "\($tool | ascii_downcase) \($input_keys)" end) as $summary |
 
-  {
-    timestamp: $ts,
-    session_id: $sid,
-    tool: $tool,
-    cwd: $cwd,
-    summary: $summary,
-    description: $desc,
-    output_snippet: $out
-  }
-') || true
+  [
+    ({
+      timestamp: $ts,
+      session_id: $sid,
+      tool: $tool,
+      cwd: $cwd,
+      summary: $summary,
+      description: $desc,
+      output_snippet: $out
+    } | tojson),
+    $today
+  ] | @tsv
+')" || true
 
 [[ -z "$ENTRY" ]] && exit 0
 
 # --- Determine log directory and file ---
 LOG_DIR="${HOME}/.claude/logs"
-TODAY=$(date -u +%Y-%m-%d)
 LOG_FILE="${LOG_DIR}/audit-${TODAY}.log"
 
 # Fast path: skip mkdir/chmod/size-check when today's log already exists.
