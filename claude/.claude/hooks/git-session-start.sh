@@ -46,16 +46,26 @@ mkdir -p "$STATE_DIR"
 # Clean up pending files older than 24 hours (abandoned sessions).
 find "$STATE_DIR" -name 'pending-*' -mmin +1440 -delete 2>/dev/null || true
 
-# Clean up stale cache and audit files in a single find per directory.
+# Clean up stale cache and audit files — rate-limited to once per day.
 CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/claude"
-if [[ -d "$CACHE_DIR" ]]; then
-  find "$CACHE_DIR" \( \( -name 'notify-*' -mmin +1440 \) -o \
-    \( \( -name 'statusline-git-*' -o -name 'commit-scopes-*' \) -mmin +10080 \) \
-    \) -delete 2>/dev/null || true
+CLEANUP_MARKER="${CACHE_DIR}/.last-cleanup"
+cleanup_needed=true
+if [[ -f "$CLEANUP_MARKER" ]]; then
+  cleanup_age=$(( EPOCHSECONDS - $(file_mtime "$CLEANUP_MARKER") ))
+  (( cleanup_age < 86400 )) && cleanup_needed=false
 fi
-AUDIT_LOG_DIR="$HOME/.claude/logs"
-if [[ -d "$AUDIT_LOG_DIR" ]]; then
-  find "$AUDIT_LOG_DIR" -name 'audit-*.log*' -mtime +90 -delete 2>/dev/null || true
+if [[ "$cleanup_needed" == "true" ]]; then
+  if [[ -d "$CACHE_DIR" ]]; then
+    find "$CACHE_DIR" \( \( -name 'notify-*' -mmin +1440 \) -o \
+      \( \( -name 'statusline-git-*' -o -name 'commit-scopes-*' \) -mmin +10080 \) \
+      \) -delete 2>/dev/null || true
+  fi
+  AUDIT_LOG_DIR="$HOME/.claude/logs"
+  if [[ -d "$AUDIT_LOG_DIR" ]]; then
+    find "$AUDIT_LOG_DIR" -name 'audit-*.log*' -mtime +90 -delete 2>/dev/null || true
+  fi
+  mkdir -p "$CACHE_DIR" 2>/dev/null || true
+  touch "$CLEANUP_MARKER" 2>/dev/null || true
 fi
 
 # Detect if already in a linked worktree.
