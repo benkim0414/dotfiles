@@ -111,7 +111,7 @@ if [[ -n "$BRANCH" && "$BRANCH" != "$MAIN_BRANCH" && "$BRANCH" != "HEAD" ]]; the
     MERGED=true
   else
     ls_rc=0
-    git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1 || ls_rc=$?
+    run_timeout 5 git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1 || ls_rc=$?
     [[ $ls_rc -eq 2 ]] && MERGED=true
   fi
   if [[ "$MERGED" == "true" ]]; then
@@ -130,8 +130,19 @@ if [[ -n "$BRANCH" && "$BRANCH" != "$MAIN_BRANCH" && "$BRANCH" != "HEAD" ]]; the
 fi
 
 # List existing linked worktrees so Claude knows where to resume open PR work.
-# Prune stale entries first so only live worktrees appear. No network calls.
-git worktree prune 2>/dev/null || true
+# Prune stale entries — rate-limited to once per 30 minutes.
+repo_key=${REPO//[^a-zA-Z0-9_]/_}
+prune_marker="${CACHE_DIR}/.last-wt-prune-${repo_key}"
+prune_needed=true
+if [[ -f "$prune_marker" ]]; then
+  prune_age=$(( EPOCHSECONDS - $(file_mtime "$prune_marker") ))
+  (( prune_age < 1800 )) && prune_needed=false
+fi
+if [[ "$prune_needed" == "true" ]]; then
+  git worktree prune 2>/dev/null || true
+  mkdir -p "$CACHE_DIR" 2>/dev/null || true
+  touch "$prune_marker" 2>/dev/null || true
+fi
 linked_wts=$(git worktree list 2>/dev/null | tail -n +2 || true)
 if [[ -n "$linked_wts" ]]; then
   CTX+="Existing worktrees (may have open PRs): ${linked_wts}. To resume: start Claude Code from within a worktree directory. "

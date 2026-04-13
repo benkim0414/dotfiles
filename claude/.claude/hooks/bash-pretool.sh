@@ -224,7 +224,7 @@ if [[ -f "$scope_cache" ]]; then
   scope_age=$(( EPOCHSECONDS - $(file_mtime "$scope_cache") ))
 fi
 if (( scope_age > 60 )); then
-  known_scopes=$(git log --format='%s' -200 2>/dev/null \
+  known_scopes=$(git log --format='%s' -50 2>/dev/null \
     | awk -F'[()]' '/^[a-z]+\(/ && !seen[$2]++ { s = s (s?",":"") $2 } END { print s }' || true)
   printf '%s' "$known_scopes" > "$scope_cache" 2>/dev/null || true
 else
