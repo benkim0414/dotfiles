@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # SessionStart hook: inject git/worktree context into Claude's session.
-# Stdout is added to Claude's context; stderr is shown to the user.
+# Uses structured JSON output: additionalContext for Claude's reasoning,
+# systemMessage for user-visible confirmation.
 set -euo pipefail
 
 # shellcheck source=../lib/session.sh
@@ -15,13 +16,15 @@ if [[ ! -d "$PWD" ]]; then
   if [[ "$PWD" =~ ^(.*)/\.claude/worktrees/ ]]; then
     repo_hint="${BASH_REMATCH[1]}"
   fi
-  echo "[git-workflow] WARNING: Current directory no longer exists: $PWD"
+  msg="WARNING: Current directory no longer exists: $PWD."
   if [[ -n "$repo_hint" ]]; then
-    echo "[git-workflow] The worktree was deleted. Type at the Claude Code prompt:"
-    echo "[git-workflow]   ! cd \"$repo_hint\""
+    ctx="CWD no longer exists: $PWD. The worktree was deleted. User must type at Claude Code prompt: ! cd \"$repo_hint\""
+    msg+=" Worktree deleted -- run: ! cd \"$repo_hint\""
   else
-    echo "[git-workflow] Type at the Claude Code prompt: ! cd <project-root>"
+    ctx="CWD no longer exists: $PWD. User must type at Claude Code prompt: ! cd <project-root>"
+    msg+=" Run: ! cd <project-root>"
   fi
+  emit_context_with_msg "SessionStart" "$ctx" "$msg"
   exit 0
 fi
 
@@ -71,12 +74,16 @@ fi
 # Detect if already in a linked worktree.
 # Linked worktree: absolute-git-dir is under .git/worktrees/, differs from git-common-dir.
 if [[ -n "$GIT_ABS_DIR" && -n "$GIT_COMMON_DIR" && "$GIT_ABS_DIR" != "$GIT_COMMON_DIR" ]]; then
-  echo "[git-workflow] Worktree session active: branch=${BRANCH}, repo=${REPO}"
-  echo "[git-workflow] Isolation confirmed. Commit each logical change atomically."
+  emit_context_with_msg "SessionStart" \
+    "Worktree session active: branch=${BRANCH}, repo=${REPO}. Isolation confirmed. Commit each logical change atomically." \
+    "[git-workflow] Worktree active (branch: ${BRANCH}). Isolation confirmed."
   exit 0
 fi
 
 # --- Main working tree path ---
+# Accumulate context for Claude (CTX) and a short user message (MSG).
+CTX=""
+MSG=""
 
 REMOTE_HEAD=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null || true)
 MAIN_BRANCH="${REMOTE_HEAD#refs/remotes/origin/}"
@@ -109,14 +116,14 @@ if [[ -n "$BRANCH" && "$BRANCH" != "$MAIN_BRANCH" && "$BRANCH" != "HEAD" ]]; the
   fi
   if [[ "$MERGED" == "true" ]]; then
     if [[ -n "$(git status --porcelain 2>/dev/null)" ]]; then
-      echo "[git-workflow] Warning: merged branch detected but worktree has uncommitted changes; skipping auto-checkout."
+      CTX+="Warning: merged branch detected but worktree has uncommitted changes; skipping auto-checkout. "
     else
       git checkout "$MAIN_BRANCH" 2>/dev/null || true
       BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)
       if [[ "$BRANCH" == "$MAIN_BRANCH" ]]; then
         git pull --ff-only origin "$MAIN_BRANCH" 2>/dev/null || \
           git pull origin "$MAIN_BRANCH" 2>/dev/null || true
-        echo "[git-workflow] Merged branch detected; switched to ${MAIN_BRANCH} and pulled latest."
+        CTX+="Merged branch detected; switched to ${MAIN_BRANCH} and pulled latest. "
       fi
     fi
   fi
@@ -127,20 +134,21 @@ fi
 git worktree prune 2>/dev/null || true
 linked_wts=$(git worktree list 2>/dev/null | tail -n +2 || true)
 if [[ -n "$linked_wts" ]]; then
-  echo "[git-workflow] Existing worktrees (may have open PRs):"
-  while IFS= read -r line; do
-    echo "[git-workflow]   $line"
-  done <<< "$linked_wts"
-  echo "[git-workflow] To resume: start Claude Code from within a worktree directory."
+  CTX+="Existing worktrees (may have open PRs): ${linked_wts}. To resume: start Claude Code from within a worktree directory. "
 fi
 
 # Main working tree: require EnterWorktree() before file edits.
 if [[ -n "$SESSION_ID" ]]; then
   touch "$STATE_DIR/pending-${SESSION_ID}"
-  echo "[git-workflow] Main worktree (branch: ${BRANCH}). Call EnterWorktree() before any edits."
+  CTX+="Main worktree (branch: ${BRANCH}). Call EnterWorktree() before any edits."
+  MSG="[git-workflow] Main worktree (branch: ${BRANCH}). Call EnterWorktree() before any edits."
   if [[ "${CLAUDE_GIT_WORKFLOW:-}" == "no-pr" ]]; then
-    echo "[git-workflow] MODE: no-pr -- merge to main and push directly after work. No PRs."
+    CTX+=" MODE: no-pr -- merge to main and push directly after work. No PRs."
+    MSG+=" MODE: no-pr"
   fi
 else
-  echo "[git-workflow] Warning: no session ID; worktree isolation unavailable. Branch: ${BRANCH}"
+  CTX+="Warning: no session ID; worktree isolation unavailable. Branch: ${BRANCH}"
+  MSG="[git-workflow] Warning: no session ID; worktree isolation unavailable."
 fi
+
+emit_context_with_msg "SessionStart" "$CTX" "$MSG"

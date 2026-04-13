@@ -5,6 +5,27 @@
 # shellcheck source=portability.sh
 source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/portability.sh"
 
+# --- Structured context injection ---
+# Hooks can return JSON with hookSpecificOutput to inject context into Claude's
+# reasoning (additionalContext) and/or show a message to the user (systemMessage).
+# These helpers produce the correct envelope for each hook event type.
+
+# Emit additionalContext only (silent -- Claude sees it, user doesn't).
+# Usage: emit_context "SessionStart" "Branch: main. Call EnterWorktree()."
+emit_context() {
+  local event="$1" ctx="$2"
+  jq -n --arg e "$event" --arg c "$ctx" \
+    '{hookSpecificOutput: {hookEventName: $e, additionalContext: $c}}'
+}
+
+# Emit additionalContext + a user-visible systemMessage.
+# Usage: emit_context_with_msg "SessionStart" "<detailed context>" "<short user msg>"
+emit_context_with_msg() {
+  local event="$1" ctx="$2" msg="$3"
+  jq -n --arg e "$event" --arg c "$ctx" --arg m "$msg" \
+    '{hookSpecificOutput: {hookEventName: $e, additionalContext: $c}, systemMessage: $m}'
+}
+
 # --- Session ID ---
 
 # Parse and validate session_id from a JSON string.
