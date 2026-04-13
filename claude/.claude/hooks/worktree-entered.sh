@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # PostToolUse hook (matcher: EnterWorktree):
 # Clear the pending state file once the worktree is successfully entered.
-# Stdout is added to Claude's context. Never exit non-zero (PostToolUse should not block).
+# Uses structured JSON output for context injection.
+# Never exit non-zero (PostToolUse should not block).
 set -euo pipefail
 
 # shellcheck source=../lib/session.sh
@@ -16,4 +17,4 @@ fi
 
 rm -f "$(pending_file "$SESSION_ID")"
 
-echo "[git-workflow] Worktree entered. Isolation confirmed; proceed with the task."
+emit_context "PostToolUse" "Worktree entered. Isolation confirmed; proceed with the task."
