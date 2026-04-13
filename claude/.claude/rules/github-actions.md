@@ -2,7 +2,6 @@
 description: GitHub Actions conventions -- SHA pinning, permissions, OIDC auth
 paths:
   - ".github/**"
-globs: true
 ---
 
 # GitHub Actions

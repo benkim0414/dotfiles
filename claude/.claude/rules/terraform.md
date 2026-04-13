@@ -5,7 +5,6 @@ paths:
   - "**/*.tfvars"
   - "**/terragrunt.hcl"
   - "**/.terraform.lock.hcl"
-globs: true
 ---
 
 # Terraform / OpenTofu

@@ -5,7 +5,6 @@ paths:
   - "**/docker-compose*.yml"
   - "**/docker-compose*.yaml"
   - "**/.dockerignore"
-globs: true
 ---
 
 # Dockerfiles
