@@ -56,10 +56,9 @@ PR_JSON=$(gh pr view "$PR_NUMBER" --json number,title,state,baseRefName,headRefN
   exit 1
 }
 
-TITLE=$(echo "$PR_JSON" | jq -r '.title')
-BASE=$(echo "$PR_JSON" | jq -r '.baseRefName')
-HEAD=$(echo "$PR_JSON" | jq -r '.headRefName')
-STATE=$(echo "$PR_JSON" | jq -r '.state')
+IFS=$'\t' read -r TITLE BASE HEAD STATE < <(
+  echo "$PR_JSON" | jq -r '[.title, .baseRefName, .headRefName, .state] | @tsv'
+)
 
 if [[ "$STATE" != "OPEN" ]]; then
   echo "Error: PR #$PR_NUMBER is $STATE, not OPEN" >&2
@@ -100,13 +99,10 @@ fi
 # Launch Copilot review in background
 COPILOT_PID=none
 if gh copilot --version &>/dev/null 2>&1; then
-  DIFF=$(gh pr diff "$PR_NUMBER" 2>/dev/null || true)
-  if [[ -n "$DIFF" ]]; then
-    (echo "$DIFF" | gh copilot -p \
-      "Review this pull request diff for bugs, security issues, and improvements. Be specific about file paths and line numbers. Format findings as: **[severity]** \`file:line\` -- description" \
-      > "$COPILOT_OUT" 2>&1) &
-    COPILOT_PID=$!
-  fi
+  (gh pr diff "$PR_NUMBER" 2>/dev/null | gh copilot -p \
+    "Review this pull request diff for bugs, security issues, and improvements. Be specific about file paths and line numbers. Format findings as: **[severity]** \`file:line\` -- description" \
+    > "$COPILOT_OUT" 2>&1) &
+  COPILOT_PID=$!
 fi
 
 # Output structured context for the skill
