@@ -6,8 +6,11 @@
 # Uses pure bash extraction and string matching; jq/gh only on pattern match.
 set -euo pipefail
 
-# Inline EPOCHSECONDS fallback (avoids sourcing session.sh on every message).
-: "${EPOCHSECONDS:=$(date +%s)}"
+# Source portability.sh eagerly (3 lines, no subprocesses on bash 5+).
+# Provides: EPOCHSECONDS, file_mtime, run_timeout.
+# Full session.sh (which adds emit_context/jq helpers) is lazy-loaded below.
+# shellcheck source=../lib/portability.sh
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../lib/portability.sh"
 
 INPUT=$(cat)
 
@@ -47,13 +50,14 @@ fi
 
 if [[ -n "$pr_num" ]]; then
   cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/claude"
-  pr_cache="${cache_dir}/.pr-cache-${pr_num}"
+  # Key cache by repo to avoid cross-repo collisions.
+  repo_key=$(git rev-parse --show-toplevel 2>/dev/null | tr -cs 'a-zA-Z0-9_' '_' || echo "unknown")
+  pr_cache="${cache_dir}/.pr-cache-${repo_key}-${pr_num}"
   pr_summary=""
 
   # Check cache (120s TTL).
   if [[ -f "$pr_cache" ]]; then
-    cache_mtime=$(stat -c %Y "$pr_cache" 2>/dev/null || stat -f %m "$pr_cache" 2>/dev/null || echo 0)
-    cache_age=$(( EPOCHSECONDS - cache_mtime ))
+    cache_age=$(( EPOCHSECONDS - $(file_mtime "$pr_cache") ))
     if (( cache_age < 120 )); then
       pr_summary=$(cat "$pr_cache" 2>/dev/null || true)
     fi
@@ -61,7 +65,7 @@ if [[ -n "$pr_num" ]]; then
 
   # Cache miss — fetch from GitHub with a 3-second timeout.
   if [[ -z "$pr_summary" ]]; then
-    pr_info=$(timeout 3 gh pr view "$pr_num" --json number,title,state,headRefName,url 2>/dev/null || true)
+    pr_info=$(run_timeout 3 gh pr view "$pr_num" --json number,title,state,headRefName,url 2>/dev/null || true)
     if [[ -n "$pr_info" ]]; then
       pr_summary=$(printf '%s' "$pr_info" | jq -r '"PR #\(.number): \(.title) [\(.state)] branch=\(.headRefName) \(.url)"' 2>/dev/null || true)
       if [[ -n "$pr_summary" ]]; then

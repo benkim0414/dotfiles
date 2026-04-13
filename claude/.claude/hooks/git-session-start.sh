@@ -111,7 +111,7 @@ if [[ -n "$BRANCH" && "$BRANCH" != "$MAIN_BRANCH" && "$BRANCH" != "HEAD" ]]; the
     MERGED=true
   else
     ls_rc=0
-    timeout 5 git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1 || ls_rc=$?
+    run_timeout 5 git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1 || ls_rc=$?
     [[ $ls_rc -eq 2 ]] && MERGED=true
   fi
   if [[ "$MERGED" == "true" ]]; then
