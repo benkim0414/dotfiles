@@ -98,10 +98,10 @@ fi
 
 # Launch Copilot review in background
 COPILOT_PID=none
-if gh copilot --version &>/dev/null 2>&1; then
-  (gh pr diff "$PR_NUMBER" 2>/dev/null | gh copilot -p \
-    "Review this pull request diff for bugs, security issues, and improvements. Be specific about file paths and line numbers. Format findings as: **[severity]** \`file:line\` -- description" \
-    > "$COPILOT_OUT" 2>&1) &
+if [[ "$WORKTREE_OK" == "true" ]] && gh copilot --version &>/dev/null 2>&1; then
+  (cd "$WORKTREE" && gh copilot -p \
+    "Review the changes on this branch compared to origin/$BASE. Run 'git diff origin/$BASE..HEAD' to see the diff. Focus on bugs, security issues, and improvements. Be specific about file paths and line numbers. Format each finding as: **[severity]** \`file:line\` -- description" \
+    --allow-all-tools > "$COPILOT_OUT" 2>&1) &
   COPILOT_PID=$!
 fi
 

@@ -19,14 +19,16 @@ $ARGUMENTS
 
 ## Pull request context
 
-- PR metadata: !`gh pr view $ARGUMENTS --json number,title,body,state,author,baseRefName,headRefName,url,reviewDecision`
-- PR comments: !`gh pr view $ARGUMENTS --comments 2>/dev/null | head -200`
-- Changed files: !`gh pr diff $ARGUMENTS --name-only`
-- CI status: !`gh pr checks $ARGUMENTS 2>/dev/null | head -30`
+!`PR_NUM=$(echo "$ARGUMENTS" | grep -oE '[0-9]+' | head -1); echo "pr_number: $PR_NUM"`
+
+- PR metadata: !`PR_NUM=$(echo "$ARGUMENTS" | grep -oE '[0-9]+' | head -1); gh pr view "$PR_NUM" --json number,title,body,state,author,baseRefName,headRefName,url,reviewDecision`
+- PR comments: !`PR_NUM=$(echo "$ARGUMENTS" | grep -oE '[0-9]+' | head -1); gh pr view "$PR_NUM" --comments 2>/dev/null | head -200`
+- Changed files: !`PR_NUM=$(echo "$ARGUMENTS" | grep -oE '[0-9]+' | head -1); gh pr diff "$PR_NUM" --name-only`
+- CI status: !`PR_NUM=$(echo "$ARGUMENTS" | grep -oE '[0-9]+' | head -1); gh pr checks "$PR_NUM" 2>/dev/null | head -30`
 
 <details><summary>Full diff</summary>
 
-!`gh pr diff $ARGUMENTS`
+!`PR_NUM=$(echo "$ARGUMENTS" | grep -oE '[0-9]+' | head -1); gh pr diff "$PR_NUM"`
 
 </details>
 
