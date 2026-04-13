@@ -54,3 +54,8 @@ fi
 # Code's Bash tool) where chpwd_functions is not restored from the snapshot.
 # In interactive shells this is harmless: the chpwd hook check would pass anyway.
 export _ZO_DOCTOR=0
+
+# Claude Code: defer MCP tool definitions and load them on demand via ToolSearch.
+# Reduces context consumption when many MCP servers are registered.
+# "auto" loads upfront only if tools consume <10% of context, else defers.
+export ENABLE_TOOL_SEARCH=auto
