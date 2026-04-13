@@ -4,7 +4,6 @@ paths:
   - "**/*.sh"
   - "**/*.bash"
   - "**/*.zsh"
-globs: true
 ---
 
 # Shell Scripts

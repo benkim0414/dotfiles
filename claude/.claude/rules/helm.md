@@ -3,11 +3,11 @@ description: Helm chart conventions -- linting, template validation, version pin
 paths:
   - "**/Chart.yaml"
   - "**/Chart.lock"
-  - "**/values*.yaml"
+  - "**/values.yaml"
+  - "**/values-*.yaml"
   - "**/templates/**"
   - "**/helmfile*.yaml"
   - "**/charts/**"
-globs: true
 ---
 
 # Helm Charts

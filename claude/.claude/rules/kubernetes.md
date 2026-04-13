@@ -2,11 +2,10 @@
 description: Kubernetes manifest conventions -- security context, resources, probes, image pinning
 paths:
   - "k8s/**"
-  - "**/deploy/**"
+  - "**/deploy/**/*.yaml"
   - "**/manifests/**"
   - "**/base/**/*.yaml"
   - "**/overlays/**/*.yaml"
-globs: true
 ---
 
 # Kubernetes Manifests
