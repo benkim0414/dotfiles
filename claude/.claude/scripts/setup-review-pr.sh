@@ -44,7 +44,10 @@ if [[ -z "$PR_ARG" ]]; then
 fi
 
 # Extract numeric PR number from various formats (123, #123, URL/pull/123)
-PR_NUMBER=$(echo "$PR_ARG" | grep -oE '[0-9]+$' || true)
+PR_NUMBER=$(echo "$PR_ARG" | grep -oE '/pull/[0-9]+' | grep -oE '[0-9]+' || true)
+if [[ -z "$PR_NUMBER" ]]; then
+  PR_NUMBER=$(echo "$PR_ARG" | tr -d '#' | grep -oE '[0-9]+$' || true)
+fi
 if [[ -z "$PR_NUMBER" ]]; then
   echo "Error: could not extract PR number from: $PR_ARG" >&2
   exit 1
