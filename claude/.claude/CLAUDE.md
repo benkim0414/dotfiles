@@ -3,6 +3,7 @@
 ## Claude Code Workflow
 - Editor: nvim
 - Never use emojis in responses
+- Never assume -- if requirements are ambiguous, underspecified, or open to multiple interpretations, ask clarifying questions before proceeding. This applies to task scope, implementation approach, edge cases, naming, and any decision that could go more than one way.
 - Use the fetch MCP to look up current docs, API versions, chart versions, or image digests -- training data goes stale; never guess at versions
 - Explain the reasoning behind config choices, not just what to set
 - Before any state-changing command, state what resources will be affected and the blast radius
