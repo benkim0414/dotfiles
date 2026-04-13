@@ -210,9 +210,9 @@ file_count=$(echo "$staged" | wc -l)
 dirs=$(echo "$staged" | grep '/' | cut -d/ -f1 | sort -u | tr '\n' ', ' | sed 's/,$//')
 
 # Collect known scopes from recent history — cached with 60-second TTL.
-# Source portability.sh here (only place needing EPOCHSECONDS/file_mtime).
-# shellcheck source=../lib/portability.sh
-source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../lib/portability.sh"
+# Source session.sh here (provides emit_context + portability helpers for EPOCHSECONDS/file_mtime).
+# shellcheck source=../lib/session.sh
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../lib/session.sh"
 
 repo_path=$(git rev-parse --show-toplevel 2>/dev/null || true)
 repo_key=${repo_path//[^a-zA-Z0-9_]/_}
@@ -231,15 +231,16 @@ else
   known_scopes=$(cat "$scope_cache" 2>/dev/null || true)
 fi
 
-echo "[commit-guard] Staged files (${file_count}):"
-echo "$staged" | sed 's/^/  /'
-echo ""
+# Build context string for structured injection.
+ctx="Staged files (${file_count}): ${staged}"
 if [[ -n "$dirs" ]]; then
-  echo "[commit-guard] Top-level directories: ${dirs}"
+  ctx+=". Top-level directories: ${dirs}"
 fi
 if [[ -n "$known_scopes" ]]; then
-  echo "[commit-guard] Known scopes: ${known_scopes}"
+  ctx+=". Known scopes: ${known_scopes}"
 fi
-echo "[commit-guard] IMPORTANT: Use a known scope. Verify this is ONE logical change."
+ctx+=". IMPORTANT: Use a known scope. Verify this is ONE logical change."
+
+emit_context "PreToolUse" "$ctx"
 
 exit 0

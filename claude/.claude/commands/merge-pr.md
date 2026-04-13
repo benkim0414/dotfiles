@@ -9,22 +9,21 @@ description: Verify PR test plan, tick completed items, and merge
 - Current branch: !`git branch --show-current`
 - Arguments: $ARGUMENTS
 
+### Pre-loaded PR data and CI status
+
+!`PR_NUM=$(echo "$ARGUMENTS" | grep -oE '/pull/[0-9]+' | grep -oE '[0-9]+' || echo "$ARGUMENTS" | tr ' ' '\n' | grep -oE '^[#]?[0-9]+$' | head -1 | tr -d '#'); if [ -n "$PR_NUM" ]; then echo "## PR metadata"; gh pr view "$PR_NUM" --json number,title,body,state,statusCheckRollup,reviewDecision,url,headRefName,baseRefName 2>/dev/null; echo; echo "## CI checks"; gh pr checks "$PR_NUM" 2>/dev/null | head -30; fi`
+
 ## Your task
 
 Follow these steps in order.
 
-### Step 1: Fetch and parse the PR
+### Step 1: Parse the PR
 
-First, determine the PR number:
-- Extract the numeric PR number from the arguments. Common formats: `13`, `#13`, `PR #13`, or a URL ending in `/pull/13`. For URLs, take only the number after `/pull/`. For other formats, take the last sequence of digits.
-- If no number can be extracted from the arguments AND the current branch is `main` or `master`, stop immediately with: "Error: no PR number provided and current branch is main. Usage: `/merge-pr <number>`"
-- If no number can be extracted but the current branch is a feature branch, omit the number to auto-detect from the current branch.
+Use the pre-loaded PR data above. If the pre-loaded data is empty (no PR number in arguments):
+- If the current branch is `main` or `master`, stop immediately with: "Error: no PR number provided and current branch is main. Usage: `/merge-pr <number>`"
+- If on a feature branch, run `gh pr view --json number,title,body,state,statusCheckRollup,reviewDecision,url,headRefName` to auto-detect from the current branch.
 
-Run `gh pr view` to fetch the PR details as JSON:
-- With a PR number: `gh pr view <number> --json number,title,body,state,statusCheckRollup,reviewDecision,url,headRefName`
-- Without (auto-detect from branch): `gh pr view --json number,title,body,state,statusCheckRollup,reviewDecision,url,headRefName`
-
-From the result, extract the PR number, title, URL, full body text, state, and reviewDecision.
+From the PR data, extract the PR number, title, URL, full body text, state, and reviewDecision.
 
 **Guard check**: If the PR state is `CLOSED`, `DRAFT`, or `MERGED`, or if reviewDecision is `CHANGES_REQUESTED`, stop immediately and report why the PR is not mergeable. Do not proceed to further steps.
 
@@ -61,7 +60,7 @@ Use the PR number extracted from the context in Step 1.
 
 ### Step 4: Check CI status
 
-Run `gh pr checks <PR_NUMBER>` and report failing or pending checks. This step is independent of the test plan and must always run, even if there is no `## Test plan` section.
+Use the pre-loaded CI status above. If it was empty (no PR number in arguments), run `gh pr checks <PR_NUMBER>` now. Report failing or pending checks. This step is independent of the test plan and must always run, even if there is no `## Test plan` section.
 
 If `statusCheckRollup` is null in the PR details, there are no configured CI checks — treat CI as not applicable rather than as a failure.
 If any required checks are failing, report this clearly and do not proceed without user acknowledgement.

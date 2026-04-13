@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
 # PostToolUse hook (matcher: ExitWorktree):
 # Remind Claude of the required next steps after leaving the worktree.
-# Stdout is added to Claude's context. Never exit non-zero (PostToolUse should not block).
+# Uses structured JSON output for context injection.
+# Never exit non-zero (PostToolUse should not block).
 set -euo pipefail
 
+# shellcheck source=../lib/session.sh
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../lib/session.sh"
+
 if [[ "${CLAUDE_GIT_WORKFLOW:-}" == "no-pr" ]]; then
-  echo "[git-workflow] Worktree exited. Merge the feature branch to main, then push."
+  emit_context "PostToolUse" "Worktree exited. Merge the feature branch to main, then push."
 else
-  echo "[git-workflow] Worktree exited. Wait for user to merge the PR, then run /merge-pr."
+  emit_context "PostToolUse" "Worktree exited. Wait for user to merge the PR, then run /merge-pr."
 fi
