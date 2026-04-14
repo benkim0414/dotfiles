@@ -1,6 +1,6 @@
 ---
-allowed-tools: Bash(gh pr view:*), Bash(gh pr edit:*), Bash(gh pr merge:*), Bash(gh pr checks:*), Bash(rm:*), Bash(git fetch:*), Bash(git push:*), Bash(git show:*), Bash(git pull:*), Bash(git checkout:*), Bash(git worktree:*), Bash(git branch:*), Bash(git rev-parse:*), Bash(pwd), Read, Grep, Glob, Write, ExitWorktree
-argument-hint: "[pr-number]"
+allowed-tools: Bash(gh pr view:*), Bash(gh pr edit:*), Bash(gh pr merge:*), Bash(gh pr checks:*), Bash(gh api:*), Bash(rm:*), Bash(git fetch:*), Bash(git push:*), Bash(git show:*), Bash(git pull:*), Bash(git checkout:*), Bash(git worktree:*), Bash(git branch:*), Bash(git rev-parse:*), Bash(pwd), Read, Grep, Glob, Write, ExitWorktree
+argument-hint: "[pr-number-or-url]"
 description: Verify PR test plan, tick completed items, and merge
 ---
 
@@ -11,7 +11,7 @@ description: Verify PR test plan, tick completed items, and merge
 
 ### Pre-loaded PR data and CI status
 
-!`PR_NUM=$(echo "$ARGUMENTS" | grep -oE '/pull/[0-9]+' | grep -oE '[0-9]+' || echo "$ARGUMENTS" | tr ' ' '\n' | grep -oE '^[#]?[0-9]+$' | head -1 | tr -d '#'); if [ -n "$PR_NUM" ]; then echo "## PR metadata"; gh pr view "$PR_NUM" --json number,title,body,state,statusCheckRollup,reviewDecision,url,headRefName,baseRefName 2>/dev/null; echo; echo "## CI checks"; gh pr checks "$PR_NUM" 2>/dev/null | head -30; fi`
+!`PR_NUM=$(echo "$ARGUMENTS" | grep -oE '/pull/[0-9]+' | grep -oE '[0-9]+' || echo "$ARGUMENTS" | tr ' ' '\n' | grep -oE '^[#]?[0-9]+$' | head -1 | tr -d '#'); REPO=$(echo "$ARGUMENTS" | grep -oE 'github\.com/[^/]+/[^/]+' | sed 's|github\.com/||' || true); REPO_FLAG=""; if [ -n "$REPO" ]; then REPO_FLAG="-R $REPO"; fi; if [ -n "$PR_NUM" ]; then echo "## Repo: ${REPO:-<cwd>}"; echo "## PR metadata"; gh pr view "$PR_NUM" $REPO_FLAG --json number,title,body,state,statusCheckRollup,reviewDecision,url,headRefName,baseRefName 2>/dev/null; echo; echo "## CI checks"; gh pr checks "$PR_NUM" $REPO_FLAG 2>/dev/null | head -30; fi`
 
 ## Your task
 
@@ -22,6 +22,8 @@ Follow these steps in order.
 Use the pre-loaded PR data above. If the pre-loaded data is empty (no PR number in arguments):
 - If the current branch is `main` or `master`, stop immediately with: "Error: no PR number provided and current branch is main. Usage: `/merge-pr <number>`"
 - If on a feature branch, run `gh pr view --json number,title,body,state,statusCheckRollup,reviewDecision,url,headRefName` to auto-detect from the current branch.
+
+From the pre-loaded data, note the **Repo** line. If it shows an `owner/repo` value (extracted from a URL argument), this is a **cross-repo PR**. You MUST pass `-R <owner/repo>` to every `gh` command for the rest of this workflow. If it shows `<cwd>`, the PR belongs to the current repo and no `-R` flag is needed.
 
 From the PR data, extract the PR number, title, URL, full body text, state, and reviewDecision.
 
@@ -52,15 +54,15 @@ Only perform the update if at least one item changed from `- [ ]` to `- [x]`. If
 
 To apply the update, write the full updated body to `/tmp/pr-body-<PR_NUMBER>.md` using the Write tool, then run:
 ```bash
-gh pr edit <PR_NUMBER> --body-file /tmp/pr-body-<PR_NUMBER>.md
+gh pr edit <PR_NUMBER> [-R <REPO>] --body-file /tmp/pr-body-<PR_NUMBER>.md
 rm -f /tmp/pr-body-<PR_NUMBER>.md
 ```
 
-Use the PR number extracted from the context in Step 1.
+Use the PR number extracted from the context in Step 1. Include `-R <REPO>` if this is a cross-repo PR (see Step 1).
 
 ### Step 4: Check CI status
 
-Use the pre-loaded CI status above. If it was empty (no PR number in arguments), run `gh pr checks <PR_NUMBER>` now. Report failing or pending checks. This step is independent of the test plan and must always run, even if there is no `## Test plan` section.
+Use the pre-loaded CI status above. If it was empty (no PR number in arguments), run `gh pr checks <PR_NUMBER> [-R <REPO>]` now (include `-R` for cross-repo PRs). Report failing or pending checks. This step is independent of the test plan and must always run, even if there is no `## Test plan` section.
 
 If `statusCheckRollup` is null in the PR details, there are no configured CI checks — treat CI as not applicable rather than as a failure.
 If any required checks are failing, report this clearly and do not proceed without user acknowledgement.
@@ -89,10 +91,10 @@ If there are UNVERIFIABLE items, ask the user to confirm they were manually veri
 
 When all pre-merge concerns are resolved, run using the PR number from Step 1:
 ```bash
-gh pr merge <PR_NUMBER> --merge
+gh pr merge <PR_NUMBER> [-R <REPO>] --merge
 ```
 
-Never use `--squash` or `--rebase`.
+Never use `--squash` or `--rebase`. Include `-R <REPO>` for cross-repo PRs.
 
 After the merge succeeds, delete the remote branch using the `headRefName` from Step 1:
 ```bash
@@ -101,20 +103,32 @@ git push origin --delete <HEAD_BRANCH>
 
 If the branch was already deleted (e.g., by GitHub's auto-delete setting), ignore the error.
 
+**Cross-repo PRs**: Skip the `git push origin --delete` command -- you don't have a local remote for the other repo's branches.
+
 ### Step 7: Post-merge verification (if deferred items exist)
 
-After merge, update the remote-tracking ref:
+**Cross-repo PRs**: Skip the `git fetch` and `git show` commands below -- you cannot fetch from a repo that isn't a local remote. Instead, verify deferred items using `gh api repos/<REPO>/contents/<path>?ref=main` or simply mark them as UNVERIFIABLE. Still update the PR body via `gh pr edit [-R <REPO>]` as described.
+
+**Same-repo PRs**: After merge, update the remote-tracking ref:
 ```bash
 git fetch origin main
 ```
 
 This updates `origin/main` without touching the local `main` ref, which avoids errors when `main` is checked out in another worktree. Then verify deferred items against the merged state using `git show origin/main:<path>` (not `main:<path>`).
+
 Update the PR body with remaining `- [x]` ticks using the same tmpfile approach from Step 3.
 Note: `gh pr edit` works on merged PRs — it is correct to update the body of a PR in MERGED state.
 
 ### Step 8: Local finalization
 
 After all verification is complete, clean up local state so the workflow for this task is definitively finished.
+
+**Cross-repo PRs**: Skip Steps 8a-8c entirely -- there is no local branch or worktree to clean up for a PR in another repository. Output a summary and stop:
+```
+Cross-repo merge complete:
+  PR #<number> merged in <REPO>
+  No local cleanup needed (cross-repo PR)
+```
 
 #### 8a. Escape worktree CWD (if needed)
 
