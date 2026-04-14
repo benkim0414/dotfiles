@@ -7,7 +7,7 @@
 set -euo pipefail
 
 # shellcheck source=../lib/portability.sh
-source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../lib/portability.sh"
+source "${BASH_SOURCE[0]%/*}/../lib/portability.sh"
 
 POST=false
 PR_ARG=""

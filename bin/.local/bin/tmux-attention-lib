@@ -39,14 +39,20 @@ recompute_window_attention() {
   local f other_pane other_ntype other_window
   for f in "$ATTN_DIR"/%*; do
     [[ -f "$f" ]] || continue
-    other_pane=$(grep "^pane_id=" "$f" 2>/dev/null | cut -d= -f2-)
+    # Read pane_id and notification_type in a single pass (avoids 4 subprocess forks).
+    other_pane="" other_ntype=""
+    while IFS='=' read -r key val; do
+      case "$key" in
+        pane_id) other_pane="$val" ;;
+        notification_type) other_ntype="$val" ;;
+      esac
+    done < "$f"
     [[ -n "$other_pane" ]] || continue
     [[ -z "$exclude_pane" || "$other_pane" != "$exclude_pane" ]] || continue
 
     other_window=$(tmux display-message -t "$other_pane" -p '#{window_id}' 2>/dev/null || true)
     [[ "$other_window" == "$window_id" ]] || continue
 
-    other_ntype=$(grep "^notification_type=" "$f" 2>/dev/null | cut -d= -f2-)
     resolve_attention "$other_ntype"
     [[ -n "$_attn_color" ]] || continue
     if (( _attn_priority < best_pri )); then

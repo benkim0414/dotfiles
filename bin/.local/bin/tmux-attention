@@ -18,9 +18,19 @@ source "$(dirname "$0")/tmux-attention-lib"
 
 # --- Helpers ---
 
-# Read a single field from a marker file.
+# Read a single field from a marker file (used for isolated lookups).
 read_field() {
   grep "^${1}=" "$2" 2>/dev/null | cut -d= -f2-
+}
+
+# Read all fields from a marker file into associative array _marker_fields.
+# Usage: read_marker "$file"; echo "${_marker_fields[pane_id]}"
+declare -A _marker_fields=()
+read_marker() {
+  _marker_fields=()
+  while IFS='=' read -r key val; do
+    _marker_fields[$key]="$val"
+  done < "$1"
 }
 
 # Clear pane border style and recompute window @attention from remaining markers.
@@ -43,8 +53,9 @@ collect_markers() {
   for marker in "$ATTN_DIR"/%*; do
     [[ -f "$marker" ]] || continue
 
-    ts=$(read_field timestamp "$marker")
-    pane_id=$(read_field pane_id "$marker")
+    read_marker "$marker"
+    ts="${_marker_fields[timestamp]:-}"
+    pane_id="${_marker_fields[pane_id]:-}"
 
     # Stale marker -- remove.
     if [[ -n "$ts" ]] && (( now - ts > TTL )); then
@@ -90,8 +101,9 @@ sort_markers() {
 
   local m ntype ts
   for m in "${markers[@]}"; do
-    ntype=$(read_field notification_type "$m")
-    ts=$(read_field timestamp "$m")
+    read_marker "$m"
+    ntype="${_marker_fields[notification_type]:-}"
+    ts="${_marker_fields[timestamp]:-}"
     resolve_attention "$ntype"
     printf '%s\t%s\t%s\n' "$_attn_priority" "$ts" "$m"
   done | sort -t$'\t' -k1,1n -k2,2n | cut -f3
@@ -103,10 +115,11 @@ format_marker() {
   local marker="$1"
   local pane_label ntype project pane_id
 
-  pane_label=$(read_field pane_label "$marker")
-  ntype=$(read_field notification_type "$marker")
-  project=$(read_field project "$marker")
-  pane_id=$(read_field pane_id "$marker")
+  read_marker "$marker"
+  pane_label="${_marker_fields[pane_label]:-}"
+  ntype="${_marker_fields[notification_type]:-}"
+  project="${_marker_fields[project]:-}"
+  pane_id="${_marker_fields[pane_id]:-}"
 
   resolve_attention "$ntype"
 
