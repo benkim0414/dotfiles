@@ -39,6 +39,8 @@ Review passes (in order):
   2. /review       -- general review (skipped if unavailable)
   3. /codex:review -- codex review (skipped if unavailable)
   4. Self-check    -- security, conventions, ShellCheck
+  5. Codex CLI     -- external review (skipped if not installed)
+  6. Copilot       -- external review (skipped if not installed)
 
 Options:
   --max-iterations N   Maximum review iterations (default: 10)
@@ -106,6 +108,15 @@ if [[ -f "$STATE_FILE" ]]; then
   fi
 fi
 
+# Detect external reviewer availability
+HAS_CODEX=false
+HAS_COPILOT=false
+command -v codex &>/dev/null && HAS_CODEX=true
+gh copilot --version &>/dev/null && HAS_COPILOT=true
+
+# Sanitize branch name for use in temp file paths
+SAFE_BRANCH="${CURRENT_BRANCH//\//-}"
+
 mkdir -p .claude
 
 cat > "$STATE_FILE" <<STATEEOF
@@ -116,6 +127,8 @@ session_id: "${CLAUDE_CODE_SESSION_ID:-}"
 max_iterations: $MAX_ITERATIONS
 completion_promise: "PR_CREATED"
 started_at: "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+has_codex: $HAS_CODEX
+has_copilot: $HAS_COPILOT
 ---
 
 ## Pre-PR Review & Create
@@ -123,13 +136,29 @@ started_at: "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 You are iteratively reviewing all worktree changes before creating a PR.
 Each iteration runs multiple review passes, fixes issues, then re-checks.
 
-### Phase 1: Gather Changes
-1. Run \`git log --oneline \$(git merge-base HEAD main)..HEAD\` to list all commits
-2. Run \`git diff \$(git merge-base HEAD main)..HEAD\` to see the full diff
-3. Run \`git status\` to check for uncommitted changes
-4. If uncommitted changes exist, stage and commit them first
+### Phase 1: Gather Changes & Launch External Reviewers
 
-### Phase 2: Run Review Skills
+**Step 1**: Compute the merge base once: \`MERGE_BASE=\$(git merge-base HEAD main)\`
+
+**Step 2**: Run these commands in parallel (use parallel tool calls):
+- \`git log --oneline \$MERGE_BASE..HEAD\` to list all commits
+- \`git diff \$MERGE_BASE..HEAD\` to see the full diff
+- \`git status\` to check for uncommitted changes
+
+**Step 3**: If uncommitted changes exist, stage and commit them first.
+
+**Step 4**: Launch external reviewers in background (check frontmatter for availability).
+Use \`run_in_background: true\` on each Bash call so they run concurrently with Phase 2.
+
+- **Codex** (if \`has_codex: true\`):
+  \`codex review --base main --title "\$(git log --format=%s -1)" > /tmp/create-pr-$SAFE_BRANCH-codex.md 2>&1\`
+
+- **Copilot** (if \`has_copilot: true\`):
+  \`gh copilot -p "Review the changes on this branch compared to main. Run 'git diff \$MERGE_BASE..HEAD' to see the diff. Focus on bugs, security issues, and improvements. Be specific about file paths and line numbers. Format each finding as: **[severity]** \\\`file:line\\\` -- description" --allow-all-tools > /tmp/create-pr-$SAFE_BRANCH-copilot.md 2>&1\`
+
+Skip Step 4 entirely if both \`has_codex\` and \`has_copilot\` are false.
+
+### Phase 2: Run Review Skills (while external reviewers run in background)
 
 Run each review skill via the Skill tool. Each pass targets a different
 dimension of quality. If a skill is not available, skip it gracefully.
@@ -140,15 +169,21 @@ dimension of quality. If a skill is not available, skip it gracefully.
 - After it completes, if files were changed, \`git add <specific-files>\`
   (never \`git add -A\` or \`git add .\`) and \`git commit\` with a conventional message.
 
-**Pass 2 -- /review** (general review)
-- Invoke: use the Skill tool with skill "review"
-- If the skill is unavailable (error), log "Pass 2 skipped: /review not available" and continue.
-- If it reports issues, fix them, then \`git add <specific-files>\` and \`git commit\`.
+**Passes 2 & 3 -- run in parallel** (after Pass 1 is complete)
 
-**Pass 3 -- /codex:review** (codex review)
-- Invoke: use the Skill tool with skill "codex:review"
-- If the skill is unavailable (error), log "Pass 3 skipped: /codex:review not available" and continue.
-- If it reports issues, fix them, then \`git add <specific-files>\` and \`git commit\`.
+Launch both passes concurrently using parallel tool calls:
+
+- **Pass 2 -- /review** (general review)
+  - Invoke: use the Skill tool with skill "review"
+  - If the skill is unavailable (error), log "Pass 2 skipped: /review not available" and continue.
+
+- **Pass 3 -- /codex:review** (codex review)
+  - Invoke: use the Skill tool with skill "codex:review"
+  - If the skill is unavailable (error), log "Pass 3 skipped: /codex:review not available" and continue.
+
+After both parallel passes complete, collect all reported issues. If either
+pass reported issues, fix them, then \`git add <specific-files>\` and
+\`git commit\` with a conventional message.
 
 ### Phase 3: Self-check
 
@@ -161,17 +196,33 @@ After all skill passes, do a final manual review of the full diff:
 
 If any issues found, fix and commit with conventional message.
 
-### Phase 4: Decide
+### Phase 4: Collect External Reviews
+
+Wait for any background Codex/Copilot processes launched in Phase 1 to complete.
+Read their output files (branch name is sanitized: slashes replaced with dashes):
+- \`/tmp/create-pr-$SAFE_BRANCH-codex.md\` (if Codex was launched)
+- \`/tmp/create-pr-$SAFE_BRANCH-copilot.md\` (if Copilot was launched)
+
+For each reviewer output:
+1. Parse findings (ignore empty or error-only output)
+2. Evaluate each finding against the current code -- only act on genuine issues
+3. If fixes are needed, apply them, \`git add <specific-files>\`, and \`git commit\`
+
+Clean up output files: \`rm -f /tmp/create-pr-$SAFE_BRANCH-codex.md /tmp/create-pr-$SAFE_BRANCH-copilot.md\`
+
+Skip this phase if no external reviewers were launched.
+
+### Phase 5: Decide
 
 - If ANY phase made changes this iteration -> continue to next iteration
   (do NOT output the completion promise)
-- If all phases were clean (no changes) -> proceed to Phase 5
+- If all phases were clean (no changes) -> proceed to Phase 6
 
-### Phase 5: Create PR
+### Phase 6: Create PR
 
 When all review passes are clean and no changes were made:
 1. Push the branch: \`git push origin HEAD:\$(git branch --show-current)\`
-2. Create a PR with \`gh pr create\` including a summary and test plan
+2. Create a PR with \`gh pr create --assignee @me\` including a summary and test plan
 3. Clean up the loop state file: \`rm -f .claude/ralph-loop.local.md\`
 4. Output: <promise>PR_CREATED</promise>
 
@@ -190,6 +241,8 @@ Review passes:
   2. /review       (general review -- skipped if unavailable)
   3. /codex:review (codex review -- skipped if unavailable)
   4. Self-check    (security, conventions, ShellCheck)
+  5. Codex CLI     (external review -- $(if [[ "$HAS_CODEX" == "true" ]]; then echo "available"; else echo "not installed, skipped"; fi))
+  6. Copilot       (external review -- $(if [[ "$HAS_COPILOT" == "true" ]]; then echo "available"; else echo "not installed, skipped"; fi))
 
 The Ralph Loop stop hook will iterate until clean.
 To cancel: /cancel-ralph
