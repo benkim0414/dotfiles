@@ -27,8 +27,11 @@ declare -A pane_window=()  # cache pane_id -> window_id
 for f in "$ATTN_DIR"/%*; do
   [[ -f "$f" ]] || continue
 
-  pane_id=$(grep "^pane_id=" "$f" 2>/dev/null | cut -d= -f2-)
-  ts=$(grep "^timestamp=" "$f" 2>/dev/null | cut -d= -f2-)
+  # Read all fields in a single pass via shared helper (avoids subprocess forks).
+  read_marker "$f"
+  pane_id="${_marker_fields[pane_id]:-}"
+  ts="${_marker_fields[timestamp]:-}"
+  ntype="${_marker_fields[notification_type]:-}"
 
   # Stale marker -- remove and clean up tmux options.
   if [[ -n "$ts" ]] && (( NOW - ts > TTL )); then
@@ -45,7 +48,6 @@ for f in "$ATTN_DIR"/%*; do
     continue
   fi
 
-  ntype=$(grep "^notification_type=" "$f" 2>/dev/null | cut -d= -f2-)
   counts[${ntype:-unknown}]=$(( ${counts[${ntype:-unknown}]:-0} + 1 ))
 
   # Resolve color/icon and track best priority per window.

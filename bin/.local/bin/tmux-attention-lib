@@ -15,6 +15,16 @@ _attn_priority=9
 # Attention directory (caller may override before sourcing).
 : "${ATTN_DIR:=${XDG_CACHE_HOME:-$HOME/.cache}/claude/attention}"
 
+# Read all fields from a marker file into associative array _marker_fields.
+# Usage: read_marker "$file"; echo "${_marker_fields[pane_id]}"
+declare -A _marker_fields=()
+read_marker() {
+  _marker_fields=()
+  while IFS='=' read -r key val; do
+    _marker_fields[$key]="$val"
+  done < "$1"
+}
+
 # Resolve attention color and icon for a notification type.
 # Sets globals: _attn_color, _attn_icon, _attn_priority (Catppuccin Mocha palette).
 # idle_prompt gets no visual treatment (empty color/icon).
@@ -39,14 +49,15 @@ recompute_window_attention() {
   local f other_pane other_ntype other_window
   for f in "$ATTN_DIR"/%*; do
     [[ -f "$f" ]] || continue
-    other_pane=$(grep "^pane_id=" "$f" 2>/dev/null | cut -d= -f2-)
+    read_marker "$f"
+    other_pane="${_marker_fields[pane_id]:-}"
+    other_ntype="${_marker_fields[notification_type]:-}"
     [[ -n "$other_pane" ]] || continue
     [[ -z "$exclude_pane" || "$other_pane" != "$exclude_pane" ]] || continue
 
     other_window=$(tmux display-message -t "$other_pane" -p '#{window_id}' 2>/dev/null || true)
     [[ "$other_window" == "$window_id" ]] || continue
 
-    other_ntype=$(grep "^notification_type=" "$f" 2>/dev/null | cut -d= -f2-)
     resolve_attention "$other_ntype"
     [[ -n "$_attn_color" ]] || continue
     if (( _attn_priority < best_pri )); then
