@@ -18,21 +18,6 @@ source "$(dirname "$0")/tmux-attention-lib"
 
 # --- Helpers ---
 
-# Read a single field from a marker file (used for isolated lookups).
-read_field() {
-  grep "^${1}=" "$2" 2>/dev/null | cut -d= -f2-
-}
-
-# Read all fields from a marker file into associative array _marker_fields.
-# Usage: read_marker "$file"; echo "${_marker_fields[pane_id]}"
-declare -A _marker_fields=()
-read_marker() {
-  _marker_fields=()
-  while IFS='=' read -r key val; do
-    _marker_fields[$key]="$val"
-  done < "$1"
-}
-
 # Clear pane border style and recompute window @attention from remaining markers.
 clear_pane_attention() {
   local cleared_pane="$1"
@@ -163,7 +148,8 @@ if [[ "${1:-}" == "--pick" ]]; then
   fi
 
   if [[ ${#markers[@]} -eq 1 ]]; then
-    pane_id=$(read_field pane_id "${markers[0]}")
+    read_marker "${markers[0]}"
+    pane_id="${_marker_fields[pane_id]:-}"
     switch_to_pane "$pane_id" "${markers[0]}"
     exit 0
   fi
@@ -198,13 +184,10 @@ case "$count" in
   0)
     tmux display-message "No panes need attention"
     ;;
-  1)
-    pane_id=$(read_field pane_id "${markers[0]}")
-    switch_to_pane "$pane_id" "${markers[0]}"
-    ;;
-  *)
+  1|*)
     # Switch to the most urgent pane; use Prefix+A for the full picker.
-    pane_id=$(read_field pane_id "${markers[0]}")
+    read_marker "${markers[0]}"
+    pane_id="${_marker_fields[pane_id]:-}"
     switch_to_pane "$pane_id" "${markers[0]}"
     ;;
 esac
