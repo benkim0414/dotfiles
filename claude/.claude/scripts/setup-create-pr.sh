@@ -199,9 +199,9 @@ If any issues found, fix and commit with conventional message.
 ### Phase 4: Collect External Reviews
 
 Wait for any background Codex/Copilot processes launched in Phase 1 to complete.
-Read their output files (branch name matches the current worktree branch):
-- \`/tmp/create-pr-<branch>-codex.md\` (if Codex was launched)
-- \`/tmp/create-pr-<branch>-copilot.md\` (if Copilot was launched)
+Read their output files (branch name is sanitized: slashes replaced with dashes):
+- \`/tmp/create-pr-$SAFE_BRANCH-codex.md\` (if Codex was launched)
+- \`/tmp/create-pr-$SAFE_BRANCH-copilot.md\` (if Copilot was launched)
 
 For each reviewer output:
 1. Parse findings (ignore empty or error-only output)
@@ -222,7 +222,7 @@ Skip this phase if no external reviewers were launched.
 
 When all review passes are clean and no changes were made:
 1. Push the branch: \`git push origin HEAD:\$(git branch --show-current)\`
-2. Create a PR with \`gh pr create --assignee benkim0414\` including a summary and test plan
+2. Create a PR with \`gh pr create --assignee @me\` including a summary and test plan
 3. Clean up the loop state file: \`rm -f .claude/ralph-loop.local.md\`
 4. Output: <promise>PR_CREATED</promise>
 
