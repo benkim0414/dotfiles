@@ -13,7 +13,7 @@ if [[ ! -d "$STATE_DIR" ]] || ! compgen -G "$STATE_DIR/pending-*" >/dev/null 2>&
 fi
 
 # shellcheck source=../lib/session.sh
-source "${BASH_SOURCE[0]%/*}/../lib/session.sh"
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../lib/session.sh"
 
 INPUT=$(cat)
 SESSION_ID=$(parse_session_id "$INPUT")
@@ -31,17 +31,7 @@ fi
 # Allow writes to paths outside the git working tree (plan files, temp files, etc.).
 # Resolve symlinks so that stow-managed files (e.g. ~/.claude/settings.json →
 # ~/workspace/dotfiles/claude/.claude/settings.json) are treated as repo files.
-# Fast-path: extract file_path with bash regex (avoids jq subprocess).
-FILE_PATH=""
-if [[ "$INPUT" =~ \"file_path\":\"([^\"]*)\" ]]; then
-  FILE_PATH="${BASH_REMATCH[1]}"
-elif [[ "$INPUT" =~ \"path\":\"([^\"]*)\" ]]; then
-  FILE_PATH="${BASH_REMATCH[1]}"
-elif [[ "$INPUT" =~ \"notebook_path\":\"([^\"]*)\" ]]; then
-  FILE_PATH="${BASH_REMATCH[1]}"
-elif [[ "$INPUT" == *'"file_path"'* || "$INPUT" == *'"path"'* || "$INPUT" == *'"notebook_path"'* ]]; then
-  FILE_PATH=$(printf '%s' "$INPUT" | jq -r '.tool_input.file_path // .tool_input.path // .tool_input.notebook_path // empty' 2>/dev/null || true)
-fi
+FILE_PATH=$(printf '%s' "$INPUT" | jq -r '.tool_input.file_path // .tool_input.path // .tool_input.notebook_path // empty' 2>/dev/null || true)
 if [[ -n "$FILE_PATH" ]]; then
   REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || true)
   if [[ -n "$REPO_ROOT" ]]; then

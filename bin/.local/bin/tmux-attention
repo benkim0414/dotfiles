@@ -5,27 +5,16 @@
 #   tmux-attention                -- dispatch: 0 msg, 1 direct, N cycle to most urgent
 #   tmux-attention --pick         -- picker: fzf selection with pane preview
 #   tmux-attention --clear-focused -- auto-dismiss: clear marker for focused pane
-
-# _attn_* globals are set by resolve_attention() in the sourced lib.
-# shellcheck disable=SC2154
 set -euo pipefail
 
 ATTN_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/claude/attention"
 TTL=300 # 5 minutes
 
-# shellcheck source=tmux-attention-lib
-source "$(dirname "$0")/tmux-attention-lib"
-
 # --- Helpers ---
 
-# Clear pane border style and recompute window @attention from remaining markers.
-clear_pane_attention() {
-  local cleared_pane="$1"
-  tmux set-option -p -u -t "$cleared_pane" pane-border-style 2>/dev/null || true
-
-  local window_id
-  window_id=$(tmux display-message -t "$cleared_pane" -p '#{window_id}' 2>/dev/null || true)
-  recompute_window_attention "$window_id" "$cleared_pane"
+# Read a single field from a marker file.
+read_field() {
+  grep "^${1}=" "$2" 2>/dev/null | cut -d= -f2-
 }
 
 # Collect valid (non-stale, pane-alive) marker paths, one per line.
@@ -38,9 +27,8 @@ collect_markers() {
   for marker in "$ATTN_DIR"/%*; do
     [[ -f "$marker" ]] || continue
 
-    read_marker "$marker"
-    ts="${_marker_fields[timestamp]:-}"
-    pane_id="${_marker_fields[pane_id]:-}"
+    ts=$(read_field timestamp "$marker")
+    pane_id=$(read_field pane_id "$marker")
 
     # Stale marker -- remove.
     if [[ -n "$ts" ]] && (( now - ts > TTL )); then
@@ -71,7 +59,18 @@ switch_to_pane() {
   tmux select-pane -t "$pane_id" 2>/dev/null || true
 
   rm -f "$marker"
-  clear_pane_attention "$pane_id"
+}
+
+# Return numeric priority for a notification type (lower = more urgent).
+ntype_priority() {
+  case "$(read_field notification_type "$1")" in
+    permission_prompt)  echo 1 ;;
+    plan_approval)      echo 2 ;;
+    ask_user_question)  echo 3 ;;
+    elicitation_dialog) echo 4 ;;
+    idle_prompt)        echo 5 ;;
+    *)                  echo 9 ;;
+  esac
 }
 
 # Sort marker paths by priority (then timestamp for tie-breaking).
@@ -84,53 +83,39 @@ sort_markers() {
 
   [[ ${#markers[@]} -eq 0 ]] && return 0
 
-  local m ntype ts
+  local m
   for m in "${markers[@]}"; do
-    read_marker "$m"
-    ntype="${_marker_fields[notification_type]:-}"
-    ts="${_marker_fields[timestamp]:-}"
-    resolve_attention "$ntype"
-    printf '%s\t%s\t%s\n' "$_attn_priority" "$ts" "$m"
+    printf '%s\t%s\t%s\n' "$(ntype_priority "$m")" "$(read_field timestamp "$m")" "$m"
   done | sort -t$'\t' -k1,1n -k2,2n | cut -f3
 }
 
 # Format a marker for fzf display. Output: "display_text\tpane_id\tmarker_path"
-# Uses ANSI-colored bullets (Catppuccin Mocha palette).
 format_marker() {
   local marker="$1"
-  local pane_label ntype project pane_id
+  local pane_label ntype project pane_id label
 
-  read_marker "$marker"
-  pane_label="${_marker_fields[pane_label]:-}"
-  ntype="${_marker_fields[notification_type]:-}"
-  project="${_marker_fields[project]:-}"
-  pane_id="${_marker_fields[pane_id]:-}"
+  pane_label=$(read_field pane_label "$marker")
+  ntype=$(read_field notification_type "$marker")
+  project=$(read_field project "$marker")
+  pane_id=$(read_field pane_id "$marker")
 
-  resolve_attention "$ntype"
+  case "$ntype" in
+    permission_prompt)  label="Approval" ;;
+    idle_prompt)        label="Complete" ;;
+    elicitation_dialog) label="Input" ;;
+    ask_user_question)  label="Question" ;;
+    plan_approval)      label="Plan" ;;
+    *)                  label="$ntype" ;;
+  esac
 
-  local display
-  if [[ -n "$_attn_color" ]]; then
-    # ANSI 24-bit color: \e[38;2;R;G;Bm ... \e[0m
-    local r g b
-    r=$(( 16#${_attn_color:1:2} ))
-    g=$(( 16#${_attn_color:3:2} ))
-    b=$(( 16#${_attn_color:5:2} ))
-    display=$(printf '\033[38;2;%d;%d;%dm●\033[0m %s (%s)' "$r" "$g" "$b" "$project" "$pane_label")
-  else
-    display=$(printf '  %s (%s)' "$project" "$pane_label")
-  fi
-
-  printf '%s\t%s\t%s\n' "$display" "$pane_id" "$marker"
+  printf '[%s] %s (%s)\t%s\t%s\n' "$label" "$project" "$pane_label" "$pane_id" "$marker"
 }
 
 # === CLEAR-FOCUSED MODE (called from pane-focus-in hook) ===
 if [[ "${1:-}" == "--clear-focused" ]]; then
   [[ -d "$ATTN_DIR" ]] || exit 0
   pane_id=$(tmux display-message -p '#{pane_id}' 2>/dev/null || true)
-  if [[ -n "$pane_id" && -f "${ATTN_DIR}/${pane_id}" ]]; then
-    rm -f "${ATTN_DIR}/${pane_id}"
-    clear_pane_attention "$pane_id"
-  fi
+  [[ -n "$pane_id" ]] && rm -f "${ATTN_DIR}/${pane_id}"
   exit 0
 fi
 
@@ -148,14 +133,12 @@ if [[ "${1:-}" == "--pick" ]]; then
   fi
 
   if [[ ${#markers[@]} -eq 1 ]]; then
-    read_marker "${markers[0]}"
-    pane_id="${_marker_fields[pane_id]:-}"
+    pane_id=$(read_field pane_id "${markers[0]}")
     switch_to_pane "$pane_id" "${markers[0]}"
     exit 0
   fi
 
   selected=$(for marker in "${markers[@]}"; do format_marker "$marker"; done | fzf \
-    --ansi \
     --delimiter=$'\t' \
     --with-nth=1 \
     --header="Select pane needing attention" \
@@ -184,10 +167,13 @@ case "$count" in
   0)
     tmux display-message "No panes need attention"
     ;;
-  1|*)
+  1)
+    pane_id=$(read_field pane_id "${markers[0]}")
+    switch_to_pane "$pane_id" "${markers[0]}"
+    ;;
+  *)
     # Switch to the most urgent pane; use Prefix+A for the full picker.
-    read_marker "${markers[0]}"
-    pane_id="${_marker_fields[pane_id]:-}"
+    pane_id=$(read_field pane_id "${markers[0]}")
     switch_to_pane "$pane_id" "${markers[0]}"
     ;;
 esac

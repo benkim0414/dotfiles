@@ -10,19 +10,14 @@ set -euo pipefail
 # Provides: EPOCHSECONDS, file_mtime, run_timeout.
 # Full session.sh (which adds emit_context/jq helpers) is lazy-loaded below.
 # shellcheck source=../lib/portability.sh
-source "${BASH_SOURCE[0]%/*}/../lib/portability.sh"
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../lib/portability.sh"
 
 INPUT=$(cat)
 
-# --- Clear attention marker and pane border (always, if in tmux) ---
-# The user is present — clear the notification marker and reset the pane border.
-# Window @attention options are recomputed by tmux-attention-badge on the next
-# status-interval (~15s), keeping this hot path fast.
+# --- Clear attention marker (always, if in tmux) ---
+# The user is present — clear the notification marker so tmux status resets.
 if [[ -n "${TMUX_PANE:-}" ]]; then
-  if [[ -f "${XDG_CACHE_HOME:-$HOME/.cache}/claude/attention/${TMUX_PANE}" ]]; then
-    rm -f "${XDG_CACHE_HOME:-$HOME/.cache}/claude/attention/${TMUX_PANE}" 2>/dev/null || true
-    tmux set-option -p -u -t "$TMUX_PANE" pane-border-style 2>/dev/null || true
-  fi
+  rm -f "${XDG_CACHE_HOME:-$HOME/.cache}/claude/attention/${TMUX_PANE}" 2>/dev/null || true
 fi
 
 # --- Fast-path: extract prompt without spawning jq ---
@@ -90,6 +85,6 @@ fi
 
 # Source session.sh only when we actually need emit_context (lazy load).
 # shellcheck source=../lib/session.sh
-source "${BASH_SOURCE[0]%/*}/../lib/session.sh"
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../lib/session.sh"
 
 emit_context "UserPromptSubmit" "$context"

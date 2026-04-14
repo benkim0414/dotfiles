@@ -6,7 +6,7 @@
 set -euo pipefail
 
 # shellcheck source=../lib/session.sh
-source "${BASH_SOURCE[0]%/*}/../lib/session.sh"
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../lib/session.sh"
 
 if [[ "${CLAUDE_GIT_WORKFLOW:-}" == "no-pr" ]]; then
   emit_context "PostToolUse" "Worktree exited. Merge the feature branch to main, then push."
