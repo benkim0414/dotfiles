@@ -112,7 +112,10 @@ fi
 HAS_CODEX=false
 HAS_COPILOT=false
 command -v codex &>/dev/null && HAS_CODEX=true
-gh extension list 2>/dev/null | grep -q gh-copilot && HAS_COPILOT=true
+gh copilot --version &>/dev/null && HAS_COPILOT=true
+
+# Sanitize branch name for use in temp file paths
+SAFE_BRANCH="${CURRENT_BRANCH//\//-}"
 
 mkdir -p .claude
 
@@ -148,10 +151,10 @@ Each iteration runs multiple review passes, fixes issues, then re-checks.
 Use \`run_in_background: true\` on each Bash call so they run concurrently with Phase 2.
 
 - **Codex** (if \`has_codex: true\`):
-  \`codex review --base main --title "\$(git log --format=%s -1)" > /tmp/create-pr-\$(git branch --show-current | tr '/' '-')-codex.md 2>&1\`
+  \`codex review --base main --title "\$(git log --format=%s -1)" > /tmp/create-pr-$SAFE_BRANCH-codex.md 2>&1\`
 
 - **Copilot** (if \`has_copilot: true\`):
-  \`gh copilot -p "Review the changes on this branch compared to main. Run 'git diff \$MERGE_BASE..HEAD' to see the diff. Focus on bugs, security issues, and improvements. Be specific about file paths and line numbers. Format each finding as: **[severity]** \\\`file:line\\\` -- description" --allow-all-tools > /tmp/create-pr-\$(git branch --show-current | tr '/' '-')-copilot.md 2>&1\`
+  \`gh copilot -p "Review the changes on this branch compared to main. Run 'git diff \$MERGE_BASE..HEAD' to see the diff. Focus on bugs, security issues, and improvements. Be specific about file paths and line numbers. Format each finding as: **[severity]** \\\`file:line\\\` -- description" --allow-all-tools > /tmp/create-pr-$SAFE_BRANCH-copilot.md 2>&1\`
 
 Skip Step 4 entirely if both \`has_codex\` and \`has_copilot\` are false.
 
@@ -205,7 +208,7 @@ For each reviewer output:
 2. Evaluate each finding against the current code -- only act on genuine issues
 3. If fixes are needed, apply them, \`git add <specific-files>\`, and \`git commit\`
 
-Clean up output files: \`rm -f /tmp/create-pr-\$(git branch --show-current | tr '/' '-')-codex.md /tmp/create-pr-\$(git branch --show-current | tr '/' '-')-copilot.md\`
+Clean up output files: \`rm -f /tmp/create-pr-$SAFE_BRANCH-codex.md /tmp/create-pr-$SAFE_BRANCH-copilot.md\`
 
 Skip this phase if no external reviewers were launched.
 
