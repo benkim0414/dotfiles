@@ -27,15 +27,11 @@ declare -A pane_window=()  # cache pane_id -> window_id
 for f in "$ATTN_DIR"/%*; do
   [[ -f "$f" ]] || continue
 
-  # Read all fields in a single pass (avoids 6 subprocess forks per marker).
-  pane_id="" ts="" ntype=""
-  while IFS='=' read -r key val; do
-    case "$key" in
-      pane_id) pane_id="$val" ;;
-      timestamp) ts="$val" ;;
-      notification_type) ntype="$val" ;;
-    esac
-  done < "$f"
+  # Read all fields in a single pass via shared helper (avoids subprocess forks).
+  read_marker "$f"
+  pane_id="${_marker_fields[pane_id]:-}"
+  ts="${_marker_fields[timestamp]:-}"
+  ntype="${_marker_fields[notification_type]:-}"
 
   # Stale marker -- remove and clean up tmux options.
   if [[ -n "$ts" ]] && (( NOW - ts > TTL )); then
