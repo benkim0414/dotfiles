@@ -3,7 +3,7 @@
 # Source this file; do not execute it directly.
 
 # shellcheck source=portability.sh
-source "${BASH_SOURCE[0]%/*}/portability.sh"
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/portability.sh"
 
 # --- Structured context injection ---
 # Hooks can return JSON with hookSpecificOutput to inject context into Claude's
