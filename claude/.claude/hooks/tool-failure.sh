@@ -4,7 +4,8 @@
 # Fast exit for unrecognized failures.
 set -euo pipefail
 
-# session.sh is lazy-loaded below — only needed when a pattern matches (emit_context).
+# shellcheck source=../lib/session.sh
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../lib/session.sh"
 
 INPUT=$(cat)
 
@@ -78,7 +79,4 @@ fi
 # No recognized pattern — exit silently.
 [[ -z "$guidance" ]] && exit 0
 
-# Lazy-load session.sh only when we need emit_context (avoids jq/source on fast path).
-# shellcheck source=../lib/session.sh
-source "${BASH_SOURCE[0]%/*}/../lib/session.sh"
 emit_context "PostToolUseFailure" "$guidance"
