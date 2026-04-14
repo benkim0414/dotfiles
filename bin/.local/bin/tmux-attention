@@ -5,16 +5,32 @@
 #   tmux-attention                -- dispatch: 0 msg, 1 direct, N cycle to most urgent
 #   tmux-attention --pick         -- picker: fzf selection with pane preview
 #   tmux-attention --clear-focused -- auto-dismiss: clear marker for focused pane
+
+# _attn_* globals are set by resolve_attention() in the sourced lib.
+# shellcheck disable=SC2154
 set -euo pipefail
 
 ATTN_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/claude/attention"
 TTL=300 # 5 minutes
+
+# shellcheck source=tmux-attention-lib
+source "$(dirname "$0")/tmux-attention-lib"
 
 # --- Helpers ---
 
 # Read a single field from a marker file.
 read_field() {
   grep "^${1}=" "$2" 2>/dev/null | cut -d= -f2-
+}
+
+# Clear pane border style and recompute window @attention from remaining markers.
+clear_pane_attention() {
+  local cleared_pane="$1"
+  tmux set-option -p -u -t "$cleared_pane" pane-border-style 2>/dev/null || true
+
+  local window_id
+  window_id=$(tmux display-message -t "$cleared_pane" -p '#{window_id}' 2>/dev/null || true)
+  recompute_window_attention "$window_id" "$cleared_pane"
 }
 
 # Collect valid (non-stale, pane-alive) marker paths, one per line.
@@ -59,18 +75,7 @@ switch_to_pane() {
   tmux select-pane -t "$pane_id" 2>/dev/null || true
 
   rm -f "$marker"
-}
-
-# Return numeric priority for a notification type (lower = more urgent).
-ntype_priority() {
-  case "$(read_field notification_type "$1")" in
-    permission_prompt)  echo 1 ;;
-    plan_approval)      echo 2 ;;
-    ask_user_question)  echo 3 ;;
-    elicitation_dialog) echo 4 ;;
-    idle_prompt)        echo 5 ;;
-    *)                  echo 9 ;;
-  esac
+  clear_pane_attention "$pane_id"
 }
 
 # Sort marker paths by priority (then timestamp for tie-breaking).
@@ -83,39 +88,51 @@ sort_markers() {
 
   [[ ${#markers[@]} -eq 0 ]] && return 0
 
-  local m
+  local m ntype ts
   for m in "${markers[@]}"; do
-    printf '%s\t%s\t%s\n' "$(ntype_priority "$m")" "$(read_field timestamp "$m")" "$m"
+    ntype=$(read_field notification_type "$m")
+    ts=$(read_field timestamp "$m")
+    resolve_attention "$ntype"
+    printf '%s\t%s\t%s\n' "$_attn_priority" "$ts" "$m"
   done | sort -t$'\t' -k1,1n -k2,2n | cut -f3
 }
 
 # Format a marker for fzf display. Output: "display_text\tpane_id\tmarker_path"
+# Uses ANSI-colored Nerd Font icons (Catppuccin Mocha palette).
 format_marker() {
   local marker="$1"
-  local pane_label ntype project pane_id label
+  local pane_label ntype project pane_id
 
   pane_label=$(read_field pane_label "$marker")
   ntype=$(read_field notification_type "$marker")
   project=$(read_field project "$marker")
   pane_id=$(read_field pane_id "$marker")
 
-  case "$ntype" in
-    permission_prompt)  label="Approval" ;;
-    idle_prompt)        label="Complete" ;;
-    elicitation_dialog) label="Input" ;;
-    ask_user_question)  label="Question" ;;
-    plan_approval)      label="Plan" ;;
-    *)                  label="$ntype" ;;
-  esac
+  resolve_attention "$ntype"
 
-  printf '[%s] %s (%s)\t%s\t%s\n' "$label" "$project" "$pane_label" "$pane_id" "$marker"
+  local display
+  if [[ -n "$_attn_color" ]]; then
+    # ANSI 24-bit color: \e[38;2;R;G;Bm ... \e[0m
+    local r g b
+    r=$(( 16#${_attn_color:1:2} ))
+    g=$(( 16#${_attn_color:3:2} ))
+    b=$(( 16#${_attn_color:5:2} ))
+    display=$(printf '\033[38;2;%d;%d;%dm%s\033[0m %s (%s)' "$r" "$g" "$b" "$_attn_icon" "$project" "$pane_label")
+  else
+    display=$(printf '  %s (%s)' "$project" "$pane_label")
+  fi
+
+  printf '%s\t%s\t%s\n' "$display" "$pane_id" "$marker"
 }
 
 # === CLEAR-FOCUSED MODE (called from pane-focus-in hook) ===
 if [[ "${1:-}" == "--clear-focused" ]]; then
   [[ -d "$ATTN_DIR" ]] || exit 0
   pane_id=$(tmux display-message -p '#{pane_id}' 2>/dev/null || true)
-  [[ -n "$pane_id" ]] && rm -f "${ATTN_DIR}/${pane_id}"
+  if [[ -n "$pane_id" && -f "${ATTN_DIR}/${pane_id}" ]]; then
+    rm -f "${ATTN_DIR}/${pane_id}"
+    clear_pane_attention "$pane_id"
+  fi
   exit 0
 fi
 
@@ -139,6 +156,7 @@ if [[ "${1:-}" == "--pick" ]]; then
   fi
 
   selected=$(for marker in "${markers[@]}"; do format_marker "$marker"; done | fzf \
+    --ansi \
     --delimiter=$'\t' \
     --with-nth=1 \
     --header="Select pane needing attention" \
