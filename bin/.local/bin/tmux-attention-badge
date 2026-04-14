@@ -1,17 +1,102 @@
 #!/usr/bin/env bash
-# tmux-attention-badge: output attention count for the tmux status bar.
-# Returns " [N waiting]" when markers exist, empty string otherwise.
+# tmux-attention-badge: output per-type attention icons for the tmux status bar.
 # Called by tmux via #() in status-right on every status-interval.
+# Emits colored Nerd Font icons for non-idle types; idle markers are silent.
+# Also sweeps stale markers and recomputes window @attention options.
+
+# _attn_* globals are set by resolve_attention() in the sourced lib.
+# shellcheck disable=SC2154
 set -euo pipefail
 
 ATTN_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/claude/attention"
 [[ -d "$ATTN_DIR" ]] || exit 0
 
-count=0
+# shellcheck source=tmux-attention-lib
+source "$(dirname "$0")/tmux-attention-lib"
+
+TTL=300
+NOW=$(date +%s)
+
+# Single pass: count by type, sweep stale/dead, collect window priorities.
+declare -A counts=()
+declare -A win_priority=()
+declare -A win_color=()
+declare -A win_icon=()
+declare -A pane_window=()  # cache pane_id -> window_id
+
 for f in "$ATTN_DIR"/%*; do
-  [[ -f "$f" ]] && { (( count++ )) || true; }
+  [[ -f "$f" ]] || continue
+
+  pane_id=$(grep "^pane_id=" "$f" 2>/dev/null | cut -d= -f2-)
+  ts=$(grep "^timestamp=" "$f" 2>/dev/null | cut -d= -f2-)
+
+  # Stale marker -- remove and clean up tmux options.
+  if [[ -n "$ts" ]] && (( NOW - ts > TTL )); then
+    rm -f "$f"
+    if [[ -n "$pane_id" ]]; then
+      tmux set-option -p -u -t "$pane_id" pane-border-style 2>/dev/null || true
+    fi
+    continue
+  fi
+
+  # Dead pane -- remove and clean up.
+  if [[ -z "$pane_id" ]] || ! tmux display-message -t "$pane_id" -p '' >/dev/null 2>&1; then
+    rm -f "$f"
+    continue
+  fi
+
+  ntype=$(grep "^notification_type=" "$f" 2>/dev/null | cut -d= -f2-)
+  counts[${ntype:-unknown}]=$(( ${counts[${ntype:-unknown}]:-0} + 1 ))
+
+  # Resolve color/icon and track best priority per window.
+  resolve_attention "$ntype"
+  [[ -n "$_attn_color" ]] || continue
+
+  # Cache window_id lookup to avoid redundant tmux calls.
+  if [[ -z "${pane_window[$pane_id]+set}" ]]; then
+    pane_window[$pane_id]=$(tmux display-message -t "$pane_id" -p '#{window_id}' 2>/dev/null || true)
+  fi
+  win_id=${pane_window[$pane_id]}
+  [[ -n "$win_id" ]] || continue
+
+  cur=${win_priority[$win_id]:-99}
+  if (( _attn_priority < cur )); then
+    win_priority[$win_id]=$_attn_priority
+    win_color[$win_id]=$_attn_color
+    win_icon[$win_id]=$_attn_icon
+  fi
 done
 
-if (( count > 0 )); then
-  printf ' %d waiting' "$count"
-fi
+# Apply window options for windows with active non-idle markers.
+for win_id in "${!win_priority[@]}"; do
+  tmux set-option -w -t "$win_id" @attention "1" 2>/dev/null || true
+  tmux set-option -w -t "$win_id" @attention_color "${win_color[$win_id]}" 2>/dev/null || true
+  tmux set-option -w -t "$win_id" @attention_icon "${win_icon[$win_id]}" 2>/dev/null || true
+  tmux set-option -w -t "$win_id" @attention_priority "${win_priority[$win_id]}" 2>/dev/null || true
+done
+
+# Clear window options for windows that no longer have non-idle markers.
+while IFS=$'\t' read -r win_id _; do
+  [[ -n "$win_id" ]] || continue
+  if [[ -z "${win_priority[$win_id]:-}" ]]; then
+    tmux set-option -w -u -t "$win_id" @attention 2>/dev/null || true
+    tmux set-option -w -u -t "$win_id" @attention_color 2>/dev/null || true
+    tmux set-option -w -u -t "$win_id" @attention_icon 2>/dev/null || true
+    tmux set-option -w -u -t "$win_id" @attention_priority 2>/dev/null || true
+  fi
+done < <(tmux list-windows -a -F '#{window_id}	#{@attention}' 2>/dev/null | grep -v $'\t$' || true)
+
+# Build badge output: per-type icon with color (skip idle).
+out=""
+for ntype in permission_prompt plan_approval ask_user_question elicitation_dialog; do
+  c=${counts[$ntype]:-0}
+  (( c > 0 )) || continue
+  resolve_attention "$ntype"
+  if (( c > 1 )); then
+    out+="#[fg=${_attn_color}]${_attn_icon} ${c} "
+  else
+    out+="#[fg=${_attn_color}]${_attn_icon} "
+  fi
+done
+
+[[ -n "$out" ]] && printf ' %s' "$out"

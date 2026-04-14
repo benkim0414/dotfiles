@@ -8,6 +8,9 @@
 #
 # The script detects its context via hook_event_name in the JSON payload.
 # Runs async (non-blocking) -- must never slow down Claude Code.
+
+# _attn_* globals are set by resolve_attention() in the sourced lib.
+# shellcheck disable=SC2154
 set -euo pipefail
 
 : "${EPOCHSECONDS:=$(date +%s)}"
@@ -67,6 +70,19 @@ if [[ -n "$CWD" ]]; then
   PROJECT=$(basename "$CWD")
 fi
 
+# --- Resolve attention color and icon (Catppuccin Mocha) ---
+# Shared attention color/icon mapping (stowed to ~/.local/bin).
+# shellcheck disable=SC1091
+source "${HOME}/.local/bin/tmux-attention-lib" 2>/dev/null || true
+if ! declare -f resolve_attention >/dev/null 2>&1; then
+  # Fallback if lib not stowed yet -- skip visual indicators.
+  resolve_attention() { _attn_color=""; _attn_icon=""; _attn_priority=9; }
+fi
+resolve_attention "$NTYPE"
+ATTN_COLOR=$_attn_color
+ATTN_ICON=$_attn_icon
+ATTN_PRIORITY=$_attn_priority
+
 # --- Write attention marker for tmux-attention switcher ---
 # Written before the dedup cooldown so rapid re-prompts still register a
 # marker even when the desktop notification is suppressed.
@@ -84,6 +100,25 @@ if [[ -n "${TMUX_PANE:-}" ]]; then
       "timestamp=${EPOCHSECONDS}" \
       > "$MARKER_TMP" 2>/dev/null || true
     mv -f "$MARKER_TMP" "${ATTN_DIR}/${TMUX_PANE}" 2>/dev/null || true
+  fi
+
+  # --- Set tmux visual indicators for non-idle types ---
+  if [[ -n "$ATTN_COLOR" ]]; then
+    # Per-pane: color the border.
+    tmux set-option -p -t "$TMUX_PANE" pane-border-style "fg=${ATTN_COLOR}" \
+      2>/dev/null || true
+
+    # Per-window: set @attention icon/color (only if this type is more urgent).
+    WINDOW_ID=$(tmux display-message -t "$TMUX_PANE" -p '#{window_id}' 2>/dev/null || true)
+    if [[ -n "$WINDOW_ID" ]]; then
+      CUR_PRI=$(tmux show-option -wqv -t "$WINDOW_ID" @attention_priority 2>/dev/null || true)
+      if [[ -z "$CUR_PRI" ]] || (( ATTN_PRIORITY <= CUR_PRI )); then
+        tmux set-option -w -t "$WINDOW_ID" @attention "1" 2>/dev/null || true
+        tmux set-option -w -t "$WINDOW_ID" @attention_color "$ATTN_COLOR" 2>/dev/null || true
+        tmux set-option -w -t "$WINDOW_ID" @attention_icon "$ATTN_ICON" 2>/dev/null || true
+        tmux set-option -w -t "$WINDOW_ID" @attention_priority "$ATTN_PRIORITY" 2>/dev/null || true
+      fi
+    fi
   fi
 fi
 
