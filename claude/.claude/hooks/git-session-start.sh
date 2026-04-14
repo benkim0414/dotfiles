@@ -5,7 +5,7 @@
 set -euo pipefail
 
 # shellcheck source=../lib/session.sh
-source "${BASH_SOURCE[0]%/*}/../lib/session.sh"
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../lib/session.sh"
 
 INPUT=$(cat)
 SESSION_ID=$(parse_session_id "$INPUT")
