@@ -64,17 +64,16 @@ if [[ -n "$CWD" ]]; then
   PROJECT=$(basename "$CWD")
 fi
 
-# --- Resolve attention color and icon (Catppuccin Mocha) ---
-# Shared attention color/icon mapping (stowed to ~/.local/bin).
+# --- Resolve attention color (Catppuccin Mocha) ---
+# Shared attention color mapping (stowed to ~/.local/bin).
 # shellcheck disable=SC1091
 source "${HOME}/.local/bin/tmux-attention-lib" 2>/dev/null || true
 if ! declare -f resolve_attention >/dev/null 2>&1; then
   # Fallback if lib not stowed yet -- skip visual indicators.
-  resolve_attention() { _attn_color=""; _attn_icon=""; _attn_priority=9; }
+  resolve_attention() { _attn_color=""; _attn_priority=9; }
 fi
 resolve_attention "$NTYPE"
 ATTN_COLOR=$_attn_color
-ATTN_ICON=$_attn_icon
 ATTN_PRIORITY=$_attn_priority
 
 # --- Write attention marker for tmux-attention switcher ---
@@ -102,14 +101,13 @@ if [[ -n "${TMUX_PANE:-}" ]]; then
     tmux set-option -p -t "$TMUX_PANE" pane-border-style "fg=${ATTN_COLOR}" \
       2>/dev/null || true
 
-    # Per-window: set @attention icon/color (only if this type is more urgent).
+    # Per-window: set @attention color (only if this type is more urgent).
     WINDOW_ID=$(tmux display-message -t "$TMUX_PANE" -p '#{window_id}' 2>/dev/null || true)
     if [[ -n "$WINDOW_ID" ]]; then
       CUR_PRI=$(tmux show-option -wqv -t "$WINDOW_ID" @attention_priority 2>/dev/null || true)
       if [[ -z "$CUR_PRI" ]] || (( ATTN_PRIORITY <= CUR_PRI )); then
         tmux set-option -w -t "$WINDOW_ID" @attention "1" 2>/dev/null || true
         tmux set-option -w -t "$WINDOW_ID" @attention_color "$ATTN_COLOR" 2>/dev/null || true
-        tmux set-option -w -t "$WINDOW_ID" @attention_icon "$ATTN_ICON" 2>/dev/null || true
         tmux set-option -w -t "$WINDOW_ID" @attention_priority "$ATTN_PRIORITY" 2>/dev/null || true
       fi
     fi
