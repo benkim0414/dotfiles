@@ -212,7 +212,7 @@ dirs=$(echo "$staged" | grep '/' | cut -d/ -f1 | sort -u | tr '\n' ', ' | sed 's
 # Collect known scopes from recent history — cached with 60-second TTL.
 # Source session.sh here (provides emit_context + portability helpers for EPOCHSECONDS/file_mtime).
 # shellcheck source=../lib/session.sh
-source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../lib/session.sh"
+source "${BASH_SOURCE[0]%/*}/../lib/session.sh"
 
 repo_path=$(git rev-parse --show-toplevel 2>/dev/null || true)
 repo_key=${repo_path//[^a-zA-Z0-9_]/_}

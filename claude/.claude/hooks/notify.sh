@@ -16,17 +16,20 @@ set -euo pipefail
 : "${EPOCHSECONDS:=$(date +%s)}"
 
 INPUT=$(cat)
-HOOK_EVENT=$(printf '%s' "$INPUT" | jq -r '.hook_event_name // ""')
+
+# Single jq call extracts all fields for both hook contexts (PreToolUse and Notification).
+IFS=$'\t' read -r HOOK_EVENT TOOL_NAME NTYPE MESSAGE SESSION_ID CWD <<< "$(
+  printf '%s' "$INPUT" | jq -r '[
+    (.hook_event_name // ""),
+    (.tool_name // ""),
+    (.notification_type // ""),
+    (.message // ""),
+    (.session_id // ""),
+    (.cwd // "")
+  ] | @tsv'
+)"
 
 if [[ "$HOOK_EVENT" == "PreToolUse" ]]; then
-  # Called from PreToolUse -- map tool name to notification type.
-  IFS=$'\t' read -r TOOL_NAME SESSION_ID CWD <<< "$(
-    printf '%s' "$INPUT" | jq -r '[
-      (.tool_name // ""),
-      (.session_id // ""),
-      (.cwd // "")
-    ] | @tsv'
-  )"
   case "$TOOL_NAME" in
     AskUserQuestion) NTYPE="ask_user_question" ;;
     ExitPlanMode)    NTYPE="plan_approval" ;;
@@ -34,15 +37,6 @@ if [[ "$HOOK_EVENT" == "PreToolUse" ]]; then
   esac
   MESSAGE=""
 else
-  # Called from Notification hook.
-  IFS=$'\t' read -r NTYPE MESSAGE SESSION_ID CWD <<< "$(
-    printf '%s' "$INPUT" | jq -r '[
-      (.notification_type // ""),
-      (.message // ""),
-      (.session_id // ""),
-      (.cwd // "")
-    ] | @tsv'
-  )"
   # Only notify for types where Claude is blocked waiting for the user.
   case "$NTYPE" in
     permission_prompt|idle_prompt|elicitation_dialog) ;;

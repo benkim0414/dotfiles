@@ -10,7 +10,7 @@ set -euo pipefail
 # Provides: EPOCHSECONDS, file_mtime, run_timeout.
 # Full session.sh (which adds emit_context/jq helpers) is lazy-loaded below.
 # shellcheck source=../lib/portability.sh
-source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../lib/portability.sh"
+source "${BASH_SOURCE[0]%/*}/../lib/portability.sh"
 
 INPUT=$(cat)
 
@@ -90,6 +90,6 @@ fi
 
 # Source session.sh only when we actually need emit_context (lazy load).
 # shellcheck source=../lib/session.sh
-source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../lib/session.sh"
+source "${BASH_SOURCE[0]%/*}/../lib/session.sh"
 
 emit_context "UserPromptSubmit" "$context"
