@@ -13,5 +13,5 @@ for f in "$ATTN_DIR"/%*; do
 done
 
 if (( count > 0 )); then
-  printf ' %d waiting' "$count"
+  printf ' 󰂚 %d waiting' "$count"
 fi
