@@ -95,7 +95,7 @@ sort_markers() {
 }
 
 # Format a marker for fzf display. Output: "display_text\tpane_id\tmarker_path"
-# Uses ANSI-colored Nerd Font icons (Catppuccin Mocha palette).
+# Uses ANSI-colored bullets (Catppuccin Mocha palette).
 format_marker() {
   local marker="$1"
   local pane_label ntype project pane_id
@@ -115,7 +115,7 @@ format_marker() {
     r=$(( 16#${_attn_color:1:2} ))
     g=$(( 16#${_attn_color:3:2} ))
     b=$(( 16#${_attn_color:5:2} ))
-    display=$(printf '\033[38;2;%d;%d;%dm%s\033[0m %s (%s)' "$r" "$g" "$b" "$_attn_icon" "$project" "$pane_label")
+    display=$(printf '\033[38;2;%d;%d;%dm●\033[0m %s (%s)' "$r" "$g" "$b" "$project" "$pane_label")
   else
     display=$(printf '  %s (%s)' "$project" "$pane_label")
   fi

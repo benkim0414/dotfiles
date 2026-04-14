@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# tmux-attention-badge: output per-type attention icons for the tmux status bar.
+# tmux-attention-badge: output per-type attention indicators for the tmux status bar.
 # Called by tmux via #() in status-right on every status-interval.
-# Emits colored Nerd Font icons for non-idle types; idle markers are silent.
+# Emits colored bullets for non-idle types; idle markers are silent.
 # Also sweeps stale markers and recomputes window @attention options.
 
 # _attn_* globals are set by resolve_attention() in the sourced lib.
@@ -21,7 +21,6 @@ NOW=$(date +%s)
 declare -A counts=()
 declare -A win_priority=()
 declare -A win_color=()
-declare -A win_icon=()
 declare -A pane_window=()  # cache pane_id -> window_id
 
 for f in "$ATTN_DIR"/%*; do
@@ -50,7 +49,7 @@ for f in "$ATTN_DIR"/%*; do
 
   counts[${ntype:-unknown}]=$(( ${counts[${ntype:-unknown}]:-0} + 1 ))
 
-  # Resolve color/icon and track best priority per window.
+  # Resolve color and track best priority per window.
   resolve_attention "$ntype"
   [[ -n "$_attn_color" ]] || continue
 
@@ -65,7 +64,6 @@ for f in "$ATTN_DIR"/%*; do
   if (( _attn_priority < cur )); then
     win_priority[$win_id]=$_attn_priority
     win_color[$win_id]=$_attn_color
-    win_icon[$win_id]=$_attn_icon
   fi
 done
 
@@ -73,7 +71,6 @@ done
 for win_id in "${!win_priority[@]}"; do
   tmux set-option -w -t "$win_id" @attention "1" 2>/dev/null || true
   tmux set-option -w -t "$win_id" @attention_color "${win_color[$win_id]}" 2>/dev/null || true
-  tmux set-option -w -t "$win_id" @attention_icon "${win_icon[$win_id]}" 2>/dev/null || true
   tmux set-option -w -t "$win_id" @attention_priority "${win_priority[$win_id]}" 2>/dev/null || true
 done
 
@@ -83,21 +80,20 @@ while IFS=$'\t' read -r win_id _; do
   if [[ -z "${win_priority[$win_id]:-}" ]]; then
     tmux set-option -w -u -t "$win_id" @attention 2>/dev/null || true
     tmux set-option -w -u -t "$win_id" @attention_color 2>/dev/null || true
-    tmux set-option -w -u -t "$win_id" @attention_icon 2>/dev/null || true
     tmux set-option -w -u -t "$win_id" @attention_priority 2>/dev/null || true
   fi
 done < <(tmux list-windows -a -F '#{window_id}	#{@attention}' 2>/dev/null | grep -v $'\t$' || true)
 
-# Build badge output: per-type icon with color (skip idle).
+# Build badge output: per-type colored bullet (skip idle).
 out=""
 for ntype in permission_prompt plan_approval ask_user_question elicitation_dialog; do
   c=${counts[$ntype]:-0}
   (( c > 0 )) || continue
   resolve_attention "$ntype"
   if (( c > 1 )); then
-    out+="#[fg=${_attn_color}]${_attn_icon} ${c} "
+    out+="#[fg=${_attn_color}]● ${c} "
   else
-    out+="#[fg=${_attn_color}]${_attn_icon} "
+    out+="#[fg=${_attn_color}]● "
   fi
 done
 
