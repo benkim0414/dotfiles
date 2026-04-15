@@ -56,9 +56,8 @@ _build_claude_pids() {
 _build_claude_pids
 
 # Resolve status from _marker_fields (must call _read_marker first).
-# Sets _status_color, _status_label, and _status_icon to avoid subshell forks.
+# Sets _status_color and _status_icon to avoid subshell forks.
 _status_color=""
-_status_label=""
 _status_icon=""
 _resolve_status() {
   local marker="$1"
@@ -67,19 +66,19 @@ _resolve_status() {
   # Stale marker — remove and treat as default (no icon).
   if [[ -n "$ts" ]] && (( NOW - ts > TTL )); then
     rm -f "$marker"
-    _status_color=""; _status_label=""; _status_icon=""
+    _status_color=""; _status_icon=""
     return
   fi
 
   case "${_marker_fields[notification_type]:-}" in
     permission_prompt|elicitation_dialog)
-      _status_color="$RED"; _status_label="Waiting for input"; _status_icon="󰂞" ;;
+      _status_color="$RED"; _status_icon="󰂞" ;;
     plan_approval|ask_user_question)
-      _status_color="$RED"; _status_label="Asking a question"; _status_icon="󰘥" ;;
+      _status_color="$RED"; _status_icon="󰘥" ;;
     idle_prompt)
-      _status_color="$BLUE"; _status_label="Idle"; _status_icon="󰏤" ;;
+      _status_color="$BLUE"; _status_icon="󰏤" ;;
     *)
-      _status_color="$RED"; _status_label="Needs attention"; _status_icon="󰀦" ;;
+      _status_color="$RED"; _status_icon="󰀦" ;;
   esac
 }
 
@@ -150,26 +149,25 @@ for entry in "${claude_panes[@]}"; do
     _resolve_status "$marker"
     project="${_marker_fields[project]:-}"
   else
-    _status_color=""; _status_label=""; _status_icon=""
+    _status_color=""; _status_icon=""
     project=""
   fi
   [[ -z "$project" ]] && project="${pane_path##*/}"
   project="${project:-Claude Code}"
 
-  status_color="$_status_color"
   label="${session_name}:${win_idx}.${pane_idx}"
 
   # Status priority: 0=needs attention (red), 1=idle (blue), 2=running (green).
   priority=2
-  if [[ "$status_color" == "$RED" ]]; then
+  if [[ "$_status_color" == "$RED" ]]; then
     priority=0
-  elif [[ "$status_color" == "$BLUE" ]]; then
+  elif [[ "$_status_color" == "$BLUE" ]]; then
     priority=1
   fi
 
   # Format: [icon] project  session:win.pane  branch*
   if [[ -n "$_status_icon" ]]; then
-    line="${status_color}${_status_icon}${RESET} ${BOLD}${WHITE}${project}${RESET}"
+    line="${_status_color}${_status_icon}${RESET} ${BOLD}${WHITE}${project}${RESET}"
   else
     line="${BOLD}${WHITE}${project}${RESET}"
   fi
@@ -210,5 +208,5 @@ selected=$(for i in "${sorted_indices[@]}"; do printf '%s\n' "${blocks[$i]}"; do
   --preview-label-pos=2) || exit 0
 
 # Extract pane_id from the hidden first tab-delimited field.
-pane_id=$(printf '%s' "$selected" | cut -f1)
+pane_id="${selected%%$'\t'*}"
 switch_to_pane "$pane_id"
