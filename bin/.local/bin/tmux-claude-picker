@@ -151,7 +151,7 @@ for entry in "${claude_panes[@]}"; do
         branch="${branch}*"
       fi
     fi
-    printf '%s' "$branch" > "${GIT_TMPDIR}/${pane_id}"
+    printf '%s\n' "$branch" > "${GIT_TMPDIR}/${pane_id}"
   ) &
 done
 wait
