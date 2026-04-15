@@ -8,6 +8,23 @@
 - Explain the reasoning behind config choices, not just what to set
 - Present the dry-run/plan/diff form of a command before the apply form; let the user review first
 
+## Semantic Search (qmd)
+
+When qmd is available as an MCP server and the current project has an indexed
+collection, prefer qmd `query` over Glob/Grep for finding relevant code.
+qmd returns semantically ranked results, which is more effective for:
+- Finding implementations by describing what they do (not what they're named)
+- Discovering related code across a large codebase
+- Answering "where is X handled?" questions
+
+Fall back to Glob/Grep when:
+- qmd is not available or the project has no indexed collection
+- You need exact string/regex matches (import paths, error messages, symbol names)
+- You need to find all occurrences exhaustively (refactoring, renaming)
+
+Never automate `qmd collection add`, `qmd embed`, or `qmd update` --
+indexing is always a manual user action.
+
 ## Git Workflow
 
 All work happens on isolated worktree branches. Hooks enforce worktree isolation,
