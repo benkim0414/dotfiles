@@ -182,7 +182,7 @@ for entry in "${claude_panes[@]}"; do
   project=""
   marker="${ATTN_DIR}/${pane_id}"
   [[ -f "$marker" ]] && project=$(read_field project "$marker")
-  project="${project:-$(basename "$pane_path")}"
+  [[ -z "$project" ]] && project=$(basename "$pane_path")
   project="${project:-Claude Code}"
 
   # Status priority: 0=needs attention (red), 1=idle (blue), 2=running (green).
