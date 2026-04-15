@@ -24,6 +24,7 @@ fi
 if [[ "${1:-}" == "--run" ]]; then
   # Register this pane so --toggle can find and kill it.
   tmux set-option -g "$SIDEBAR_OPT" "$TMUX_PANE"
+  trap 'tmux set-option -gu "$SIDEBAR_OPT" 2>/dev/null || true' EXIT
 fi
 
 ATTN_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/claude/attention"
@@ -49,7 +50,7 @@ _build_claude_pids() {
   claude_pids=$(pgrep -x claude 2>/dev/null) || return 0
 
   # Build pid -> ppid map from the full process table.
-  declare -A ppid_map
+  local -A ppid_map
   while read -r pid ppid; do
     [[ -n "$pid" ]] && ppid_map[$pid]=$ppid
   done < <(ps -eo pid=,ppid= 2>/dev/null)
@@ -156,14 +157,14 @@ for entry in "${claude_panes[@]}"; do
     branch=""
     git_status=$(git -C "$pane_path" status --porcelain -b --short -uno 2>/dev/null || true)
     if [[ -n "$git_status" ]]; then
-      header=$(head -1 <<< "$git_status")
+      IFS=$'\n' read -r header _ <<< "$git_status"
       branch="${header#\#\# }"
       branch="${branch%%...*}"
       branch="${branch%% \[*}"
       if [[ "$branch" == "HEAD (no branch)" ]]; then
         branch=$(git -C "$pane_path" rev-parse --short HEAD 2>/dev/null || true)
       fi
-      if [[ $(wc -l <<< "$git_status") -gt 1 ]]; then
+      if [[ "$git_status" == *$'\n'* ]]; then
         branch="${branch}*"
       fi
     fi
@@ -178,7 +179,7 @@ for entry in "${claude_panes[@]}"; do
   IFS=$'\t' read -r pane_id session_name win_idx pane_idx pane_path <<< "$entry"
 
   branch=""
-  [[ -f "${GIT_TMPDIR}/${pane_id}" ]] && branch=$(cat "${GIT_TMPDIR}/${pane_id}")
+  [[ -f "${GIT_TMPDIR}/${pane_id}" ]] && IFS= read -r branch < "${GIT_TMPDIR}/${pane_id}"
 
   dir=$(abbreviate_path "$pane_path")
 
