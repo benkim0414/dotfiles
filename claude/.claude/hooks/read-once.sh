@@ -53,7 +53,7 @@ ABS=$(realpath -m "$FILE_PATH" 2>/dev/null || grealpath -m "$FILE_PATH" 2>/dev/n
 [[ -e "$ABS" ]] || exit 0
 
 CURRENT_MTIME=$(file_mtime "$ABS")
-[[ "$CURRENT_MTIME" -gt 0 ]] 2>/dev/null || exit 0
+[[ "$CURRENT_MTIME" =~ ^[0-9]+$ && "$CURRENT_MTIME" -gt 0 ]] || exit 0
 
 TTL="${READ_ONCE_TTL:-1200}"
 NOW="${EPOCHSECONDS:-$(date +%s)}"
