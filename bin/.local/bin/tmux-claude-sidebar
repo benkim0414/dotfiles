@@ -6,45 +6,42 @@ set -euo pipefail
 
 ATTN_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/claude/attention"
 TTL=300 # 5 minutes
+NOW=$(date +%s)
 
-# --- Colors (Catppuccin Mocha) ---
+# Catppuccin Mocha palette (shared with statusline.sh)
 RESET='\033[0m'
-GREEN='\033[38;2;166;227;161m'   # #a6e3a1 — Running
-RED='\033[38;2;243;139;168m'     # #f38ba8 — Waiting/Asking
-BLUE='\033[38;2;137;180;250m'    # #89b4fa — Idle
-OVERLAY='\033[38;2;108;112;134m' # #6c7086 — secondary text
+GREEN='\033[38;2;166;227;161m'   # #a6e3a1
+RED='\033[38;2;243;139;168m'     # #f38ba8
+BLUE='\033[38;2;137;180;250m'    # #89b4fa
+OVERLAY='\033[38;2;108;112;134m' # #6c7086
 
-# --- Helpers ---
-
-# Read a single field from a marker file.
 read_field() {
   grep "^${1}=" "$2" 2>/dev/null | cut -d= -f2-
 }
 
-# Check if Claude Code is running in a pane (2-level process tree search).
+# 2-level process tree search: shell -> claude, or shell -> wrapper -> claude.
+# Uses /claude( |$)/ to avoid matching unrelated commands (e.g. "vim claude.md").
 has_claude() {
   local pid="$1"
-  pgrep -P "$pid" -f "claude" >/dev/null 2>&1 && return 0
+  pgrep -P "$pid" -f "/claude( |$)" >/dev/null 2>&1 && return 0
   local child
   for child in $(pgrep -P "$pid" 2>/dev/null); do
-    pgrep -P "$child" -f "claude" >/dev/null 2>&1 && return 0
+    pgrep -P "$child" -f "/claude( |$)" >/dev/null 2>&1 && return 0
   done
   return 1
 }
 
 # Map attention marker to cmux-style status label + color.
-# Output: "color_code\tstatus_label"
 get_status() {
   local pane_id="$1"
   local marker="${ATTN_DIR}/${pane_id}"
 
   if [[ -f "$marker" ]]; then
-    local ts ntype now
-    now=$(date +%s)
+    local ts ntype
     ts=$(read_field timestamp "$marker")
 
-    # Stale marker — treat as no marker.
-    if [[ -n "$ts" ]] && (( now - ts > TTL )); then
+    # Stale marker — remove and fall through to "Running".
+    if [[ -n "$ts" ]] && (( NOW - ts > TTL )); then
       rm -f "$marker"
       printf '%b\t%s' "$GREEN" "Running"
       return
@@ -59,7 +56,7 @@ get_status() {
       idle_prompt)
         printf '%b\t%s' "$BLUE" "Idle" ;;
       *)
-        printf '%b\t%s' "$RED" "$ntype" ;;
+        printf '%b\t%s' "$RED" "Needs attention" ;;
     esac
   else
     printf '%b\t%s' "$GREEN" "Running"
@@ -67,7 +64,6 @@ get_status() {
 }
 
 # Fish-style path abbreviation: ~/w/dotfiles for ~/workspace/dotfiles.
-# Reuses the pattern from statusline.sh.
 abbreviate_path() {
   local path="$1"
   local tilde_path="${path/#$HOME/\~}"
@@ -92,33 +88,44 @@ abbreviate_path() {
   printf '%s' "$display"
 }
 
+# Switch to a pane (works across tmux sessions).
+switch_to_pane() {
+  local pane_id="$1"
+  local session
+  session=$(tmux display-message -t "$pane_id" -p '#{session_name}' 2>/dev/null || true)
+  [[ -n "$session" ]] && tmux switch-client -t "$session" 2>/dev/null || true
+  tmux select-pane -t "$pane_id" 2>/dev/null || true
+}
+
 # --- Collect all Claude Code panes ---
 entries=()
 while IFS=$'\t' read -r pane_id session_name win_idx pane_idx pane_pid pane_path; do
   has_claude "$pane_pid" || continue
 
-  # Git branch + dirty indicator (matches cmux: git branch --show-current + git status --porcelain -uno).
-  branch=$(git -C "$pane_path" branch --show-current 2>/dev/null || true)
-  if [[ -z "$branch" ]]; then
-    # Detached HEAD fallback.
-    branch=$(git -C "$pane_path" rev-parse --short HEAD 2>/dev/null || true)
-  fi
-  if [[ -n "$branch" ]]; then
-    dirty=$(git -C "$pane_path" status --porcelain -uno 2>/dev/null | head -1)
-    [[ -n "$dirty" ]] && branch="${branch}*"
+  # Git branch + dirty indicator in one call (matches cmux approach).
+  branch=""
+  git_status=$(git -C "$pane_path" status --porcelain -b --short -uno 2>/dev/null || true)
+  if [[ -n "$git_status" ]]; then
+    # First line: "## branch...tracking" or "## HEAD (no branch)".
+    header=$(head -1 <<< "$git_status")
+    branch="${header#\#\# }"
+    branch="${branch%%...*}"
+    branch="${branch%% \[*}"
+    if [[ "$branch" == "HEAD (no branch)" ]]; then
+      branch=$(git -C "$pane_path" rev-parse --short HEAD 2>/dev/null || true)
+    fi
+    # Any line after the header means dirty.
+    if [[ $(wc -l <<< "$git_status") -gt 1 ]]; then
+      branch="${branch}*"
+    fi
   fi
 
-  # Fish-style abbreviated path.
   dir=$(abbreviate_path "$pane_path")
 
-  # Claude status (cmux labels).
   IFS=$'\t' read -r status_color status_label <<< "$(get_status "$pane_id")"
 
-  # Pane label: session:window.pane
   label="${session_name}:${win_idx}.${pane_idx}"
 
-  # Build display line: status | path | branch | label
-  # Pad status to 20 chars for alignment.
   sep="${OVERLAY} │ ${RESET}"
   line="${status_color}$(printf '%-20s' "$status_label")${RESET}"
   line+="${sep}${BLUE}${dir}${RESET}"
@@ -127,7 +134,6 @@ while IFS=$'\t' read -r pane_id session_name win_idx pane_idx pane_pid pane_path
   fi
   line+="${sep}${OVERLAY}${label}${RESET}"
 
-  # Tab-separate: display_line \t pane_id
   entries+=("$(printf '%b\t%s' "$line" "$pane_id")")
 done < <(tmux list-panes -a -F "#{pane_id}	#{session_name}	#{window_index}	#{pane_index}	#{pane_pid}	#{pane_current_path}")
 
@@ -137,16 +143,12 @@ if [[ ${#entries[@]} -eq 0 ]]; then
   exit 0
 fi
 
-# Single pane — jump directly.
 if [[ ${#entries[@]} -eq 1 ]]; then
   pane_id=$(printf '%s' "${entries[0]}" | cut -f2)
-  session=$(tmux display-message -t "$pane_id" -p '#{session_name}' 2>/dev/null || true)
-  [[ -n "$session" ]] && tmux switch-client -t "$session" 2>/dev/null || true
-  tmux select-pane -t "$pane_id" 2>/dev/null || true
+  switch_to_pane "$pane_id"
   exit 0
 fi
 
-# fzf picker with pane preview.
 selected=$(printf '%s\n' "${entries[@]}" | fzf \
   --ansi \
   --delimiter=$'\t' \
@@ -159,7 +161,5 @@ selected=$(printf '%s\n' "${entries[@]}" | fzf \
 
 if [[ -n "$selected" ]]; then
   pane_id=$(printf '%s' "$selected" | cut -f2)
-  session=$(tmux display-message -t "$pane_id" -p '#{session_name}' 2>/dev/null || true)
-  [[ -n "$session" ]] && tmux switch-client -t "$session" 2>/dev/null || true
-  tmux select-pane -t "$pane_id" 2>/dev/null || true
+  switch_to_pane "$pane_id"
 fi
