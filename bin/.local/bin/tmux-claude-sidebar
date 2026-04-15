@@ -20,13 +20,13 @@ read_field() {
 }
 
 # 2-level process tree search: shell -> claude, or shell -> wrapper -> claude.
-# Uses /claude( |$)/ to avoid matching unrelated commands (e.g. "vim claude.md").
+# Uses -x (exact name match) to avoid matching unrelated commands (e.g. "vim claude.md").
 has_claude() {
   local pid="$1"
-  pgrep -P "$pid" -f "/claude( |$)" >/dev/null 2>&1 && return 0
+  pgrep -P "$pid" -x claude >/dev/null 2>&1 && return 0
   local child
   for child in $(pgrep -P "$pid" 2>/dev/null); do
-    pgrep -P "$child" -f "/claude( |$)" >/dev/null 2>&1 && return 0
+    pgrep -P "$child" -x claude >/dev/null 2>&1 && return 0
   done
   return 1
 }
