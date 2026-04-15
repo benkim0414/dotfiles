@@ -160,6 +160,16 @@
     ],
     "PreToolUse": [
       {
+        "matcher": "Read|NotebookRead|mcp__qmd__get",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $HOME/.claude/hooks/read-once.sh",
+            "timeout": 3
+          }
+        ]
+      },
+      {
         "matcher": "Bash",
         "hooks": [
           {
