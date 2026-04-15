@@ -14,15 +14,43 @@ claude-sync                           # merge base + work overlay, stow claude
 stow -t ~ bat eza ghostty git lazygit mise nvim ssh starship tmux yazi zsh
 ```
 
-After stowing, register the sequential-thinking MCP server globally so it
-is available in all Claude Code projects (not just this repo):
+After stowing, register MCP servers globally so they are available in all
+Claude Code projects (not just this repo):
 
 ```sh
 claude mcp add --scope user sequential-thinking -- npx -y @modelcontextprotocol/server-sequential-thinking
 ```
 
-This writes to `~/.claude.json`, which is managed by Claude Code and cannot
+Register the qmd semantic search server:
+
+```sh
+npm install -g @tobilu/qmd
+claude mcp add --scope user qmd -- qmd mcp
+```
+
+These write to `~/.claude.json`, which is managed by Claude Code and cannot
 be stowed.
+
+## qmd (semantic code search)
+
+qmd is a global MCP server that provides semantic search over indexed code
+collections, reducing Claude Code token usage by avoiding repeated Glob/Grep/Read.
+
+### Manual indexing workflow
+
+Never automate `qmd collection add`, `qmd embed`, or `qmd update` --
+indexing must always be run manually.
+
+```sh
+qmd collection add ~/workspace/my-project --name my-project
+qmd embed                    # generate embeddings (first time)
+qmd update                   # update changed files (subsequent)
+qmd collection list          # see all collections
+qmd status                   # index health
+```
+
+Collections are stored in `~/.cache/qmd/`. Re-run `qmd update` after
+significant code changes to keep the index fresh.
 
 ## Daily workflow
 
