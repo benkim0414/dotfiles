@@ -4,7 +4,7 @@
 # Shows directory, git branch, and Claude status for each pane running Claude Code.
 set -euo pipefail
 
-MAX_SESSIONS=10
+MAX_SESSIONS=50
 
 ATTN_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/claude/attention"
 TTL=300 # 5 minutes
@@ -18,6 +18,7 @@ RED=$'\033[38;2;243;139;168m'     # #f38ba8
 BLUE=$'\033[38;2;137;180;250m'    # #89b4fa
 OVERLAY=$'\033[38;2;108;112;134m' # #6c7086
 WHITE=$'\033[38;2;205;214;244m'   # #cdd6f4 (Catppuccin text)
+TMUX_GREEN=$'\033[38;2;27;179;74m' # #1bb34a (tmux logo green)
 
 read_field() {
   grep "^${1}=" "$2" 2>/dev/null | cut -d= -f2-
@@ -49,10 +50,11 @@ _build_claude_pids() {
 }
 _build_claude_pids
 
-# Map attention marker to status label + color.
-# Sets _status_color and _status_label to avoid subshell forks.
+# Map attention marker to status label, color, and icon.
+# Sets _status_color, _status_label, and _status_icon to avoid subshell forks.
 _status_color=""
 _status_label=""
+_status_icon=""
 get_status() {
   local pane_id="$1"
   local marker="${ATTN_DIR}/${pane_id}"
@@ -64,23 +66,23 @@ get_status() {
     # Stale marker — remove and fall through to "Running".
     if [[ -n "$ts" ]] && (( NOW - ts > TTL )); then
       rm -f "$marker"
-      _status_color="$GREEN"; _status_label="Running"
+      _status_color=""; _status_label=""; _status_icon=""
       return
     fi
 
     ntype=$(read_field notification_type "$marker")
     case "$ntype" in
       permission_prompt|elicitation_dialog)
-        _status_color="$RED"; _status_label="Waiting for input" ;;
+        _status_color="$RED"; _status_label="Waiting for input"; _status_icon="󰂞" ;;
       plan_approval|ask_user_question)
-        _status_color="$RED"; _status_label="Asking a question" ;;
+        _status_color="$RED"; _status_label="Asking a question"; _status_icon="󰘥" ;;
       idle_prompt)
-        _status_color="$BLUE"; _status_label="Idle" ;;
+        _status_color="$BLUE"; _status_label="Idle"; _status_icon="󰏤" ;;
       *)
-        _status_color="$RED"; _status_label="Needs attention" ;;
+        _status_color="$RED"; _status_label="Needs attention"; _status_icon="󰀦" ;;
     esac
   else
-    _status_color="$GREEN"; _status_label="Running"
+    _status_color=""; _status_label=""; _status_icon=""
   fi
 }
 
@@ -160,10 +162,13 @@ wait
 
 # --- Pass 3: Assemble multiline display entries ---
 # Each entry is 3 lines (NUL-separated for fzf --read0):
-#   Line 1: Project Name (session:window.pane)   [tab-delimited metadata on this line]
+#   Line 1: Project Name (session:window.pane)
 #   Line 2: ~/abbreviated/path (branch*)
 #   Line 3: ● Status
-entries=()
+declare -a blocks=()
+declare -a pane_ids_arr=()
+declare -a priorities=()
+declare -A PANE_ID_MAP  # label -> pane_id
 for entry in "${claude_panes[@]}"; do
   IFS=$'\t' read -r pane_id session_name win_idx pane_idx pane_path <<< "$entry"
 
@@ -177,6 +182,7 @@ for entry in "${claude_panes[@]}"; do
   status_label="$_status_label"
 
   label="${session_name}:${win_idx}.${pane_idx}"
+  PANE_ID_MAP[$label]="$pane_id"
 
   # Project name: from attention marker, else directory basename, else "Claude Code".
   project=""
@@ -193,44 +199,46 @@ for entry in "${claude_panes[@]}"; do
     priority=1
   fi
 
-  # Line 1: bold project name + dim pane label in parentheses.
-  line1="${BOLD}${WHITE}${project}${RESET} ${OVERLAY}(${label})${RESET}"
-  # Line 2: dim path + branch in parentheses.
-  line2="${OVERLAY}${dir}${RESET}"
-  if [[ -n "$branch" ]]; then
-    line2+=" ${OVERLAY}(${branch})${RESET}"
+  # Format: [icon] project  session:win.pane  branch*
+  if [[ -n "$_status_icon" ]]; then
+    line="${status_color}${_status_icon}${RESET} ${BOLD}${WHITE}${project}${RESET}"
+  else
+    line="${BOLD}${WHITE}${project}${RESET}"
   fi
-  # Line 3: colored status dot + label.
-  line3="${status_color}● ${status_label}${RESET}"
+  line+=" ${TMUX_GREEN} ${label}${RESET}"
+  if [[ -n "$branch" ]]; then
+    line+=" ${RED} ${branch}${RESET}"
+  fi
 
-  # Metadata fields (priority, pane_id) are tab-delimited on line 1.
-  # fzf --with-nth=2 shows field 2 onward; lines 2-3 have no tabs so display as-is.
-  block=$(printf '%s\t%s\t%s\n%s\n%s' "$priority" "$line1" "$pane_id" "$line2" "$line3")
-  entries+=("$block")
+  blocks+=("$line")
+  pane_ids_arr+=("$pane_id")
+  priorities+=("$priority")
 done
 
-if [[ ${#entries[@]} -eq 1 ]]; then
-  pane_id=$(printf '%s' "${entries[0]}" | head -1 | cut -f3)
-  switch_to_pane "$pane_id"
+# Sort indices by priority (stable via -s).
+sorted_indices=()
+while read -r idx _; do
+  sorted_indices+=("$idx")
+done < <(for i in "${!priorities[@]}"; do printf '%s %s\n' "$i" "${priorities[$i]}"; done | sort -s -k2,2n)
+
+if [[ ${#blocks[@]} -eq 1 ]]; then
+  switch_to_pane "${pane_ids_arr[0]}"
   exit 0
 fi
 
-selected=$(printf '%s\0' "${entries[@]}" | sort -z -t$'\t' -k1,1n | fzf \
-  --read0 \
+# Feed single-line entries to fzf.
+selected=$(for i in "${sorted_indices[@]}"; do printf '%s\n' "${blocks[$i]}"; done | fzf \
   --ansi \
-  --delimiter=$'\t' \
-  --with-nth=2.. \
-  --gap=1 \
   --highlight-line \
-  --header="Claude Code Sessions" \
   --reverse \
   --no-sort \
   --no-scrollbar \
   --info=hidden \
-  --preview='tmux capture-pane -t {3} -p -S -40 2>/dev/null || echo "(pane unavailable)"' \
-  --preview-window='right,50%,border-left,wrap' \
+  --preview="label=\$(printf '%s' {} | sed $'s/\033\[[0-9;]*m//g' | grep -oE '[^ ]+:[0-9]+\.[0-9]+'); tmux capture-pane -t \"\$label\" -p -e -S - 2>/dev/null || echo '(pane unavailable)'" \
+  --preview-window='right,50%,border-left,wrap,follow' \
   --preview-label=' Preview ' \
   --preview-label-pos=2) || exit 0
 
-pane_id=$(printf '%s' "$selected" | head -1 | cut -f3)
-switch_to_pane "$pane_id"
+# Extract tmux target (session:win.pane) from selected text.
+label=$(printf '%s' "$selected" | sed $'s/\033\[[0-9;]*m//g' | grep -oE '[^ ]+:[0-9]+\.[0-9]+')
+switch_to_pane "${PANE_ID_MAP[$label]}"
