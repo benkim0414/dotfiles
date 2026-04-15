@@ -12,10 +12,12 @@ NOW=$(date +%s)
 
 # Catppuccin Mocha palette — raw ESC bytes so printf '%s' works safely.
 RESET=$'\033[0m'
+BOLD=$'\033[1m'
 GREEN=$'\033[38;2;166;227;161m'   # #a6e3a1
 RED=$'\033[38;2;243;139;168m'     # #f38ba8
 BLUE=$'\033[38;2;137;180;250m'    # #89b4fa
 OVERLAY=$'\033[38;2;108;112;134m' # #6c7086
+WHITE=$'\033[38;2;205;214;244m'   # #cdd6f4 (Catppuccin text)
 
 read_field() {
   grep "^${1}=" "$2" 2>/dev/null | cut -d= -f2-
@@ -156,7 +158,11 @@ for entry in "${claude_panes[@]}"; do
 done
 wait
 
-# --- Pass 3: Assemble display entries ---
+# --- Pass 3: Assemble multiline display entries ---
+# Each entry is 3 lines (NUL-separated for fzf --read0):
+#   Line 1: Project Name (session:window.pane)   [tab-delimited metadata on this line]
+#   Line 2: ~/abbreviated/path (branch*)
+#   Line 3: ● Status
 entries=()
 for entry in "${claude_panes[@]}"; do
   IFS=$'\t' read -r pane_id session_name win_idx pane_idx pane_path <<< "$entry"
@@ -172,6 +178,13 @@ for entry in "${claude_panes[@]}"; do
 
   label="${session_name}:${win_idx}.${pane_idx}"
 
+  # Project name: from attention marker, else directory basename, else "Claude Code".
+  project=""
+  marker="${ATTN_DIR}/${pane_id}"
+  [[ -f "$marker" ]] && project=$(read_field project "$marker")
+  project="${project:-$(basename "$pane_path")}"
+  project="${project:-Claude Code}"
+
   # Status priority: 0=needs attention (red), 1=idle (blue), 2=running (green).
   priority=2
   if [[ "$status_color" == "$RED" ]]; then
@@ -180,26 +193,35 @@ for entry in "${claude_panes[@]}"; do
     priority=1
   fi
 
-  line="${status_color}$(printf '%-20s' "$status_label")${RESET}"
-  line+="  ${BLUE}${dir}${RESET}"
+  # Line 1: bold project name + dim pane label in parentheses.
+  line1="${BOLD}${WHITE}${project}${RESET} ${OVERLAY}(${label})${RESET}"
+  # Line 2: dim path + branch in parentheses.
+  line2="${OVERLAY}${dir}${RESET}"
   if [[ -n "$branch" ]]; then
-    line+="  ${RED}${branch}${RESET}"
+    line2+=" ${OVERLAY}(${branch})${RESET}"
   fi
-  line+="  ${OVERLAY}${label}${RESET}"
+  # Line 3: colored status dot + label.
+  line3="${status_color}● ${status_label}${RESET}"
 
-  entries+=("$(printf '%s\t%s\t%s' "$priority" "$line" "$pane_id")")
+  # Metadata fields (priority, pane_id) are tab-delimited on line 1.
+  # fzf --with-nth=2 shows field 2 onward; lines 2-3 have no tabs so display as-is.
+  block=$(printf '%s\t%s\t%s\n%s\n%s' "$priority" "$line1" "$pane_id" "$line2" "$line3")
+  entries+=("$block")
 done
 
 if [[ ${#entries[@]} -eq 1 ]]; then
-  pane_id=$(printf '%s' "${entries[0]}" | cut -f3)
+  pane_id=$(printf '%s' "${entries[0]}" | head -1 | cut -f3)
   switch_to_pane "$pane_id"
   exit 0
 fi
 
-selected=$(printf '%s\n' "${entries[@]}" | sort -t$'\t' -k1,1n | fzf \
+selected=$(printf '%s\0' "${entries[@]}" | sort -z -t$'\t' -k1,1n | fzf \
+  --read0 \
   --ansi \
   --delimiter=$'\t' \
-  --with-nth=2 \
+  --with-nth=2.. \
+  --gap=1 \
+  --highlight-line \
   --header="Claude Code Sessions" \
   --reverse \
   --no-sort \
@@ -210,5 +232,5 @@ selected=$(printf '%s\n' "${entries[@]}" | sort -t$'\t' -k1,1n | fzf \
   --preview-label=' Preview ' \
   --preview-label-pos=2) || exit 0
 
-pane_id=$(printf '%s' "$selected" | cut -f3)
+pane_id=$(printf '%s' "$selected" | head -1 | cut -f3)
 switch_to_pane "$pane_id"
