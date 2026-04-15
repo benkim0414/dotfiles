@@ -196,8 +196,12 @@ selected=$(printf '%s\n' "${entries[@]}" | fzf \
   --header="Claude Code Sessions" \
   --reverse \
   --no-sort \
-  --preview='tmux capture-pane -t {2} -p -S -20 2>/dev/null || echo "(pane unavailable)"' \
-  --preview-window=down:15:wrap) || exit 0
+  --no-scrollbar \
+  --info=hidden \
+  --preview='tmux capture-pane -t {2} -p -S -40 2>/dev/null || echo "(pane unavailable)"' \
+  --preview-window='right,38%,border-left,wrap' \
+  --preview-label=' Preview ' \
+  --preview-label-pos=2) || exit 0
 
 pane_id=$(printf '%s' "$selected" | cut -f2)
 switch_to_pane "$pane_id"
