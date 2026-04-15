@@ -172,36 +172,43 @@ for entry in "${claude_panes[@]}"; do
 
   label="${session_name}:${win_idx}.${pane_idx}"
 
-  sep="${OVERLAY} │ ${RESET}"
-  line="${status_color}$(printf '%-20s' "$status_label")${RESET}"
-  line+="${sep}${BLUE}${dir}${RESET}"
-  if [[ -n "$branch" ]]; then
-    line+="${sep}${RED}${branch}${RESET}"
+  # Status priority: 0=needs attention (red), 1=idle (blue), 2=running (green).
+  priority=2
+  if [[ "$status_color" == "$RED" ]]; then
+    priority=0
+  elif [[ "$status_color" == "$BLUE" ]]; then
+    priority=1
   fi
-  line+="${sep}${OVERLAY}${label}${RESET}"
 
-  entries+=("$(printf '%s\t%s' "$line" "$pane_id")")
+  line="${status_color}$(printf '%-20s' "$status_label")${RESET}"
+  line+="  ${BLUE}${dir}${RESET}"
+  if [[ -n "$branch" ]]; then
+    line+="  ${RED}${branch}${RESET}"
+  fi
+  line+="  ${OVERLAY}${label}${RESET}"
+
+  entries+=("$(printf '%s\t%s\t%s' "$priority" "$line" "$pane_id")")
 done
 
 if [[ ${#entries[@]} -eq 1 ]]; then
-  pane_id=$(printf '%s' "${entries[0]}" | cut -f2)
+  pane_id=$(printf '%s' "${entries[0]}" | cut -f3)
   switch_to_pane "$pane_id"
   exit 0
 fi
 
-selected=$(printf '%s\n' "${entries[@]}" | fzf \
+selected=$(printf '%s\n' "${entries[@]}" | sort -t$'\t' -k1,1n | fzf \
   --ansi \
   --delimiter=$'\t' \
-  --with-nth=1 \
+  --with-nth=2 \
   --header="Claude Code Sessions" \
   --reverse \
   --no-sort \
   --no-scrollbar \
   --info=hidden \
-  --preview='tmux capture-pane -t {2} -p -S -40 2>/dev/null || echo "(pane unavailable)"' \
-  --preview-window='right,38%,border-left,wrap' \
+  --preview='tmux capture-pane -t {3} -p -S -40 2>/dev/null || echo "(pane unavailable)"' \
+  --preview-window='right,50%,border-left,wrap' \
   --preview-label=' Preview ' \
   --preview-label-pos=2) || exit 0
 
-pane_id=$(printf '%s' "$selected" | cut -f2)
+pane_id=$(printf '%s' "$selected" | cut -f3)
 switch_to_pane "$pane_id"
