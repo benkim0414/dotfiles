@@ -8,12 +8,12 @@ ATTN_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/claude/attention"
 TTL=300 # 5 minutes
 NOW=$(date +%s)
 
-# Catppuccin Mocha palette (shared with statusline.sh)
-RESET='\033[0m'
-GREEN='\033[38;2;166;227;161m'   # #a6e3a1
-RED='\033[38;2;243;139;168m'     # #f38ba8
-BLUE='\033[38;2;137;180;250m'    # #89b4fa
-OVERLAY='\033[38;2;108;112;134m' # #6c7086
+# Catppuccin Mocha palette — raw ESC bytes so printf '%s' works safely.
+RESET=$'\033[0m'
+GREEN=$'\033[38;2;166;227;161m'   # #a6e3a1
+RED=$'\033[38;2;243;139;168m'     # #f38ba8
+BLUE=$'\033[38;2;137;180;250m'    # #89b4fa
+OVERLAY=$'\033[38;2;108;112;134m' # #6c7086
 
 read_field() {
   grep "^${1}=" "$2" 2>/dev/null | cut -d= -f2-
@@ -43,23 +43,23 @@ get_status() {
     # Stale marker — remove and fall through to "Running".
     if [[ -n "$ts" ]] && (( NOW - ts > TTL )); then
       rm -f "$marker"
-      printf '%b\t%s' "$GREEN" "Running"
+      printf '%s\t%s' "$GREEN" "Running"
       return
     fi
 
     ntype=$(read_field notification_type "$marker")
     case "$ntype" in
       permission_prompt|elicitation_dialog)
-        printf '%b\t%s' "$RED" "Waiting for input" ;;
+        printf '%s\t%s' "$RED" "Waiting for input" ;;
       plan_approval|ask_user_question)
-        printf '%b\t%s' "$RED" "Asking a question" ;;
+        printf '%s\t%s' "$RED" "Asking a question" ;;
       idle_prompt)
-        printf '%b\t%s' "$BLUE" "Idle" ;;
+        printf '%s\t%s' "$BLUE" "Idle" ;;
       *)
-        printf '%b\t%s' "$RED" "Needs attention" ;;
+        printf '%s\t%s' "$RED" "Needs attention" ;;
     esac
   else
-    printf '%b\t%s' "$GREEN" "Running"
+    printf '%s\t%s' "$GREEN" "Running"
   fi
 }
 
@@ -134,7 +134,7 @@ while IFS=$'\t' read -r pane_id session_name win_idx pane_idx pane_pid pane_path
   fi
   line+="${sep}${OVERLAY}${label}${RESET}"
 
-  entries+=("$(printf '%b\t%s' "$line" "$pane_id")")
+  entries+=("$(printf '%s\t%s' "$line" "$pane_id")")
 done < <(tmux list-panes -a -F "#{pane_id}	#{session_name}	#{window_index}	#{pane_index}	#{pane_pid}	#{pane_current_path}")
 
 if [[ ${#entries[@]} -eq 0 ]]; then
