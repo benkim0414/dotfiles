@@ -18,41 +18,39 @@
 # Silent exit 0 = allow. JSON permissionDecision="deny" = block the tool call.
 # Range semantics match Claude Code's Read tool: offset/limit are line counts;
 # limit == -1 means "whole file from offset".
+#
+# Hot path: this hook fires on every Read. It deliberately skips sourcing
+# lib/session.sh and inlines session_id validation + stat calls to keep the
+# block path down to 4 jq forks and 1 stat syscall.
 set -euo pipefail
 
 [[ "${READ_ONCE_DISABLE:-0}" == "1" ]] && exit 0
 
-# shellcheck source=../lib/session.sh
-source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../lib/session.sh"
-
-INPUT=$(cat)
-SESSION_ID=$(parse_session_id "$INPUT")
-[[ -n "$SESSION_ID" ]] || exit 0
-
+# Extract session_id + path + offset + limit from stdin in one jq pass.
 # Tab-separated so paths with spaces survive `read`.
-FILE_PATH="" OFFSET=0 LIMIT=-1
-IFS=$'\t' read -r FILE_PATH OFFSET LIMIT < <(
-  printf '%s' "$INPUT" | jq -r '
-    [
-      (.tool_input.file_path // .tool_input.notebook_path // .tool_input.path // ""),
-      (.tool_input.offset // 0),
-      (.tool_input.limit // -1)
-    ] | @tsv
-  ' 2>/dev/null
+SESSION_ID="" FILE_PATH="" OFFSET=0 LIMIT=-1
+IFS=$'\t' read -r SESSION_ID FILE_PATH OFFSET LIMIT < <(
+  jq -r '[
+    (.session_id // ""),
+    (.tool_input.file_path // .tool_input.notebook_path // .tool_input.path // ""),
+    (.tool_input.offset // 0),
+    (.tool_input.limit // -1)
+  ] | @tsv' 2>/dev/null
 ) || true
 
+[[ "$SESSION_ID" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]] || exit 0
 [[ -n "$FILE_PATH" ]] || exit 0
 
 # qmd can receive a docid like "#abc123" — not a real path; skip caching.
 [[ "$FILE_PATH" == \#* ]] && exit 0
 
-# Resolve symlinks (stow-managed dotfiles → their source in the repo).
+# Resolve symlinks (stow-managed dotfiles → their canonical path).
 ABS=$(realpath -m "$FILE_PATH" 2>/dev/null || grealpath -m "$FILE_PATH" 2>/dev/null || echo "$FILE_PATH")
 
-# If the path doesn't exist, let the tool surface its own error.
-[[ -e "$ABS" ]] || exit 0
-
-CURRENT_MTIME=$(file_mtime "$ABS")
+# Single stat: existence check + mtime + size. GNU → BSD fallback.
+# Failure (missing file, permission denied, etc.) → allow and let the tool surface its error.
+STAT_OUT=$(stat -c '%Y %s' "$ABS" 2>/dev/null || stat -f '%m %z' "$ABS" 2>/dev/null) || exit 0
+read -r CURRENT_MTIME SIZE <<< "$STAT_OUT"
 [[ "$CURRENT_MTIME" =~ ^[0-9]+$ && "$CURRENT_MTIME" -gt 0 ]] || exit 0
 
 TTL="${READ_ONCE_TTL:-1200}"
@@ -119,8 +117,6 @@ if [[ "$COVERED" != "true" ]]; then
   exit 0
 fi
 
-# Block. Size stat is deferred here because it's only used for the token estimate.
-SIZE=$(stat -c %s "$ABS" 2>/dev/null || stat -f %z "$ABS" 2>/dev/null || echo 0)
 AGE=$(( NOW - P_TS ))
 TOKENS=$(( SIZE / 4 ))
 REASON="read-once: ${ABS} already in context (read ${AGE}s ago, unchanged, ~${TOKENS} tokens). Edit the file, request a different offset/limit, wait ${TTL}s for TTL, or set READ_ONCE_DISABLE=1 to bypass."
