@@ -1,31 +1,10 @@
 #!/usr/bin/env bash
-# tmux-claude-sidebar: show all Claude Code sessions with status info.
-# Displayed in a tmux sidebar pane via Prefix+A (toggle on/off).
+# tmux-claude-picker: show all Claude Code sessions with status info.
+# Displayed in a tmux popup via Prefix+A.
 # Shows directory, git branch, and Claude status for each pane running Claude Code.
 set -euo pipefail
 
-SIDEBAR_OPT="@claude-sidebar-pane"
-
-# --- Toggle mode: open or close the sidebar pane ---
-if [[ "${1:-}" == "--toggle" ]]; then
-  existing=$(tmux show-option -gqv "$SIDEBAR_OPT" 2>/dev/null || true)
-  if [[ -n "$existing" ]] \
-     && tmux list-panes -a -F '#{pane_id}' 2>/dev/null | grep -qF "$existing"; then
-    tmux kill-pane -t "$existing" 2>/dev/null || true
-    tmux set-option -gu "$SIDEBAR_OPT" 2>/dev/null || true
-    exit 0
-  fi
-  # Open a new sidebar split on the right; the --run instance registers itself.
-  tmux split-window -h -l 40% "tmux-claude-sidebar --run"
-  exit 0
-fi
-
-# --- Run mode: the picker itself, runs inside the sidebar pane ---
-if [[ "${1:-}" == "--run" ]]; then
-  # Register this pane so --toggle can find and kill it.
-  tmux set-option -g "$SIDEBAR_OPT" "$TMUX_PANE"
-  trap 'tmux set-option -gu "$SIDEBAR_OPT" 2>/dev/null || true' EXIT
-fi
+MAX_SESSIONS=10
 
 ATTN_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/claude/attention"
 TTL=300 # 5 minutes
@@ -69,6 +48,9 @@ _build_claude_pids() {
 _build_claude_pids
 
 # Map attention marker to status label + color.
+# Sets _status_color and _status_label to avoid subshell forks.
+_status_color=""
+_status_label=""
 get_status() {
   local pane_id="$1"
   local marker="${ATTN_DIR}/${pane_id}"
@@ -80,23 +62,23 @@ get_status() {
     # Stale marker — remove and fall through to "Running".
     if [[ -n "$ts" ]] && (( NOW - ts > TTL )); then
       rm -f "$marker"
-      printf '%s\t%s' "$GREEN" "Running"
+      _status_color="$GREEN"; _status_label="Running"
       return
     fi
 
     ntype=$(read_field notification_type "$marker")
     case "$ntype" in
       permission_prompt|elicitation_dialog)
-        printf '%s\t%s' "$RED" "Waiting for input" ;;
+        _status_color="$RED"; _status_label="Waiting for input" ;;
       plan_approval|ask_user_question)
-        printf '%s\t%s' "$RED" "Asking a question" ;;
+        _status_color="$RED"; _status_label="Asking a question" ;;
       idle_prompt)
-        printf '%s\t%s' "$BLUE" "Idle" ;;
+        _status_color="$BLUE"; _status_label="Idle" ;;
       *)
-        printf '%s\t%s' "$RED" "Needs attention" ;;
+        _status_color="$RED"; _status_label="Needs attention" ;;
     esac
   else
-    printf '%s\t%s' "$GREEN" "Running"
+    _status_color="$GREEN"; _status_label="Running"
   fi
 }
 
@@ -139,6 +121,7 @@ declare -a claude_panes=()
 while IFS=$'\t' read -r pane_id session_name win_idx pane_idx pane_pid pane_path; do
   [[ -n "${CLAUDE_PANE_PIDS[$pane_pid]:-}" ]] || continue
   claude_panes+=("${pane_id}	${session_name}	${win_idx}	${pane_idx}	${pane_path}")
+  (( ${#claude_panes[@]} >= MAX_SESSIONS )) && break
 done < <(tmux list-panes -a -F "#{pane_id}	#{session_name}	#{window_index}	#{pane_index}	#{pane_pid}	#{pane_current_path}")
 
 if [[ ${#claude_panes[@]} -eq 0 ]]; then
@@ -149,7 +132,7 @@ fi
 
 # --- Pass 2: Gather git info in parallel ---
 GIT_TMPDIR=$(mktemp -d)
-trap 'rm -rf "$GIT_TMPDIR"; tmux set-option -gu "$SIDEBAR_OPT" 2>/dev/null || true' EXIT
+trap 'rm -rf "$GIT_TMPDIR"' EXIT
 
 for entry in "${claude_panes[@]}"; do
   IFS=$'\t' read -r pane_id _ _ _ pane_path <<< "$entry"
@@ -183,7 +166,9 @@ for entry in "${claude_panes[@]}"; do
 
   dir=$(abbreviate_path "$pane_path")
 
-  IFS=$'\t' read -r status_color status_label <<< "$(get_status "$pane_id")"
+  get_status "$pane_id"
+  status_color="$_status_color"
+  status_label="$_status_label"
 
   label="${session_name}:${win_idx}.${pane_idx}"
 
@@ -214,7 +199,5 @@ selected=$(printf '%s\n' "${entries[@]}" | fzf \
   --preview='tmux capture-pane -t {2} -p -S -20 2>/dev/null || echo "(pane unavailable)"' \
   --preview-window=down:15:wrap) || exit 0
 
-if [[ -n "$selected" ]]; then
-  pane_id=$(printf '%s' "$selected" | cut -f2)
-  switch_to_pane "$pane_id"
-fi
+pane_id=$(printf '%s' "$selected" | cut -f2)
+switch_to_pane "$pane_id"
