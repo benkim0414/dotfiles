@@ -14,16 +14,21 @@ claude-sync                           # merge base + work overlay, stow claude
 stow -t ~ bat eza ghostty git lazygit mise nvim ssh starship tmux yazi zsh
 ```
 
-After stowing, register the sequential-thinking MCP server globally so it
-is available in all Claude Code projects (not just this repo):
+After stowing, register MCP servers globally so they are available in all
+Claude Code projects (not just this repo):
 
 ```sh
 claude mcp add --scope user sequential-thinking -- npx -y @modelcontextprotocol/server-sequential-thinking
+```
+
+Register the qmd semantic search server:
+
+```sh
 npm install -g @tobilu/qmd
 claude mcp add --scope user qmd -- qmd mcp
 ```
 
-This writes to `~/.claude.json`, which is managed by Claude Code and cannot
+These write to `~/.claude.json`, which is managed by Claude Code and cannot
 be stowed.
 
 ## qmd (semantic code search)
