@@ -4,7 +4,7 @@
 # Shows directory, git branch, and Claude status for each pane running Claude Code.
 set -euo pipefail
 
-MAX_SESSIONS=10
+MAX_SESSIONS=50
 
 ATTN_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/claude/attention"
 TTL=300 # 5 minutes
@@ -12,10 +12,11 @@ NOW=$(date +%s)
 
 # Catppuccin Mocha palette — raw ESC bytes so printf '%s' works safely.
 RESET=$'\033[0m'
-GREEN=$'\033[38;2;166;227;161m'   # #a6e3a1
+BOLD=$'\033[1m'
 RED=$'\033[38;2;243;139;168m'     # #f38ba8
 BLUE=$'\033[38;2;137;180;250m'    # #89b4fa
-OVERLAY=$'\033[38;2;108;112;134m' # #6c7086
+WHITE=$'\033[38;2;205;214;244m'   # #cdd6f4 (Catppuccin text)
+TMUX_GREEN=$'\033[38;2;27;179;74m' # #1bb34a (tmux logo green)
 
 read_field() {
   grep "^${1}=" "$2" 2>/dev/null | cut -d= -f2-
@@ -47,10 +48,11 @@ _build_claude_pids() {
 }
 _build_claude_pids
 
-# Map attention marker to status label + color.
-# Sets _status_color and _status_label to avoid subshell forks.
+# Map attention marker to status label, color, and icon.
+# Sets _status_color, _status_label, and _status_icon to avoid subshell forks.
 _status_color=""
 _status_label=""
+_status_icon=""
 get_status() {
   local pane_id="$1"
   local marker="${ATTN_DIR}/${pane_id}"
@@ -59,52 +61,27 @@ get_status() {
     local ts ntype
     ts=$(read_field timestamp "$marker")
 
-    # Stale marker — remove and fall through to "Running".
+    # Stale marker — remove and treat as default (no icon).
     if [[ -n "$ts" ]] && (( NOW - ts > TTL )); then
       rm -f "$marker"
-      _status_color="$GREEN"; _status_label="Running"
+      _status_color=""; _status_label=""; _status_icon=""
       return
     fi
 
     ntype=$(read_field notification_type "$marker")
     case "$ntype" in
       permission_prompt|elicitation_dialog)
-        _status_color="$RED"; _status_label="Waiting for input" ;;
+        _status_color="$RED"; _status_label="Waiting for input"; _status_icon="󰂞" ;;
       plan_approval|ask_user_question)
-        _status_color="$RED"; _status_label="Asking a question" ;;
+        _status_color="$RED"; _status_label="Asking a question"; _status_icon="󰘥" ;;
       idle_prompt)
-        _status_color="$BLUE"; _status_label="Idle" ;;
+        _status_color="$BLUE"; _status_label="Idle"; _status_icon="󰏤" ;;
       *)
-        _status_color="$RED"; _status_label="Needs attention" ;;
+        _status_color="$RED"; _status_label="Needs attention"; _status_icon="󰀦" ;;
     esac
   else
-    _status_color="$GREEN"; _status_label="Running"
+    _status_color=""; _status_label=""; _status_icon=""
   fi
-}
-
-# Fish-style path abbreviation: ~/w/dotfiles for ~/workspace/dotfiles.
-abbreviate_path() {
-  local path="$1"
-  local tilde_path="${path/#$HOME/\~}"
-  local IFS='/' parts display=""
-  read -ra parts <<< "$tilde_path"
-  local n="${#parts[@]}"
-  local i p
-  for (( i=0; i<n; i++ )); do
-    p="${parts[$i]}"
-    if (( i == n - 1 )); then
-      display+="$p"
-    elif [[ -z "$p" ]]; then
-      display+="/"
-    elif [[ "$p" == ".." ]]; then
-      display+="../"
-    elif [[ "$p" == .* ]]; then
-      display+=".${p:1:1}/"
-    else
-      display+="${p:0:1}/"
-    fi
-  done
-  printf '%s' "$display"
 }
 
 # Switch to a pane (works across tmux sessions).
@@ -156,21 +133,28 @@ for entry in "${claude_panes[@]}"; do
 done
 wait
 
-# --- Pass 3: Assemble display entries ---
-entries=()
+# --- Pass 3: Assemble single-line display entries ---
+# Format: [icon] project  session:win.pane  branch*
+declare -a blocks=()
+declare -a pane_ids_arr=()
+declare -a priorities=()
 for entry in "${claude_panes[@]}"; do
   IFS=$'\t' read -r pane_id session_name win_idx pane_idx pane_path <<< "$entry"
 
   branch=""
   [[ -f "${GIT_TMPDIR}/${pane_id}" ]] && IFS= read -r branch < "${GIT_TMPDIR}/${pane_id}"
 
-  dir=$(abbreviate_path "$pane_path")
-
   get_status "$pane_id"
   status_color="$_status_color"
-  status_label="$_status_label"
 
   label="${session_name}:${win_idx}.${pane_idx}"
+
+  # Project name: from attention marker, else directory basename, else "Claude Code".
+  project=""
+  marker="${ATTN_DIR}/${pane_id}"
+  [[ -f "$marker" ]] && project=$(read_field project "$marker")
+  [[ -z "$project" ]] && project=$(basename "$pane_path")
+  project="${project:-Claude Code}"
 
   # Status priority: 0=needs attention (red), 1=idle (blue), 2=running (green).
   priority=2
@@ -180,35 +164,48 @@ for entry in "${claude_panes[@]}"; do
     priority=1
   fi
 
-  line="${status_color}$(printf '%-20s' "$status_label")${RESET}"
-  line+="  ${BLUE}${dir}${RESET}"
-  if [[ -n "$branch" ]]; then
-    line+="  ${RED}${branch}${RESET}"
+  # Format: [icon] project  session:win.pane  branch*
+  if [[ -n "$_status_icon" ]]; then
+    line="${status_color}${_status_icon}${RESET} ${BOLD}${WHITE}${project}${RESET}"
+  else
+    line="${BOLD}${WHITE}${project}${RESET}"
   fi
-  line+="  ${OVERLAY}${label}${RESET}"
+  line+=" ${TMUX_GREEN} ${label}${RESET}"
+  if [[ -n "$branch" ]]; then
+    line+=" ${RED} ${branch}${RESET}"
+  fi
 
-  entries+=("$(printf '%s\t%s\t%s' "$priority" "$line" "$pane_id")")
+  blocks+=("${pane_id}\t${line}")
+  pane_ids_arr+=("$pane_id")
+  priorities+=("$priority")
 done
 
-if [[ ${#entries[@]} -eq 1 ]]; then
-  pane_id=$(printf '%s' "${entries[0]}" | cut -f3)
-  switch_to_pane "$pane_id"
+# Sort indices by priority (stable via -s).
+sorted_indices=()
+while read -r idx _; do
+  sorted_indices+=("$idx")
+done < <(for i in "${!priorities[@]}"; do printf '%s %s\n' "$i" "${priorities[$i]}"; done | sort -s -k2,2n)
+
+if [[ ${#blocks[@]} -eq 1 ]]; then
+  switch_to_pane "${pane_ids_arr[0]}"
   exit 0
 fi
 
-selected=$(printf '%s\n' "${entries[@]}" | sort -t$'\t' -k1,1n | fzf \
+# Feed single-line entries to fzf (pane_id\tdisplay, hidden via --with-nth).
+selected=$(for i in "${sorted_indices[@]}"; do printf '%b\n' "${blocks[$i]}"; done | fzf \
   --ansi \
   --delimiter=$'\t' \
   --with-nth=2 \
-  --header="Claude Code Sessions" \
+  --highlight-line \
   --reverse \
   --no-sort \
   --no-scrollbar \
   --info=hidden \
-  --preview='tmux capture-pane -t {3} -p -S -40 2>/dev/null || echo "(pane unavailable)"' \
-  --preview-window='right,50%,border-left,wrap' \
+  --preview='tmux capture-pane -t {1} -p -e -S - 2>/dev/null || echo "(pane unavailable)"' \
+  --preview-window='right,50%,border-left,wrap,follow' \
   --preview-label=' Preview ' \
   --preview-label-pos=2) || exit 0
 
-pane_id=$(printf '%s' "$selected" | cut -f3)
+# Extract pane_id from the hidden first tab-delimited field.
+pane_id=$(printf '%s' "$selected" | cut -f1)
 switch_to_pane "$pane_id"
