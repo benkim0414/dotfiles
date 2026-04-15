@@ -1,8 +1,31 @@
 #!/usr/bin/env bash
 # tmux-claude-sidebar: show all Claude Code sessions with status info.
-# Displayed in a tmux popup via Prefix+A.
+# Displayed in a tmux sidebar pane via Prefix+A (toggle on/off).
 # Shows directory, git branch, and Claude status for each pane running Claude Code.
 set -euo pipefail
+
+SIDEBAR_OPT="@claude-sidebar-pane"
+
+# --- Toggle mode: open or close the sidebar pane ---
+if [[ "${1:-}" == "--toggle" ]]; then
+  existing=$(tmux show-option -gqv "$SIDEBAR_OPT" 2>/dev/null || true)
+  if [[ -n "$existing" ]] \
+     && tmux list-panes -a -F '#{pane_id}' 2>/dev/null | grep -qF "$existing"; then
+    tmux kill-pane -t "$existing" 2>/dev/null || true
+    tmux set-option -gu "$SIDEBAR_OPT" 2>/dev/null || true
+    exit 0
+  fi
+  # Open a new sidebar split on the right; the --run instance registers itself.
+  tmux split-window -h -l 40% "tmux-claude-sidebar --run"
+  exit 0
+fi
+
+# --- Run mode: the picker itself, runs inside the sidebar pane ---
+if [[ "${1:-}" == "--run" ]]; then
+  # Register this pane so --toggle can find and kill it.
+  tmux set-option -g "$SIDEBAR_OPT" "$TMUX_PANE"
+  trap 'tmux set-option -gu "$SIDEBAR_OPT" 2>/dev/null || true' EXIT
+fi
 
 ATTN_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/claude/attention"
 TTL=300 # 5 minutes
@@ -19,19 +42,33 @@ read_field() {
   grep "^${1}=" "$2" 2>/dev/null | cut -d= -f2-
 }
 
-# 2-level process tree search: shell -> claude, or shell -> wrapper -> claude.
-# Uses -x (exact name match) to avoid matching unrelated commands (e.g. "vim claude.md").
-has_claude() {
-  local pid="$1"
-  pgrep -P "$pid" -x claude >/dev/null 2>&1 && return 0
-  local child
-  for child in $(pgrep -P "$pid" 2>/dev/null); do
-    pgrep -P "$child" -x claude >/dev/null 2>&1 && return 0
-  done
-  return 1
-}
+# --- Batch claude detection ---
+# One pgrep + one ps call replaces O(n_panes) pgrep invocations.
+declare -A CLAUDE_PANE_PIDS
+_build_claude_pids() {
+  local claude_pids
+  claude_pids=$(pgrep -x claude 2>/dev/null) || return 0
 
-# Map attention marker to cmux-style status label + color.
+  # Build pid -> ppid map from the full process table.
+  local -A ppid_map
+  while read -r pid ppid; do
+    [[ -n "$pid" ]] && ppid_map[$pid]=$ppid
+  done < <(ps -eo pid=,ppid= 2>/dev/null)
+
+  local cpid parent grandparent
+  for cpid in $claude_pids; do
+    parent="${ppid_map[$cpid]:-}"
+    [[ -z "$parent" ]] && continue
+    # parent is the shell or wrapper; mark it as having claude.
+    CLAUDE_PANE_PIDS[$parent]=1
+    # grandparent covers shell -> wrapper -> claude.
+    grandparent="${ppid_map[$parent]:-}"
+    [[ -n "$grandparent" ]] && CLAUDE_PANE_PIDS[$grandparent]=1
+  done
+}
+_build_claude_pids
+
+# Map attention marker to status label + color.
 get_status() {
   local pane_id="$1"
   local marker="${ATTN_DIR}/${pane_id}"
@@ -97,28 +134,52 @@ switch_to_pane() {
   tmux select-pane -t "$pane_id" 2>/dev/null || true
 }
 
-# --- Collect all Claude Code panes ---
-entries=()
+# --- Pass 1: Identify Claude panes (fast hash lookup, no subprocess per pane) ---
+declare -a claude_panes=()
 while IFS=$'\t' read -r pane_id session_name win_idx pane_idx pane_pid pane_path; do
-  has_claude "$pane_pid" || continue
+  [[ -n "${CLAUDE_PANE_PIDS[$pane_pid]:-}" ]] || continue
+  claude_panes+=("${pane_id}	${session_name}	${win_idx}	${pane_idx}	${pane_path}")
+done < <(tmux list-panes -a -F "#{pane_id}	#{session_name}	#{window_index}	#{pane_index}	#{pane_pid}	#{pane_current_path}")
 
-  # Git branch + dirty indicator in one call (matches cmux approach).
+if [[ ${#claude_panes[@]} -eq 0 ]]; then
+  echo "No Claude Code sessions found."
+  sleep 1
+  exit 0
+fi
+
+# --- Pass 2: Gather git info in parallel ---
+GIT_TMPDIR=$(mktemp -d)
+trap 'rm -rf "$GIT_TMPDIR"; tmux set-option -gu "$SIDEBAR_OPT" 2>/dev/null || true' EXIT
+
+for entry in "${claude_panes[@]}"; do
+  IFS=$'\t' read -r pane_id _ _ _ pane_path <<< "$entry"
+  (
+    branch=""
+    git_status=$(git -C "$pane_path" status --porcelain -b --short -uno 2>/dev/null || true)
+    if [[ -n "$git_status" ]]; then
+      IFS=$'\n' read -r header _ <<< "$git_status"
+      branch="${header#\#\# }"
+      branch="${branch%%...*}"
+      branch="${branch%% \[*}"
+      if [[ "$branch" == "HEAD (no branch)" ]]; then
+        branch=$(git -C "$pane_path" rev-parse --short HEAD 2>/dev/null || true)
+      fi
+      if [[ "$git_status" == *$'\n'* ]]; then
+        branch="${branch}*"
+      fi
+    fi
+    printf '%s' "$branch" > "${GIT_TMPDIR}/${pane_id}"
+  ) &
+done
+wait
+
+# --- Pass 3: Assemble display entries ---
+entries=()
+for entry in "${claude_panes[@]}"; do
+  IFS=$'\t' read -r pane_id session_name win_idx pane_idx pane_path <<< "$entry"
+
   branch=""
-  git_status=$(git -C "$pane_path" status --porcelain -b --short -uno 2>/dev/null || true)
-  if [[ -n "$git_status" ]]; then
-    # First line: "## branch...tracking" or "## HEAD (no branch)".
-    header=$(head -1 <<< "$git_status")
-    branch="${header#\#\# }"
-    branch="${branch%%...*}"
-    branch="${branch%% \[*}"
-    if [[ "$branch" == "HEAD (no branch)" ]]; then
-      branch=$(git -C "$pane_path" rev-parse --short HEAD 2>/dev/null || true)
-    fi
-    # Any line after the header means dirty.
-    if [[ $(wc -l <<< "$git_status") -gt 1 ]]; then
-      branch="${branch}*"
-    fi
-  fi
+  [[ -f "${GIT_TMPDIR}/${pane_id}" ]] && IFS= read -r branch < "${GIT_TMPDIR}/${pane_id}"
 
   dir=$(abbreviate_path "$pane_path")
 
@@ -135,13 +196,7 @@ while IFS=$'\t' read -r pane_id session_name win_idx pane_idx pane_pid pane_path
   line+="${sep}${OVERLAY}${label}${RESET}"
 
   entries+=("$(printf '%s\t%s' "$line" "$pane_id")")
-done < <(tmux list-panes -a -F "#{pane_id}	#{session_name}	#{window_index}	#{pane_index}	#{pane_pid}	#{pane_current_path}")
-
-if [[ ${#entries[@]} -eq 0 ]]; then
-  echo "No Claude Code sessions found."
-  sleep 1
-  exit 0
-fi
+done
 
 if [[ ${#entries[@]} -eq 1 ]]; then
   pane_id=$(printf '%s' "${entries[0]}" | cut -f2)
