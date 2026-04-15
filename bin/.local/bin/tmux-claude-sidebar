@@ -1,0 +1,165 @@
+#!/usr/bin/env bash
+# tmux-claude-sidebar: show all Claude Code sessions with status info.
+# Displayed in a tmux popup via Prefix+A.
+# Shows directory, git branch, and Claude status for each pane running Claude Code.
+set -euo pipefail
+
+ATTN_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/claude/attention"
+TTL=300 # 5 minutes
+NOW=$(date +%s)
+
+# Catppuccin Mocha palette — raw ESC bytes so printf '%s' works safely.
+RESET=$'\033[0m'
+GREEN=$'\033[38;2;166;227;161m'   # #a6e3a1
+RED=$'\033[38;2;243;139;168m'     # #f38ba8
+BLUE=$'\033[38;2;137;180;250m'    # #89b4fa
+OVERLAY=$'\033[38;2;108;112;134m' # #6c7086
+
+read_field() {
+  grep "^${1}=" "$2" 2>/dev/null | cut -d= -f2-
+}
+
+# 2-level process tree search: shell -> claude, or shell -> wrapper -> claude.
+# Uses /claude( |$)/ to avoid matching unrelated commands (e.g. "vim claude.md").
+has_claude() {
+  local pid="$1"
+  pgrep -P "$pid" -f "/claude( |$)" >/dev/null 2>&1 && return 0
+  local child
+  for child in $(pgrep -P "$pid" 2>/dev/null); do
+    pgrep -P "$child" -f "/claude( |$)" >/dev/null 2>&1 && return 0
+  done
+  return 1
+}
+
+# Map attention marker to cmux-style status label + color.
+get_status() {
+  local pane_id="$1"
+  local marker="${ATTN_DIR}/${pane_id}"
+
+  if [[ -f "$marker" ]]; then
+    local ts ntype
+    ts=$(read_field timestamp "$marker")
+
+    # Stale marker — remove and fall through to "Running".
+    if [[ -n "$ts" ]] && (( NOW - ts > TTL )); then
+      rm -f "$marker"
+      printf '%s\t%s' "$GREEN" "Running"
+      return
+    fi
+
+    ntype=$(read_field notification_type "$marker")
+    case "$ntype" in
+      permission_prompt|elicitation_dialog)
+        printf '%s\t%s' "$RED" "Waiting for input" ;;
+      plan_approval|ask_user_question)
+        printf '%s\t%s' "$RED" "Asking a question" ;;
+      idle_prompt)
+        printf '%s\t%s' "$BLUE" "Idle" ;;
+      *)
+        printf '%s\t%s' "$RED" "Needs attention" ;;
+    esac
+  else
+    printf '%s\t%s' "$GREEN" "Running"
+  fi
+}
+
+# Fish-style path abbreviation: ~/w/dotfiles for ~/workspace/dotfiles.
+abbreviate_path() {
+  local path="$1"
+  local tilde_path="${path/#$HOME/\~}"
+  local IFS='/' parts display=""
+  read -ra parts <<< "$tilde_path"
+  local n="${#parts[@]}"
+  local i p
+  for (( i=0; i<n; i++ )); do
+    p="${parts[$i]}"
+    if (( i == n - 1 )); then
+      display+="$p"
+    elif [[ -z "$p" ]]; then
+      display+="/"
+    elif [[ "$p" == ".." ]]; then
+      display+="../"
+    elif [[ "$p" == .* ]]; then
+      display+=".${p:1:1}/"
+    else
+      display+="${p:0:1}/"
+    fi
+  done
+  printf '%s' "$display"
+}
+
+# Switch to a pane (works across tmux sessions).
+switch_to_pane() {
+  local pane_id="$1"
+  local session
+  session=$(tmux display-message -t "$pane_id" -p '#{session_name}' 2>/dev/null || true)
+  [[ -n "$session" ]] && tmux switch-client -t "$session" 2>/dev/null || true
+  tmux select-pane -t "$pane_id" 2>/dev/null || true
+}
+
+# --- Collect all Claude Code panes ---
+entries=()
+while IFS=$'\t' read -r pane_id session_name win_idx pane_idx pane_pid pane_path; do
+  has_claude "$pane_pid" || continue
+
+  # Git branch + dirty indicator in one call (matches cmux approach).
+  branch=""
+  git_status=$(git -C "$pane_path" status --porcelain -b --short -uno 2>/dev/null || true)
+  if [[ -n "$git_status" ]]; then
+    # First line: "## branch...tracking" or "## HEAD (no branch)".
+    header=$(head -1 <<< "$git_status")
+    branch="${header#\#\# }"
+    branch="${branch%%...*}"
+    branch="${branch%% \[*}"
+    if [[ "$branch" == "HEAD (no branch)" ]]; then
+      branch=$(git -C "$pane_path" rev-parse --short HEAD 2>/dev/null || true)
+    fi
+    # Any line after the header means dirty.
+    if [[ $(wc -l <<< "$git_status") -gt 1 ]]; then
+      branch="${branch}*"
+    fi
+  fi
+
+  dir=$(abbreviate_path "$pane_path")
+
+  IFS=$'\t' read -r status_color status_label <<< "$(get_status "$pane_id")"
+
+  label="${session_name}:${win_idx}.${pane_idx}"
+
+  sep="${OVERLAY} │ ${RESET}"
+  line="${status_color}$(printf '%-20s' "$status_label")${RESET}"
+  line+="${sep}${BLUE}${dir}${RESET}"
+  if [[ -n "$branch" ]]; then
+    line+="${sep}${RED}${branch}${RESET}"
+  fi
+  line+="${sep}${OVERLAY}${label}${RESET}"
+
+  entries+=("$(printf '%s\t%s' "$line" "$pane_id")")
+done < <(tmux list-panes -a -F "#{pane_id}	#{session_name}	#{window_index}	#{pane_index}	#{pane_pid}	#{pane_current_path}")
+
+if [[ ${#entries[@]} -eq 0 ]]; then
+  echo "No Claude Code sessions found."
+  sleep 1
+  exit 0
+fi
+
+if [[ ${#entries[@]} -eq 1 ]]; then
+  pane_id=$(printf '%s' "${entries[0]}" | cut -f2)
+  switch_to_pane "$pane_id"
+  exit 0
+fi
+
+selected=$(printf '%s\n' "${entries[@]}" | fzf \
+  --ansi \
+  --delimiter=$'\t' \
+  --with-nth=1 \
+  --header="Claude Code Sessions" \
+  --reverse \
+  --no-sort \
+  --preview='tmux capture-pane -t {2} -p -S -20 2>/dev/null || echo "(pane unavailable)"' \
+  --preview-window=down:15:wrap) || exit 0
+
+if [[ -n "$selected" ]]; then
+  pane_id=$(printf '%s' "$selected" | cut -f2)
+  switch_to_pane "$pane_id"
+fi
