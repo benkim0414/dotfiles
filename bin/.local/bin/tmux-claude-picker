@@ -18,8 +18,15 @@ BLUE=$'\033[38;2;137;180;250m'    # #89b4fa
 WHITE=$'\033[38;2;205;214;244m'   # #cdd6f4 (Catppuccin text)
 TMUX_GREEN=$'\033[38;2;27;179;74m' # #1bb34a (tmux logo green)
 
-read_field() {
-  grep "^${1}=" "$2" 2>/dev/null | cut -d= -f2-
+# Read all key=value fields from a marker file into _marker_fields.
+# Single file read with bash builtins — no grep/cut forks.
+declare -A _marker_fields
+_read_marker() {
+  _marker_fields=()
+  local key val
+  while IFS='=' read -r key val; do
+    [[ -n "$key" ]] && _marker_fields[$key]="$val"
+  done < "$1"
 }
 
 # --- Batch claude detection ---
@@ -48,40 +55,32 @@ _build_claude_pids() {
 }
 _build_claude_pids
 
-# Map attention marker to status label, color, and icon.
+# Resolve status from _marker_fields (must call _read_marker first).
 # Sets _status_color, _status_label, and _status_icon to avoid subshell forks.
 _status_color=""
 _status_label=""
 _status_icon=""
-get_status() {
-  local pane_id="$1"
-  local marker="${ATTN_DIR}/${pane_id}"
+_resolve_status() {
+  local marker="$1"
+  local ts="${_marker_fields[timestamp]:-}"
 
-  if [[ -f "$marker" ]]; then
-    local ts ntype
-    ts=$(read_field timestamp "$marker")
-
-    # Stale marker — remove and treat as default (no icon).
-    if [[ -n "$ts" ]] && (( NOW - ts > TTL )); then
-      rm -f "$marker"
-      _status_color=""; _status_label=""; _status_icon=""
-      return
-    fi
-
-    ntype=$(read_field notification_type "$marker")
-    case "$ntype" in
-      permission_prompt|elicitation_dialog)
-        _status_color="$RED"; _status_label="Waiting for input"; _status_icon="󰂞" ;;
-      plan_approval|ask_user_question)
-        _status_color="$RED"; _status_label="Asking a question"; _status_icon="󰘥" ;;
-      idle_prompt)
-        _status_color="$BLUE"; _status_label="Idle"; _status_icon="󰏤" ;;
-      *)
-        _status_color="$RED"; _status_label="Needs attention"; _status_icon="󰀦" ;;
-    esac
-  else
+  # Stale marker — remove and treat as default (no icon).
+  if [[ -n "$ts" ]] && (( NOW - ts > TTL )); then
+    rm -f "$marker"
     _status_color=""; _status_label=""; _status_icon=""
+    return
   fi
+
+  case "${_marker_fields[notification_type]:-}" in
+    permission_prompt|elicitation_dialog)
+      _status_color="$RED"; _status_label="Waiting for input"; _status_icon="󰂞" ;;
+    plan_approval|ask_user_question)
+      _status_color="$RED"; _status_label="Asking a question"; _status_icon="󰘥" ;;
+    idle_prompt)
+      _status_color="$BLUE"; _status_label="Idle"; _status_icon="󰏤" ;;
+    *)
+      _status_color="$RED"; _status_label="Needs attention"; _status_icon="󰀦" ;;
+  esac
 }
 
 # Switch to a pane (works across tmux sessions).
@@ -144,17 +143,21 @@ for entry in "${claude_panes[@]}"; do
   branch=""
   [[ -f "${GIT_TMPDIR}/${pane_id}" ]] && IFS= read -r branch < "${GIT_TMPDIR}/${pane_id}"
 
-  get_status "$pane_id"
-  status_color="$_status_color"
-
-  label="${session_name}:${win_idx}.${pane_idx}"
-
-  # Project name: from attention marker, else directory basename, else "Claude Code".
-  project=""
+  # Read marker once — _resolve_status and project lookup share _marker_fields.
   marker="${ATTN_DIR}/${pane_id}"
-  [[ -f "$marker" ]] && project=$(read_field project "$marker")
-  [[ -z "$project" ]] && project=$(basename "$pane_path")
+  if [[ -f "$marker" ]]; then
+    _read_marker "$marker"
+    _resolve_status "$marker"
+    project="${_marker_fields[project]:-}"
+  else
+    _status_color=""; _status_label=""; _status_icon=""
+    project=""
+  fi
+  [[ -z "$project" ]] && project="${pane_path##*/}"
   project="${project:-Claude Code}"
+
+  status_color="$_status_color"
+  label="${session_name}:${win_idx}.${pane_idx}"
 
   # Status priority: 0=needs attention (red), 1=idle (blue), 2=running (green).
   priority=2
@@ -175,7 +178,7 @@ for entry in "${claude_panes[@]}"; do
     line+=" ${RED} ${branch}${RESET}"
   fi
 
-  blocks+=("${pane_id}\t${line}")
+  blocks+=("${pane_id}	${line}")
   pane_ids_arr+=("$pane_id")
   priorities+=("$priority")
 done
@@ -192,7 +195,7 @@ if [[ ${#blocks[@]} -eq 1 ]]; then
 fi
 
 # Feed single-line entries to fzf (pane_id\tdisplay, hidden via --with-nth).
-selected=$(for i in "${sorted_indices[@]}"; do printf '%b\n' "${blocks[$i]}"; done | fzf \
+selected=$(for i in "${sorted_indices[@]}"; do printf '%s\n' "${blocks[$i]}"; done | fzf \
   --ansi \
   --delimiter=$'\t' \
   --with-nth=2 \
@@ -201,7 +204,7 @@ selected=$(for i in "${sorted_indices[@]}"; do printf '%b\n' "${blocks[$i]}"; do
   --no-sort \
   --no-scrollbar \
   --info=hidden \
-  --preview='tmux capture-pane -t {1} -p -e -S - 2>/dev/null || echo "(pane unavailable)"' \
+  --preview='tmux capture-pane -t {1} -p -e -S -200 2>/dev/null || echo "(pane unavailable)"' \
   --preview-window='right,50%,border-left,wrap,follow' \
   --preview-label=' Preview ' \
   --preview-label-pos=2) || exit 0
