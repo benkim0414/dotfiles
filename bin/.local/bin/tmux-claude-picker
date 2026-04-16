@@ -93,11 +93,11 @@ switch_to_pane() {
 
 # --- Pass 1: Identify Claude panes (fast hash lookup, no subprocess per pane) ---
 declare -a claude_panes=()
-while IFS=$'\t' read -r pane_id session_name win_idx pane_idx pane_pid pane_path; do
+while IFS=$'\t' read -r pane_id session_name win_idx pane_idx pane_pid pane_path pane_title; do
   [[ -n "${CLAUDE_PANE_PIDS[$pane_pid]:-}" ]] || continue
-  claude_panes+=("${pane_id}	${session_name}	${win_idx}	${pane_idx}	${pane_path}")
+  claude_panes+=("${pane_id}	${session_name}	${win_idx}	${pane_idx}	${pane_path}	${pane_title}")
   (( ${#claude_panes[@]} >= MAX_SESSIONS )) && break
-done < <(tmux list-panes -a -F "#{pane_id}	#{session_name}	#{window_index}	#{pane_index}	#{pane_pid}	#{pane_current_path}")
+done < <(tmux list-panes -a -F "#{pane_id}	#{session_name}	#{window_index}	#{pane_index}	#{pane_pid}	#{pane_current_path}	#{pane_title}")
 
 if [[ ${#claude_panes[@]} -eq 0 ]]; then
   echo "No Claude Code sessions found."
@@ -110,7 +110,7 @@ GIT_TMPDIR=$(mktemp -d)
 trap 'rm -rf "$GIT_TMPDIR"' EXIT
 
 for entry in "${claude_panes[@]}"; do
-  IFS=$'\t' read -r pane_id _ _ _ pane_path <<< "$entry"
+  IFS=$'\t' read -r pane_id _ _ _ pane_path _ <<< "$entry"
   (
     branch=""
     git_status=$(git -C "$pane_path" status --porcelain -b --short -uno 2>/dev/null || true)
@@ -137,7 +137,7 @@ declare -a blocks=()
 declare -a pane_ids_arr=()
 declare -a priorities=()
 for entry in "${claude_panes[@]}"; do
-  IFS=$'\t' read -r pane_id session_name win_idx pane_idx pane_path <<< "$entry"
+  IFS=$'\t' read -r pane_id session_name win_idx pane_idx pane_path pane_title <<< "$entry"
 
   branch=""
   [[ -f "${GIT_TMPDIR}/${pane_id}" ]] && IFS= read -r branch < "${GIT_TMPDIR}/${pane_id}"
@@ -147,11 +147,23 @@ for entry in "${claude_panes[@]}"; do
   if [[ -f "$marker" ]]; then
     _read_marker "$marker"
     _resolve_status "$marker"
-    project="${_marker_fields[project]:-}"
   else
     _status_color=""; _status_icon=""
-    project=""
   fi
+
+  # Project name priority: pane title (set by Claude Code) > marker > dir basename.
+  # Claude Code sets pane_title to "[status] session-name"; strip the leading icon.
+  project=""
+  if [[ -n "$pane_title" ]]; then
+    # Strip leading status icon prefix (e.g., "✳ ", "⠂ ").
+    local_title="${pane_title#[✳⠂⠄⠤] }"
+    # Skip hostname or generic "Claude Code" — not useful as a project name.
+    case "$local_title" in
+      *.local|"Claude Code") ;;
+      ?*) project="$local_title" ;;
+    esac
+  fi
+  [[ -z "$project" ]] && project="${_marker_fields[project]:-}"
   [[ -z "$project" ]] && project="${pane_path##*/}"
   project="${project:-Claude Code}"
 
