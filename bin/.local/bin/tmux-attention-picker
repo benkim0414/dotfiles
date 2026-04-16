@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# tmux-claude-picker: show all Claude Code sessions with status info.
+# tmux-attention-picker: show all Claude Code and Codex sessions with status info.
 # Displayed in a tmux popup via Prefix+A.
-# Shows directory, git branch, and Claude status for each pane running Claude Code.
+# Shows directory, git branch, and status for each pane running Claude Code or Codex.
 set -euo pipefail
 
 MAX_SESSIONS=50
@@ -32,12 +32,21 @@ _read_marker() {
   done < "$1"
 }
 
-# --- Batch claude detection ---
-# One pgrep + one ps call replaces O(n_panes) pgrep invocations.
-declare -A CLAUDE_PANE_PIDS
-_build_claude_pids() {
-  local claude_pids
-  claude_pids=$(pgrep -x claude 2>/dev/null) || return 0
+# --- Batch AI process detection (Claude Code + Codex) ---
+# One pgrep per tool + one ps call replaces O(n_panes) pgrep invocations.
+declare -A AI_PANE_PIDS   # pid -> 1
+declare -A AI_PANE_TOOL   # pid -> claude|codex (for fallback label)
+_build_ai_pids() {
+  # Collect PIDs per tool in one pass (avoids redundant pgrep calls).
+  local -A tool_pids_map
+  local found=0
+  for tool in claude codex; do
+    local pids
+    pids=$(pgrep -x "$tool" 2>/dev/null) || continue
+    tool_pids_map[$tool]="$pids"
+    found=1
+  done
+  (( found )) || return 0
 
   # Build pid -> ppid map from the full process table.
   local -A ppid_map
@@ -45,18 +54,25 @@ _build_claude_pids() {
     [[ -n "$pid" ]] && ppid_map[$pid]=$ppid
   done < <(ps -eo pid=,ppid= 2>/dev/null)
 
+  # Map each tool's pids to their parent/grandparent pane pids.
   local cpid parent grandparent
-  for cpid in $claude_pids; do
-    parent="${ppid_map[$cpid]:-}"
-    [[ -z "$parent" ]] && continue
-    # parent is the shell or wrapper; mark it as having claude.
-    CLAUDE_PANE_PIDS[$parent]=1
-    # grandparent covers shell -> wrapper -> claude.
-    grandparent="${ppid_map[$parent]:-}"
-    [[ -n "$grandparent" ]] && CLAUDE_PANE_PIDS[$grandparent]=1
+  for tool in claude codex; do
+    [[ -n "${tool_pids_map[$tool]:-}" ]] || continue
+    for cpid in ${tool_pids_map[$tool]}; do
+      parent="${ppid_map[$cpid]:-}"
+      [[ -z "$parent" ]] && continue
+      AI_PANE_PIDS[$parent]=1
+      AI_PANE_TOOL[$parent]="$tool"
+      # grandparent covers shell -> wrapper -> tool.
+      grandparent="${ppid_map[$parent]:-}"
+      if [[ -n "$grandparent" ]]; then
+        AI_PANE_PIDS[$grandparent]=1
+        AI_PANE_TOOL[$grandparent]="$tool"
+      fi
+    done
   done
 }
-_build_claude_pids
+_build_ai_pids
 
 # Resolve status from _marker_fields (must call _read_marker first).
 # Sets _status_color and _status_icon to avoid subshell forks.
@@ -96,16 +112,16 @@ switch_to_pane() {
   tmux select-pane -t "$pane_id" 2>/dev/null || true
 }
 
-# --- Pass 1: Identify Claude panes (fast hash lookup, no subprocess per pane) ---
-declare -a claude_panes=()
+# --- Pass 1: Identify AI panes (fast hash lookup, no subprocess per pane) ---
+declare -a ai_panes=()
 while IFS=$'\t' read -r pane_id session_name win_idx pane_idx pane_pid pane_path pane_title; do
-  [[ -n "${CLAUDE_PANE_PIDS[$pane_pid]:-}" ]] || continue
-  claude_panes+=("${pane_id}	${session_name}	${win_idx}	${pane_idx}	${pane_path}	${pane_title}")
-  (( ${#claude_panes[@]} >= MAX_SESSIONS )) && break
+  [[ -n "${AI_PANE_PIDS[$pane_pid]:-}" ]] || continue
+  ai_panes+=("${pane_id}	${session_name}	${win_idx}	${pane_idx}	${pane_pid}	${pane_path}	${pane_title}")
+  (( ${#ai_panes[@]} >= MAX_SESSIONS )) && break
 done < <(tmux list-panes -a -F "#{pane_id}	#{session_name}	#{window_index}	#{pane_index}	#{pane_pid}	#{pane_current_path}	#{pane_title}")
 
-if [[ ${#claude_panes[@]} -eq 0 ]]; then
-  echo "No Claude Code sessions found."
+if [[ ${#ai_panes[@]} -eq 0 ]]; then
+  echo "No Claude Code or Codex sessions found."
   sleep 1
   exit 0
 fi
@@ -114,8 +130,8 @@ fi
 GIT_TMPDIR=$(mktemp -d)
 trap 'rm -rf "$GIT_TMPDIR"' EXIT
 
-for entry in "${claude_panes[@]}"; do
-  IFS=$'\t' read -r pane_id _ _ _ pane_path _ <<< "$entry"
+for entry in "${ai_panes[@]}"; do
+  IFS=$'\t' read -r pane_id _ _ _ _ pane_path _ <<< "$entry"
   (
     branch=""
     git_status=$(git -C "$pane_path" status --porcelain -b --short -uno 2>/dev/null || true)
@@ -141,8 +157,8 @@ wait
 declare -a blocks=()
 declare -a pane_ids_arr=()
 declare -a priorities=()
-for entry in "${claude_panes[@]}"; do
-  IFS=$'\t' read -r pane_id session_name win_idx pane_idx pane_path pane_title <<< "$entry"
+for entry in "${ai_panes[@]}"; do
+  IFS=$'\t' read -r pane_id session_name win_idx pane_idx pane_pid pane_path pane_title <<< "$entry"
 
   branch=""
   [[ -f "${GIT_TMPDIR}/${pane_id}" ]] && IFS= read -r branch < "${GIT_TMPDIR}/${pane_id}"
@@ -165,13 +181,18 @@ for entry in "${claude_panes[@]}"; do
     [[ "$pane_title" == [![:alnum:]]" "* ]] && local_title="${pane_title#? }"
     # Skip hostname or generic "Claude Code" — not useful as a project name.
     case "$local_title" in
-      *.local|"Claude Code") ;;
+      *.local|"Claude Code"|"Codex") ;;
       ?*) project="$local_title" ;;
     esac
   fi
   [[ -z "$project" ]] && project="${_marker_fields[project]:-}"
   [[ -z "$project" ]] && project="${pane_path##*/}"
-  project="${project:-Claude Code}"
+  if [[ -z "$project" ]]; then
+    case "${AI_PANE_TOOL[$pane_pid]:-claude}" in
+      codex) project="Codex" ;;
+      *)     project="Claude Code" ;;
+    esac
+  fi
 
   label="${session_name}:${win_idx}.${pane_idx}"
 
