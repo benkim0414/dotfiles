@@ -1,0 +1,62 @@
+# Codex CLI global configuration
+#
+# Mirrors Claude Code settings.base.json using Codex-native mechanisms:
+#   sandbox_mode + approval_policy  -> permissions (acceptEdits equivalent)
+#   rules/default.rules             -> deny/ask/allow command gating
+#   AGENTS.md                       -> behavioral instructions + domain rules
+
+model = "o3"
+
+# workspace-write: file edits auto-approved within project dir;
+# .git/, .codex/, .agents/ always read-only (built-in protection).
+sandbox_mode = "workspace-write"
+
+# on-request: auto-approves workspace reads/edits, prompts for shell commands.
+# Combined with Starlark allow rules for safe commands (git status, ls, grep).
+approval_policy = "on-request"
+
+file_opener = "none"
+web_search = "live"
+
+# Notification: Ghostty OSC 777 + tmux bell.
+notify = ["bash", "$HOME/.codex/hooks/notify.sh"]
+
+[features]
+unified_exec = true
+multi_agent = true
+shell_tool = true
+
+[shell_environment_policy]
+inherit = "all"
+exclude = ["AWS_SECRET*", "OPENAI_API_KEY", "*_TOKEN", "*_SECRET"]
+
+[sandbox_workspace_write]
+network_access = false
+writable_roots = []
+
+[tui]
+notifications = true
+theme = "catppuccin-mocha"
+
+[history]
+persistence = "save-all"
+
+# --- MCP Servers ---
+
+[mcp_servers.sequential-thinking]
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-sequential-thinking"]
+enabled_tools = ["sequentialthinking"]
+
+[mcp_servers.qmd]
+command = "qmd"
+args = ["mcp"]
+enabled_tools = ["query", "get", "multi_get", "status"]
+
+# --- Telemetry (replaces audit-log hook) ---
+
+[otel]
+environment = "dev"
+exporter = "none"
+trace_exporter = "none"
+log_user_prompt = false
