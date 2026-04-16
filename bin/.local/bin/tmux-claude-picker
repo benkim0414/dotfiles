@@ -155,8 +155,9 @@ for entry in "${claude_panes[@]}"; do
   # Claude Code sets pane_title to "[status] session-name"; strip the leading icon.
   project=""
   if [[ -n "$pane_title" ]]; then
-    # Strip leading status icon prefix (e.g., "✳ ", "⠂ ").
-    local_title="${pane_title#[✳⠂⠄⠤] }"
+    # Strip leading non-alphanumeric status icon + space (e.g., "✳ ", "⠂ ").
+    local_title="$pane_title"
+    [[ "$pane_title" == [![:alnum:]]" "* ]] && local_title="${pane_title#? }"
     # Skip hostname or generic "Claude Code" — not useful as a project name.
     case "$local_title" in
       *.local|"Claude Code") ;;
@@ -177,7 +178,6 @@ for entry in "${claude_panes[@]}"; do
     priority=1
   fi
 
-  # Format: [icon] project  session:win.pane  branch*
   if [[ -n "$_status_icon" ]]; then
     line="${_status_color}${_status_icon}${RESET} ${BOLD}${WHITE}${project}${RESET}"
   else
