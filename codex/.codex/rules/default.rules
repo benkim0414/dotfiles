@@ -31,13 +31,32 @@ prefix_rule(pattern=["git", "rebase"], decision="forbidden",
 prefix_rule(pattern=["git", "cherry-pick"], decision="forbidden",
             justification="Use PRs, not cherry-pick")
 
-# Block reading sensitive files via shell
+# Block reading sensitive files via shell.
+# NOTE: prefix_rule matches literal tokens the model generates. If the model
+# uses absolute paths (/home/<user>/...) instead of ~/..., these rules won't
+# fire. AGENTS.md security boundaries provide defense-in-depth.
 prefix_rule(pattern=["cat", "~/.ssh/"], decision="forbidden",
+            justification="SSH keys are sensitive")
+prefix_rule(pattern=["less", "~/.ssh/"], decision="forbidden",
+            justification="SSH keys are sensitive")
+prefix_rule(pattern=["head", "~/.ssh/"], decision="forbidden",
+            justification="SSH keys are sensitive")
+prefix_rule(pattern=["tail", "~/.ssh/"], decision="forbidden",
             justification="SSH keys are sensitive")
 prefix_rule(pattern=["cat", "~/.aws/credentials"], decision="forbidden",
             justification="AWS credentials are sensitive")
+prefix_rule(pattern=["less", "~/.aws/credentials"], decision="forbidden",
+            justification="AWS credentials are sensitive")
 prefix_rule(pattern=["cat", "~/.kube/config"], decision="forbidden",
             justification="Kubernetes config contains credentials")
+prefix_rule(pattern=["less", "~/.kube/config"], decision="forbidden",
+            justification="Kubernetes config contains credentials")
+prefix_rule(pattern=["cat", "~/.docker/config.json"], decision="forbidden",
+            justification="Docker config contains credentials")
+prefix_rule(pattern=["cat", "~/.netrc"], decision="forbidden",
+            justification="Netrc contains credentials")
+prefix_rule(pattern=["cat", "~/.config/gh/hosts.yml"], decision="forbidden",
+            justification="GitHub CLI config contains tokens")
 
 # Block password manager CLI
 prefix_rule(pattern=["bw", "get"], decision="forbidden",
