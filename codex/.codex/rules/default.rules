@@ -1,0 +1,261 @@
+# Codex CLI exec policy rules
+#
+# Starlark prefix_rule() format. Precedence: forbidden > prompt > allow.
+# Test with: codex execpolicy check --pretty --rules <file> -- <command>
+
+# ============================================================
+# FORBIDDEN -- commands that must never execute
+# ============================================================
+
+# Block blanket staging (git workflow enforcement)
+prefix_rule(pattern=["git", "add", "-A"], decision="forbidden",
+            justification="Use selective staging by filename")
+prefix_rule(pattern=["git", "add", "--all"], decision="forbidden",
+            justification="Use selective staging by filename")
+prefix_rule(pattern=["git", "add", "."], decision="forbidden",
+            justification="Use selective staging by filename")
+prefix_rule(pattern=["git", "add", "-u"], decision="forbidden",
+            justification="Use selective staging by filename")
+prefix_rule(pattern=["git", "commit", "-a"], decision="forbidden",
+            justification="Stage files explicitly, then commit")
+
+# Block direct operations on main
+prefix_rule(pattern=["git", "push", "origin", "main"], decision="forbidden",
+            justification="Push to feature branch, not main")
+prefix_rule(pattern=["git", "push", "origin", "master"], decision="forbidden",
+            justification="Push to feature branch, not master")
+prefix_rule(pattern=["git", "merge"], decision="forbidden",
+            justification="Use PRs for merging, not local merge")
+prefix_rule(pattern=["git", "rebase"], decision="forbidden",
+            justification="Use merge commits, never rebase")
+prefix_rule(pattern=["git", "cherry-pick"], decision="forbidden",
+            justification="Use PRs, not cherry-pick")
+
+# Block reading sensitive files via shell.
+# NOTE: prefix_rule matches literal tokens the model generates. If the model
+# uses absolute paths (/home/<user>/...) instead of ~/..., these rules won't
+# fire. AGENTS.md security boundaries provide defense-in-depth.
+prefix_rule(pattern=["cat", "~/.ssh/"], decision="forbidden",
+            justification="SSH keys are sensitive")
+prefix_rule(pattern=["less", "~/.ssh/"], decision="forbidden",
+            justification="SSH keys are sensitive")
+prefix_rule(pattern=["head", "~/.ssh/"], decision="forbidden",
+            justification="SSH keys are sensitive")
+prefix_rule(pattern=["tail", "~/.ssh/"], decision="forbidden",
+            justification="SSH keys are sensitive")
+prefix_rule(pattern=["cat", "~/.aws/credentials"], decision="forbidden",
+            justification="AWS credentials are sensitive")
+prefix_rule(pattern=["less", "~/.aws/credentials"], decision="forbidden",
+            justification="AWS credentials are sensitive")
+prefix_rule(pattern=["cat", "~/.kube/config"], decision="forbidden",
+            justification="Kubernetes config contains credentials")
+prefix_rule(pattern=["less", "~/.kube/config"], decision="forbidden",
+            justification="Kubernetes config contains credentials")
+prefix_rule(pattern=["cat", "~/.docker/config.json"], decision="forbidden",
+            justification="Docker config contains credentials")
+prefix_rule(pattern=["cat", "~/.netrc"], decision="forbidden",
+            justification="Netrc contains credentials")
+prefix_rule(pattern=["cat", "~/.config/gh/hosts.yml"], decision="forbidden",
+            justification="GitHub CLI config contains tokens")
+
+# Block password manager CLI
+prefix_rule(pattern=["bw", "get"], decision="forbidden",
+            justification="Do not extract secrets from Bitwarden")
+prefix_rule(pattern=["bw", "list"], decision="forbidden",
+            justification="Do not list secrets from Bitwarden")
+prefix_rule(pattern=["op", "read"], decision="forbidden",
+            justification="Do not extract secrets from 1Password")
+prefix_rule(pattern=["op", "item", "get"], decision="forbidden",
+            justification="Do not extract secrets from 1Password")
+
+# ============================================================
+# PROMPT -- require user approval
+# ============================================================
+
+# Destructive filesystem operations
+prefix_rule(pattern=["rm", "-rf"], decision="prompt",
+            justification="Recursive deletion requires approval")
+prefix_rule(pattern=["sudo"], decision="prompt",
+            justification="Elevated privileges require approval")
+
+# Destructive git operations
+prefix_rule(pattern=["git", "reset", "--hard"], decision="prompt",
+            justification="Hard reset requires approval")
+prefix_rule(pattern=["git", "push", "--force"], decision="prompt",
+            justification="Force push requires approval")
+prefix_rule(pattern=["git", "push", "-f"], decision="prompt",
+            justification="Force push requires approval")
+prefix_rule(pattern=["git", "clean", "-f"], decision="prompt",
+            justification="Git clean requires approval")
+prefix_rule(pattern=["git", "branch", "-D"], decision="prompt",
+            justification="Force branch deletion requires approval")
+
+# GitHub CLI destructive operations
+prefix_rule(pattern=["gh", "repo", "delete"], decision="prompt",
+            justification="Repo deletion requires approval")
+prefix_rule(pattern=["gh", "pr", "merge"], decision="prompt",
+            justification="PR merge requires approval")
+prefix_rule(pattern=["gh", "issue", "close"], decision="prompt",
+            justification="Issue close requires approval")
+
+# Infrastructure destructive operations
+prefix_rule(pattern=["kubectl", "delete"], decision="prompt",
+            justification="Kubernetes deletion requires approval")
+prefix_rule(pattern=["terraform", "destroy"], decision="prompt",
+            justification="Terraform destroy requires approval")
+prefix_rule(pattern=["helm", "uninstall"], decision="prompt",
+            justification="Helm uninstall requires approval")
+prefix_rule(pattern=["docker", "rm"], decision="prompt",
+            justification="Container removal requires approval")
+prefix_rule(pattern=["docker", "rmi"], decision="prompt",
+            justification="Image removal requires approval")
+prefix_rule(pattern=["docker", "system", "prune"], decision="prompt",
+            justification="Docker prune requires approval")
+
+# Global package installs
+prefix_rule(pattern=["pip", "install"], decision="prompt",
+            justification="Package installation requires approval")
+prefix_rule(pattern=["npm", "install", "-g"], decision="prompt",
+            justification="Global npm install requires approval")
+prefix_rule(pattern=["cargo", "install"], decision="prompt",
+            justification="Cargo install requires approval")
+prefix_rule(pattern=["go", "install"], decision="prompt",
+            justification="Go install requires approval")
+
+# ============================================================
+# ALLOW -- safe operations that should not prompt
+# ============================================================
+
+# Read-only git operations
+prefix_rule(pattern=["git", "status"], decision="allow",
+            justification="Read-only git operation")
+prefix_rule(pattern=["git", "log"], decision="allow",
+            justification="Read-only git operation")
+prefix_rule(pattern=["git", "diff"], decision="allow",
+            justification="Read-only git operation")
+prefix_rule(pattern=["git", "branch"], decision="allow",
+            justification="Read-only git operation")
+prefix_rule(pattern=["git", "show"], decision="allow",
+            justification="Read-only git operation")
+prefix_rule(pattern=["git", "rev-parse"], decision="allow",
+            justification="Read-only git operation")
+prefix_rule(pattern=["git", "remote"], decision="allow",
+            justification="Read-only git operation")
+prefix_rule(pattern=["git", "stash", "list"], decision="allow",
+            justification="Read-only git operation")
+
+# Safe git write operations (blanket patterns already forbidden above)
+prefix_rule(pattern=["git", "add"], decision="allow",
+            justification="Selective staging allowed")
+prefix_rule(pattern=["git", "commit"], decision="allow",
+            justification="Commits allowed")
+prefix_rule(pattern=["git", "push", "origin"], decision="allow",
+            justification="Push to explicit remote allowed (bare git push blocked by approval_policy)")
+prefix_rule(pattern=["git", "worktree"], decision="allow",
+            justification="Worktree operations are part of the workflow")
+prefix_rule(pattern=["git", "checkout"], decision="allow",
+            justification="Branch switching is safe")
+prefix_rule(pattern=["git", "switch"], decision="allow",
+            justification="Branch switching is safe")
+
+# GitHub CLI read operations
+prefix_rule(pattern=["gh", "pr", "view"], decision="allow",
+            justification="Read-only GitHub operation")
+prefix_rule(pattern=["gh", "pr", "list"], decision="allow",
+            justification="Read-only GitHub operation")
+prefix_rule(pattern=["gh", "pr", "diff"], decision="allow",
+            justification="Read-only GitHub operation")
+prefix_rule(pattern=["gh", "pr", "checks"], decision="allow",
+            justification="Read-only GitHub operation")
+prefix_rule(pattern=["gh", "pr", "create"], decision="allow",
+            justification="PR creation is part of the workflow")
+prefix_rule(pattern=["gh", "issue", "view"], decision="allow",
+            justification="Read-only GitHub operation")
+prefix_rule(pattern=["gh", "issue", "list"], decision="allow",
+            justification="Read-only GitHub operation")
+prefix_rule(pattern=["gh", "api"], decision="allow",
+            justification="GitHub API access for context")
+
+# Common safe commands
+prefix_rule(pattern=["ls"], decision="allow",
+            justification="File listing is safe")
+prefix_rule(pattern=["find"], decision="allow",
+            justification="File search is safe")
+prefix_rule(pattern=["grep"], decision="allow",
+            justification="Content search is safe")
+prefix_rule(pattern=["rg"], decision="allow",
+            justification="Content search is safe")
+prefix_rule(pattern=["fd"], decision="allow",
+            justification="File search is safe")
+prefix_rule(pattern=["wc"], decision="allow",
+            justification="Word count is safe")
+prefix_rule(pattern=["head"], decision="allow",
+            justification="File preview is safe")
+prefix_rule(pattern=["tail"], decision="allow",
+            justification="File preview is safe")
+prefix_rule(pattern=["cat"], decision="allow",
+            justification="File read (sensitive paths already forbidden)")
+prefix_rule(pattern=["echo"], decision="allow",
+            justification="Echo is safe")
+prefix_rule(pattern=["printf"], decision="allow",
+            justification="Printf is safe")
+prefix_rule(pattern=["test"], decision="allow",
+            justification="Test expressions are safe")
+prefix_rule(pattern=["mkdir"], decision="allow",
+            justification="Directory creation is safe")
+prefix_rule(pattern=["touch"], decision="allow",
+            justification="File creation is safe")
+prefix_rule(pattern=["cp"], decision="allow",
+            justification="File copy is safe")
+prefix_rule(pattern=["mv"], decision="allow",
+            justification="File move is safe")
+prefix_rule(pattern=["sort"], decision="allow",
+            justification="Text sorting is safe")
+prefix_rule(pattern=["uniq"], decision="allow",
+            justification="Text dedup is safe")
+prefix_rule(pattern=["jq"], decision="allow",
+            justification="JSON processing is safe")
+prefix_rule(pattern=["yq"], decision="allow",
+            justification="YAML processing is safe")
+prefix_rule(pattern=["sed"], decision="allow",
+            justification="Stream editing is safe")
+prefix_rule(pattern=["awk"], decision="allow",
+            justification="Text processing is safe")
+prefix_rule(pattern=["date"], decision="allow",
+            justification="Date display is safe")
+prefix_rule(pattern=["which"], decision="allow",
+            justification="Command lookup is safe")
+prefix_rule(pattern=["command"], decision="allow",
+            justification="Command check is safe")
+prefix_rule(pattern=["type"], decision="allow",
+            justification="Command type check is safe")
+
+# Build and test
+prefix_rule(pattern=["make"], decision="allow",
+            justification="Build commands are safe")
+prefix_rule(pattern=["npm", "test"], decision="allow",
+            justification="Test execution is safe")
+prefix_rule(pattern=["npm", "run"], decision="allow",
+            justification="NPM scripts are safe")
+prefix_rule(pattern=["go", "test"], decision="allow",
+            justification="Go tests are safe")
+prefix_rule(pattern=["go", "build"], decision="allow",
+            justification="Go build is safe")
+prefix_rule(pattern=["cargo", "test"], decision="allow",
+            justification="Cargo tests are safe")
+prefix_rule(pattern=["cargo", "build"], decision="allow",
+            justification="Cargo build is safe")
+prefix_rule(pattern=["pytest"], decision="allow",
+            justification="Python tests are safe")
+prefix_rule(pattern=["shellcheck"], decision="allow",
+            justification="Shell linting is safe")
+prefix_rule(pattern=["stow"], decision="allow",
+            justification="Stow operations are part of the workflow")
+
+# Package tools (read-only)
+prefix_rule(pattern=["brew", "list"], decision="allow",
+            justification="Brew list is safe")
+prefix_rule(pattern=["brew", "info"], decision="allow",
+            justification="Brew info is safe")
+prefix_rule(pattern=["brew", "search"], decision="allow",
+            justification="Brew search is safe")
