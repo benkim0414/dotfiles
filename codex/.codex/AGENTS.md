@@ -1,0 +1,151 @@
+# Global Codex Preferences
+
+## Communication
+
+- Never use emojis in responses.
+- If requirements are ambiguous, underspecified, or open to multiple
+  interpretations, ask clarifying questions before proceeding. This applies
+  to task scope, implementation approach, edge cases, naming, and any
+  decision that could go more than one way.
+- Explain the reasoning behind config choices, not just what to set.
+- Present the dry-run/plan/diff form of a command before the apply form;
+  let the user review first.
+- Use web search to look up current docs, API versions, or package versions
+  -- training data goes stale; never guess at versions.
+
+## Editor
+
+- Default editor is nvim. Do not open VS Code or other GUI editors.
+
+## Semantic Search (qmd)
+
+When qmd is available as an MCP server and the current project has an indexed
+collection, prefer qmd `query` over grep/find for locating code.
+qmd returns semantically ranked results, which is more effective for:
+- Finding implementations by describing what they do (not what they're named)
+- Discovering related code across a large codebase
+- Answering "where is X handled?" questions
+
+Fall back to grep/find when:
+- qmd is not available or the project has no indexed collection
+- You need exact string/regex matches (import paths, error messages, symbol names)
+- You need to find all occurrences exhaustively (refactoring, renaming)
+
+Never run `qmd collection add`, `qmd embed`, or `qmd update` -- indexing
+is a manual user action.
+
+## Git Workflow
+
+All work MUST happen on isolated worktree branches. Never commit or edit
+directly on the main branch.
+
+### Branch creation
+
+1. Create a worktree: `git worktree add ../<branch-name> -b <branch-name>`
+2. Change into the worktree directory to do all work there.
+3. When done, return to the main worktree.
+
+### Commit discipline
+
+- Commit each self-contained logical change atomically.
+- Use conventional commits: `type(scope): description`
+  - Types: feat, fix, docs, chore, refactor, test, ci, perf
+- Stage files selectively by name. NEVER use `git add -A`, `git add .`,
+  `git add --all`, or `git commit -a`.
+
+### Push and PR
+
+- Push with explicit refspec: `git push origin HEAD:<branch-name>`
+- Create PRs with `gh pr create`.
+- Use merge commits only: `gh pr merge --merge`. NEVER squash or rebase.
+
+### After merge
+
+- Clean up: `git worktree remove ../<branch-name>`
+- Update main: `git checkout main && git pull`
+
+## Security Boundaries
+
+NEVER read, write, or access these sensitive files or directories:
+- `~/.ssh/*` (private keys, config)
+- `~/.gnupg/*` (GPG keys)
+- `~/.aws/credentials`
+- `~/.kube/config`
+- `~/.docker/config.json`
+- `~/.netrc`
+- `~/.config/gh/hosts.yml`
+- Any `.env`, `.env.*`, or `.env.local` files
+
+NEVER run password manager commands:
+- `bw get`, `bw list`, `bw unlock`
+- `op read`, `op item get`
+
+## Session Start
+
+- At the beginning of every session, run `git status` and `git branch` to
+  establish context. Report the current branch and working tree state.
+- If on main with uncommitted work, warn immediately.
+
+## PR Context
+
+- When the user mentions a PR number (e.g., "PR #42", "#42"), fetch its
+  details with `gh pr view <number>` before responding.
+
+## Domain: Dockerfiles
+
+- Pin base image tags to exact versions: `python:3.13.1-slim` not `python:3` or `python:latest`
+- Always verify base image digests via web search -- never rely on training data
+- Use multi-stage builds for compiled languages -- separate build deps from runtime
+- Copy dependency manifests first (package.json, requirements.txt), then source -- maximizes layer cache hits
+- Create and switch to non-root user: `RUN useradd -r appuser && USER appuser`
+- Combine apt-get update and install in one RUN with cleanup: `RUN apt-get update && apt-get install -y pkg && rm -rf /var/lib/apt/lists/*`
+
+## Domain: Kubernetes Manifests
+
+Every Deployment/StatefulSet/DaemonSet must include:
+
+### Security Context (Restricted profile)
+
+- Pod-level: `runAsNonRoot: true`, `seccompProfile.type: RuntimeDefault`
+- Container-level: `allowPrivilegeEscalation: false`, `readOnlyRootFilesystem: true`, `capabilities.drop: ["ALL"]`
+- Never use hostNetwork, hostPID, hostIPC, or hostPath volumes
+- Set `automountServiceAccountToken: false` unless the pod needs Kubernetes API access
+
+### Resource Management
+
+- Set both `resources.requests` and `resources.limits` (cpu, memory) on every container
+- Add `livenessProbe` and `readinessProbe` on every container
+- Include a `PodDisruptionBudget` for production workloads
+
+### Image and Versioning
+
+- Pin image tags to exact versions -- never use `:latest` or bare major/minor tags
+- Always verify image digests via web search -- never rely on training data
+- Use current stable apiVersions: `apps/v1`, `networking.k8s.io/v1`, `policy/v1`
+- Label consistently: `app.kubernetes.io/name`, `app.kubernetes.io/version`, `app.kubernetes.io/component`
+
+## Domain: Terraform / OpenTofu
+
+- Always show `terraform plan` output before any apply -- never combine or skip the plan step
+- Pin provider versions in required_providers: `version = "~> 5.0"` not `>= 5.0` or omitted
+- Use remote backend with state locking (S3 + DynamoDB, or equivalent) -- never local state in shared environments
+- Add `lifecycle { prevent_destroy = true }` on stateful resources (databases, storage, networking)
+- Mark sensitive outputs with `sensitive = true` to prevent leaks in logs and CI output
+
+## Domain: GitHub Actions
+
+- Pin actions by full commit SHA, not tag: `actions/checkout@<sha>` not `@v4`
+- Always declare a `permissions:` block at job level with least privilege -- omitting defaults to broad access
+- Use OIDC (`id-token: write`) for cloud auth instead of long-lived credential secrets
+- Guard comment-triggered workflows against self-triggers: `if: github.actor != 'claude[bot]'`
+
+## Domain: Helm Charts
+
+- Validate before committing: `helm lint --strict` and `helm template . --validate`
+- Always verify chart versions via web search -- never rely on training data
+- Provide complete defaults in values.yaml for all templated values
+- Quote string interpolations in templates: `"{{ .Values.image.tag }}"` not bare `{{ .Values.image.tag }}`
+
+## Domain: Shell Scripts
+
+- ShellCheck must pass with no warnings before committing
