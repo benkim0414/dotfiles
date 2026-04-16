@@ -79,7 +79,7 @@ _resolve_status() {
     ask_user_question)
       _status_color="$FLAMINGO"; _status_icon="󰘥" ;;
     plan_approval)
-      _status_color="$TEAL"; _status_icon="󰘥" ;;
+      _status_color="$TEAL"; _status_icon="󰝖" ;;
     idle_prompt)
       _status_color="$LAVENDER"; _status_icon="󰏤" ;;
     *)
