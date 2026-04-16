@@ -209,6 +209,7 @@ selected=$(for i in "${sorted_indices[@]}"; do printf '%s\n' "${blocks[$i]}"; do
   --ansi \
   --delimiter=$'\t' \
   --with-nth=2 \
+  --exact \
   --highlight-line \
   --reverse \
   --no-sort \
