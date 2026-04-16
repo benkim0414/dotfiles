@@ -14,7 +14,10 @@ NOW=$(date +%s)
 RESET=$'\033[0m'
 BOLD=$'\033[1m'
 RED=$'\033[38;2;243;139;168m'     # #f38ba8
-BLUE=$'\033[38;2;137;180;250m'    # #89b4fa
+MAROON=$'\033[38;2;235;160;172m'  # #eba0ac
+FLAMINGO=$'\033[38;2;242;205;205m' # #f2cdcd
+TEAL=$'\033[38;2;148;226;213m'    # #94e2d5
+LAVENDER=$'\033[38;2;180;190;254m' # #b4befe
 WHITE=$'\033[38;2;205;214;244m'   # #cdd6f4 (Catppuccin text)
 TMUX_GREEN=$'\033[38;2;27;179;74m' # #1bb34a (tmux logo green)
 
@@ -72,13 +75,15 @@ _resolve_status() {
 
   case "${_marker_fields[notification_type]:-}" in
     permission_prompt|elicitation_dialog)
-      _status_color="$RED"; _status_icon="󰂞" ;;
-    plan_approval|ask_user_question)
-      _status_color="$RED"; _status_icon="󰘥" ;;
+      _status_color="$MAROON"; _status_icon="󰂞" ;;
+    ask_user_question)
+      _status_color="$FLAMINGO"; _status_icon="󰘥" ;;
+    plan_approval)
+      _status_color="$TEAL"; _status_icon="󰘥" ;;
     idle_prompt)
-      _status_color="$BLUE"; _status_icon="󰏤" ;;
+      _status_color="$LAVENDER"; _status_icon="󰏤" ;;
     *)
-      _status_color="$RED"; _status_icon="󰀦" ;;
+      _status_color="$MAROON"; _status_icon="󰀦" ;;
   esac
 }
 
@@ -170,13 +175,15 @@ for entry in "${claude_panes[@]}"; do
 
   label="${session_name}:${win_idx}.${pane_idx}"
 
-  # Status priority: 0=needs attention (red), 1=idle (blue), 2=running (green).
-  priority=2
-  if [[ "$_status_color" == "$RED" ]]; then
-    priority=0
-  elif [[ "$_status_color" == "$BLUE" ]]; then
-    priority=1
-  fi
+  # Status priority: 0=needs attention (maroon), 1=question/plan (flamingo/teal),
+  # 2=idle (lavender), 3=running (no icon).
+  priority=3
+  case "$_status_color" in
+    "$MAROON")   priority=0 ;;
+    "$FLAMINGO") priority=1 ;;
+    "$TEAL")     priority=1 ;;
+    "$LAVENDER") priority=2 ;;
+  esac
 
   if [[ -n "$_status_icon" ]]; then
     line="${_status_color}${_status_icon}${RESET} ${BOLD}${WHITE}${project}${RESET}"
