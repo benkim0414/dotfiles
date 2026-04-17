@@ -20,9 +20,9 @@ FLAMINGO=$'\033[38;2;242;205;205m' # #f2cdcd
 TEAL=$'\033[38;2;148;226;213m'    # #94e2d5
 LAVENDER=$'\033[38;2;180;190;254m' # #b4befe
 WHITE=$'\033[38;2;205;214;244m'   # #cdd6f4 (Catppuccin text)
-TMUX_GREEN=$'\033[38;2;27;179;74m' # #1bb34a (tmux logo green)
-CLAUDE_ORANGE=$'\033[38;2;218;119;86m'  # #da7756 (Claude brand terra cotta)
-CODEX_GREEN=$'\033[38;2;16;163;127m'    # #10A37F (OpenAI brand green)
+TMUX_GREEN=$'\033[38;2;166;227;161m'    # #a6e3a1 (Catppuccin green)
+CLAUDE_PEACH=$'\033[38;2;250;179;135m'  # #fab387 (Catppuccin peach)
+CODEX_TEAL=$'\033[38;2;148;226;213m'    # #94e2d5 (Catppuccin teal)
 
 # Tool-type icons (nerd fonts).
 ICON_CLAUDE="󰛄"   # nf-md-asterisk (f06c4)
@@ -221,9 +221,9 @@ for entry in "${ai_panes[@]}"; do
 
   # Tool icon with brand color.
   if [[ "$tool" == "codex" ]]; then
-    tool_icon="${CODEX_GREEN}${ICON_CODEX}${RESET}"
+    tool_icon="${CODEX_TEAL}${ICON_CODEX}${RESET}"
   else
-    tool_icon="${CLAUDE_ORANGE}${ICON_CLAUDE}${RESET}"
+    tool_icon="${CLAUDE_PEACH}${ICON_CLAUDE}${RESET}"
   fi
 
   if [[ -n "$_status_icon" ]]; then
