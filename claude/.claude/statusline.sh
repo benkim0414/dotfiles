@@ -58,8 +58,15 @@ fi
 # Separator.
 sep="${OVERLAY} │ ${RESET}"
 
-# Build output — model and context are always shown.
-out="${MAUVE}${model}${RESET}"
+# Visible length — strip ANSI escapes and count characters.
+visible_len() {
+  local stripped
+  stripped=$(printf '%b' "$1" | sed $'s/\033\\[[0-9;]*m//g' | tr -d '\n')
+  printf '%d' "${#stripped}"
+}
+
+# Line 1 (identity): model, directory, git branch.
+line_id="${MAUVE}${model}${RESET}"
 if [[ -n "$cwd" ]]; then
   # Fish-style path: abbreviate every component except the last.
   # Inline abbreviation avoids subshell forks per path component.
@@ -82,14 +89,14 @@ if [[ -n "$cwd" ]]; then
     fi
   done
   unset _parts _n _i _p
-  out+="${sep}${BLUE}${display_cwd}${RESET}"
+  line_id+="${sep}${BLUE}${display_cwd}${RESET}"
 fi
 if [[ -n "$git_branch" ]]; then
-  out+="${sep}${RED}${git_branch}${RESET}"
+  line_id+="${sep}${RED}${git_branch}${RESET}"
 fi
-out+="${sep}${ctx_color}ctx ${ctx_pct}%${RESET}"
 
-# Rate limits — only when non-zero (Pro/Max subscribers).
+# Line 2 (metrics): context %, rate limits.
+line_metrics="${ctx_color}ctx ${ctx_pct}%${RESET}"
 for pair in "5h:$rate_5h" "7d:$rate_7d"; do
   label="${pair%%:*}"
   pct="${pair##*:}"
@@ -101,8 +108,16 @@ for pair in "5h:$rate_5h" "7d:$rate_7d"; do
     else
       rc="$TEAL"
     fi
-    out+="${sep}${rc}${label} ${pct}%${RESET}"
+    line_metrics+="${sep}${rc}${label} ${pct}%${RESET}"
   fi
 done
 
-printf '%b\n' "$out"
+# Emit one line if it fits terminal width, two lines otherwise.
+combined="${line_id}${sep}${line_metrics}"
+cols=$(tput cols 2>/dev/null) || cols=80
+(( cols > 0 )) || cols=80
+if (( $(visible_len "$combined") <= cols )); then
+  printf '%b\n' "$combined"
+else
+  printf '%b\n%b\n' "$line_id" "$line_metrics"
+fi
