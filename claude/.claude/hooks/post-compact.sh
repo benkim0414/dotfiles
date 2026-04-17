@@ -9,6 +9,22 @@ set -euo pipefail
 # shellcheck source=../lib/session.sh
 source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../lib/session.sh"
 
+# CWD health check -- mirror SessionStart's deleted-worktree recovery.
+if [[ ! -d "$PWD" ]]; then
+  repo_hint=""
+  if [[ "$PWD" =~ ^(.*)/\.claude/worktrees/ ]]; then
+    repo_hint="${BASH_REMATCH[1]}"
+  fi
+  ctx="Post-compaction context: CWD no longer exists: $PWD."
+  if [[ -n "$repo_hint" ]]; then
+    ctx+=" Worktree deleted. User must type at Claude Code prompt: ! cd \"$repo_hint\""
+  else
+    ctx+=" User must type at Claude Code prompt: ! cd <project-root>"
+  fi
+  emit_context "PostCompact" "$ctx"
+  exit 0
+fi
+
 # Not in a git repo -- nothing to re-inject.
 if ! git rev-parse --git-dir >/dev/null 2>&1; then
   exit 0
