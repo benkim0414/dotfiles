@@ -26,7 +26,7 @@ CODEX_GREEN=$'\033[38;2;16;163;127m'    # #10A37F (OpenAI brand green)
 
 # Tool-type icons (nerd fonts).
 ICON_CLAUDE="󰛄"   # nf-md-asterisk (f06c4)
-ICON_CODEX=""   # nf-oct-terminal (f489)
+ICON_CODEX=""   # nf-oct-terminal (f489)
 
 # Read all key=value fields from a marker file into _marker_fields.
 # Single file read with bash builtins — no grep/cut forks.
