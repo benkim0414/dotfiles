@@ -2,7 +2,8 @@
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "env": {
     "DISABLE_COST_WARNINGS": "1",
-    "DISABLE_PROMPT_CACHING": "0"
+    "DISABLE_PROMPT_CACHING": "0",
+    "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "400000"
   },
   "permissions": {
     "defaultMode": "acceptEdits",
@@ -239,6 +240,16 @@
             "type": "command",
             "command": "bash $HOME/.claude/hooks/tool-failure.sh",
             "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $HOME/.claude/hooks/post-compact.sh"
           }
         ]
       }
