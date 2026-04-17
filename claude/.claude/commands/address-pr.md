@@ -6,9 +6,8 @@ allowed-tools: >-
   Bash(git add:*), Bash(git commit:*), Bash(git push origin:*),
   Bash(git fetch:*), Bash(git checkout:*), Bash(git branch:*),
   Bash(git rev-parse:*), Bash(git log:*), Bash(git diff:*), Bash(git status),
-  Bash(cat /tmp/address-pr*), Bash(rm -f /tmp/address-pr*),
   Read, Write, Edit, MultiEdit, Grep, Glob,
-  Write(/tmp/address-pr*), Agent, EnterWorktree
+  Agent, EnterWorktree
 ---
 
 ## Arguments
@@ -34,11 +33,19 @@ Parse the YAML header above.
 - If `branch_match` is `true`, you are already on the PR branch -- proceed.
 - If `branch_match` is `false`, enter the PR branch:
   1. Run `EnterWorktree` to create an isolated worktree.
-  2. Fetch and checkout the head branch:
+  2. Fetch and checkout the head branch in detached mode (avoids conflicts
+     when the branch is already checked out in another worktree):
      ```bash
      git fetch origin <head_branch> --no-tags
-     git checkout <head_branch>
+     git checkout origin/<head_branch> --detach
      ```
+  3. Create a local tracking branch so commits can push to the right remote:
+     ```bash
+     git checkout -b <head_branch> --track origin/<head_branch>
+     ```
+     If this fails because the branch already exists elsewhere, stay detached
+     and use `git push origin HEAD:<head_branch>` in Step 4 (the push
+     instruction already uses this form).
 
 Extract and remember: `pr_number`, `owner_repo`, `pr_author`, `head_branch`.
 
