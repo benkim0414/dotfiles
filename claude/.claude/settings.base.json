@@ -249,7 +249,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash $HOME/.claude/hooks/post-compact.sh"
+            "command": "bash $HOME/.claude/hooks/post-compact.sh",
+            "timeout": 10
           }
         ]
       }
