@@ -6,7 +6,8 @@ set -euo pipefail
 
 MAX_SESSIONS=50
 
-ATTN_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/claude/attention"
+ATTN_DIR_CLAUDE="${XDG_CACHE_HOME:-$HOME/.cache}/claude/attention"
+ATTN_DIR_CODEX="${XDG_CACHE_HOME:-$HOME/.cache}/codex/attention"
 TTL=300 # 5 minutes
 NOW=$(date +%s)
 
@@ -20,6 +21,12 @@ TEAL=$'\033[38;2;148;226;213m'    # #94e2d5
 LAVENDER=$'\033[38;2;180;190;254m' # #b4befe
 WHITE=$'\033[38;2;205;214;244m'   # #cdd6f4 (Catppuccin text)
 TMUX_GREEN=$'\033[38;2;27;179;74m' # #1bb34a (tmux logo green)
+CLAUDE_ORANGE=$'\033[38;2;218;119;86m'  # #da7756 (Claude brand terra cotta)
+CODEX_GREEN=$'\033[38;2;16;163;127m'    # #10A37F (OpenAI brand green)
+
+# Tool-type icons (nerd fonts).
+ICON_CLAUDE="󰛄"   # nf-md-asterisk (f06c4)
+ICON_CODEX=""   # nf-oct-terminal (f489)
 
 # Read all key=value fields from a marker file into _marker_fields.
 # Single file read with bash builtins — no grep/cut forks.
@@ -153,7 +160,7 @@ done
 wait
 
 # --- Pass 3: Assemble single-line display entries ---
-# Format: [icon] project  session:win.pane  branch*
+# Format: [status] [tool] project  session:win.pane  branch*
 declare -a blocks=()
 declare -a pane_ids_arr=()
 declare -a priorities=()
@@ -164,7 +171,13 @@ for entry in "${ai_panes[@]}"; do
   [[ -f "${GIT_TMPDIR}/${pane_id}" ]] && IFS= read -r branch < "${GIT_TMPDIR}/${pane_id}"
 
   # Read marker once — _resolve_status and project lookup share _marker_fields.
-  marker="${ATTN_DIR}/${pane_id}"
+  # Check tool-specific attention dir based on detected process type.
+  tool="${AI_PANE_TOOL[$pane_pid]:-claude}"
+  if [[ "$tool" == "codex" ]]; then
+    marker="${ATTN_DIR_CODEX}/${pane_id}"
+  else
+    marker="${ATTN_DIR_CLAUDE}/${pane_id}"
+  fi
   if [[ -f "$marker" ]]; then
     _read_marker "$marker"
     _resolve_status "$marker"
@@ -188,7 +201,7 @@ for entry in "${ai_panes[@]}"; do
   [[ -z "$project" ]] && project="${_marker_fields[project]:-}"
   [[ -z "$project" ]] && project="${pane_path##*/}"
   if [[ -z "$project" ]]; then
-    case "${AI_PANE_TOOL[$pane_pid]:-claude}" in
+    case "$tool" in
       codex) project="Codex" ;;
       *)     project="Claude Code" ;;
     esac
@@ -206,10 +219,17 @@ for entry in "${ai_panes[@]}"; do
     "$LAVENDER") priority=2 ;;
   esac
 
-  if [[ -n "$_status_icon" ]]; then
-    line="${_status_color}${_status_icon}${RESET} ${BOLD}${WHITE}${project}${RESET}"
+  # Tool icon with brand color.
+  if [[ "$tool" == "codex" ]]; then
+    tool_icon="${CODEX_GREEN}${ICON_CODEX}${RESET}"
   else
-    line="${BOLD}${WHITE}${project}${RESET}"
+    tool_icon="${CLAUDE_ORANGE}${ICON_CLAUDE}${RESET}"
+  fi
+
+  if [[ -n "$_status_icon" ]]; then
+    line="${_status_color}${_status_icon}${RESET} ${tool_icon} ${BOLD}${WHITE}${project}${RESET}"
+  else
+    line="${tool_icon} ${BOLD}${WHITE}${project}${RESET}"
   fi
   line+=" ${TMUX_GREEN} ${label}${RESET}"
   if [[ -n "$branch" ]]; then
