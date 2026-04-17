@@ -7,6 +7,14 @@
 - Use the fetch MCP to look up current docs, API versions, or package versions -- training data goes stale; never guess at versions
 - Explain the reasoning behind config choices, not just what to set
 - Present the dry-run/plan/diff form of a command before the apply form; let the user review first
+- Always verify work before reporting completion -- run the project's test suite,
+  linter, type checker, or build command. If none exist, describe what manual
+  verification the user should perform.
+- When an approach fails, prefer rewind (double-tap Esc) over inline correction --
+  rewinding drops the failed attempt from context and avoids wasting tokens.
+  Use `/compact <hint>` to focus compaction on what matters (e.g., "focus on auth
+  refactor, drop test debugging"). Use `/clear` with a written brief only for
+  genuinely new tasks.
 
 ## Semantic Search (qmd)
 
