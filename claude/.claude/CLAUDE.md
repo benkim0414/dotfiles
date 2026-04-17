@@ -1,20 +1,29 @@
 # Global Claude Code Preferences
 
 ## Preferences
+
 - Editor: nvim
 - Never use emojis in responses
-- IMPORTANT: Never assume -- if requirements are ambiguous, underspecified, or open to multiple interpretations, ask clarifying questions before proceeding. This applies to task scope, implementation approach, edge cases, naming, and any decision that could go more than one way.
-- Use the fetch MCP to look up current docs, API versions, or package versions -- training data goes stale; never guess at versions
+- IMPORTANT: Never assume -- if requirements are ambiguous, underspecified, or
+  open to multiple interpretations, ask clarifying questions before proceeding.
+  This applies to task scope, implementation approach, edge cases, naming, and
+  any decision that could go more than one way.
+
+## Response style
+
 - Explain the reasoning behind config choices, not just what to set
 - Present the dry-run/plan/diff form of a command before the apply form; let the user review first
-- Always verify work before reporting completion -- run the project's test suite,
-  linter, type checker, or build command. If none exist, describe what manual
-  verification the user should perform.
-- When an approach fails, prefer rewind (double-tap Esc) over inline correction --
-  rewinding drops the failed attempt from context and avoids wasting tokens.
-  Use `/compact <hint>` to focus compaction on what matters (e.g., "focus on auth
-  refactor, drop test debugging"). Use `/clear` with a written brief only for
-  genuinely new tasks.
+- Use the fetch MCP to look up current docs, API versions, or package versions -- training data goes stale; never guess at versions
+
+## Verification & context
+
+- Always verify work before reporting completion -- run the project's test
+  suite, linter, type checker, or build command. If none exist, describe what
+  manual verification the user should perform.
+- When an approach fails, prefer rewind (double-tap Esc) over inline
+  correction -- rewinding drops the failed attempt from context.
+- Use `/compact <hint>` to focus compaction (e.g., "focus on auth refactor,
+  drop test debugging"). Use `/clear` with a written brief for new tasks.
 
 ## Semantic Search (qmd)
 
