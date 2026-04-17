@@ -59,7 +59,11 @@ fi
 sep="${OVERLAY} │ ${RESET}"
 
 # Visible length — strip ANSI escapes and count characters.
-visible_len() { printf '%b' "$1" | sed 's/\x1b\[[0-9;]*m//g' | wc -m; }
+visible_len() {
+  local stripped
+  stripped=$(printf '%b' "$1" | sed $'s/\033\\[[0-9;]*m//g' | tr -d '\n')
+  printf '%d' "${#stripped}"
+}
 
 # Line 1 (identity): model, directory, git branch.
 line_id="${MAUVE}${model}${RESET}"
@@ -110,7 +114,8 @@ done
 
 # Emit one line if it fits terminal width, two lines otherwise.
 combined="${line_id}${sep}${line_metrics}"
-cols="${COLUMNS:-80}"
+cols=$(tput cols 2>/dev/null) || cols=80
+(( cols > 0 )) || cols=80
 if (( $(visible_len "$combined") <= cols )); then
   printf '%b\n' "$combined"
 else
