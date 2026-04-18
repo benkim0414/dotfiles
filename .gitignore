@@ -11,3 +11,13 @@ tmux/.config/tmux/plugins
 .claude/.credentials.json
 .claude/credentials
 .remember/
+# Codex runtime artifacts (keep config.toml, AGENTS.md, hooks/, rules/)
+codex/.codex/installation_id
+codex/.codex/logs*.sqlite*
+codex/.codex/state*.sqlite*
+codex/.codex/memories/
+codex/.codex/sessions/
+codex/.codex/shell_snapshots/
+codex/.codex/skills/
+codex/.codex/tmp/
+codex/.codex/.tmp/
