@@ -1,5 +1,5 @@
 ---
-description: "Review a PR with multiple AI reviewers (Claude Code, Codex, Copilot)"
+description: "Review a PR with multiple AI reviewers (Claude Code agents, Codex, Copilot)"
 argument-hint: "<pr-number-or-url> [--post]"
 allowed-tools: >-
   Bash(gh pr view:*), Bash(gh pr diff:*), Bash(gh pr review:*),
@@ -40,30 +40,45 @@ $ARGUMENTS
 
 ## Your task
 
-Review this pull request using a multi-agent approach. You are the primary
-reviewer (Claude Code). Codex and Copilot are running in the background.
+Review this pull request using a multi-agent approach. You orchestrate fresh-eyes
+reviewer agents (Claude Code subagents) and collect results from Codex and
+Copilot running in the background.
 
 ### Step 1: Guard checks
 
 Parse the PR metadata above. If the PR state is not OPEN, stop and report why.
 Extract: PR number, title, author, base branch, head branch, URL.
 
-### Step 2: Claude Code review
+### Step 2: Fresh-Eyes Agent Review
 
-Analyze the full diff above across these dimensions:
+Spawn 2 code-reviewer agents **in parallel** (two Agent tool calls in the same
+message) using subagent_type: "feature-dev:code-reviewer". Each agent starts
+with a clean context window -- no knowledge of this review session.
+Pass the full diff (from the PR context above) in each agent's prompt.
 
-- **Correctness**: bugs, logic errors, edge cases, off-by-one, error handling gaps
-- **Security**: injection, secrets, auth bypass, missing input validation at system boundaries
-- **Design**: naming, abstraction, coupling, SRP violations
-- **Performance**: N+1 patterns, unnecessary allocations, missing indexes
-- **Testing**: missing coverage for critical or changed paths
-- **Conventions**: consistency with existing codebase patterns
+**Agent A -- Correctness & Security**
 
-For each finding, record:
-- **Severity**: critical, suggestion, or nit
-- **File path** and **line number** (from the diff)
-- **Description** of the issue
-- **Code suggestion** (the corrected code) when you have a concrete fix
+Use the Agent tool with subagent_type: "feature-dev:code-reviewer". Write a
+prompt that includes the full PR diff and asks the agent to focus on:
+correctness, bugs, logic errors, edge cases, race conditions, input validation
+at system boundaries, hardcoded secrets, security vulnerabilities, N+1 patterns.
+Instruct it to use Read, Grep, Glob for additional file context, and to report
+only issues with confidence >= 80, providing for each: severity
+(critical/suggestion/nit), file:line, description, and a concrete fix.
+
+**Agent B -- Design & Quality**
+
+Use the Agent tool with subagent_type: "feature-dev:code-reviewer". Write a
+prompt that includes the full PR diff and asks the agent to focus on: naming,
+DRY violations, unnecessary complexity, convention adherence (check CLAUDE.md),
+missing error handling, test coverage gaps, dead code, abstraction quality,
+consistency with existing codebase patterns.
+Instruct it to use Read, Grep, Glob for additional file context, and to report
+only issues with confidence >= 80, providing for each: severity
+(critical/suggestion/nit), file:line, description, and a concrete fix.
+
+Collect findings from both agents. Their combined output is the "Claude Code"
+review that will be merged with external reviewer findings in Step 4.
 
 ### Step 3: Collect external reviews
 
