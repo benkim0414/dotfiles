@@ -62,9 +62,11 @@ Use the Agent tool with subagent_type: "feature-dev:code-reviewer". Write a
 prompt that includes the full PR diff and asks the agent to focus on:
 correctness, bugs, logic errors, edge cases, race conditions, input validation
 at system boundaries, hardcoded secrets, security vulnerabilities, N+1 patterns.
-Instruct it to use Read, Grep, Glob for additional file context, and to report
-only issues with confidence >= 80, providing for each: severity
-(critical/suggestion/nit), file:line, description, and a concrete fix.
+Instruct it to read files from the PR worktree path (from the background
+reviewer context above, field `worktree`) rather than the current directory,
+so it sees the PR head rather than any local edits. Report only issues with
+confidence >= 80: severity (critical/suggestion/nit), file:line, description,
+and a concrete fix.
 
 **Agent B -- Design & Quality**
 
@@ -73,9 +75,10 @@ prompt that includes the full PR diff and asks the agent to focus on: naming,
 DRY violations, unnecessary complexity, convention adherence (check CLAUDE.md),
 missing error handling, test coverage gaps, dead code, abstraction quality,
 consistency with existing codebase patterns.
-Instruct it to use Read, Grep, Glob for additional file context, and to report
-only issues with confidence >= 80, providing for each: severity
-(critical/suggestion/nit), file:line, description, and a concrete fix.
+Instruct it to read files from the PR worktree path (from the background
+reviewer context above, field `worktree`) rather than the current directory.
+Report only issues with confidence >= 80: severity (critical/suggestion/nit),
+file:line, description, and a concrete fix.
 
 Collect findings from both agents. Their combined output is the "Claude Code"
 review that will be merged with external reviewer findings in Step 4.
