@@ -77,6 +77,24 @@ if [[ -n "$pr_num" ]]; then
 
   if [[ -n "$pr_summary" ]]; then
     context+="${pr_summary}. "
+  else
+    # Fallback: the reference may be a GitHub issue rather than a PR.
+    issue_cache="${cache_dir}/.issue-cache-${repo_key}-${pr_num}"
+    issue_summary=""
+    if [[ -f "$issue_cache" ]]; then
+      cache_age=$(( EPOCHSECONDS - $(file_mtime "$issue_cache") ))
+      (( cache_age < 120 )) && issue_summary=$(cat "$issue_cache" 2>/dev/null || true)
+    fi
+    if [[ -z "$issue_summary" ]]; then
+      issue_info=$(run_timeout 3 gh issue view "$pr_num" --json number,title,state,url 2>/dev/null || true)
+      if [[ -n "$issue_info" ]]; then
+        issue_summary=$(printf '%s' "$issue_info" | jq -r '"Issue #\(.number): \(.title) [\(.state)] \(.url)"' 2>/dev/null || true)
+        if [[ -n "$issue_summary" ]]; then
+          printf '%s' "$issue_summary" > "$issue_cache" 2>/dev/null || true
+        fi
+      fi
+    fi
+    [[ -n "$issue_summary" ]] && context+="${issue_summary}. "
   fi
 fi
 
