@@ -19,16 +19,16 @@ $ARGUMENTS
 
 ## Pull request context
 
-!`PR_NUM=$(echo "$ARGUMENTS" | grep -oE '/pull/[0-9]+' | grep -oE '[0-9]+' || echo "$ARGUMENTS" | tr ' ' '\n' | grep -oE '^[#]?[0-9]+$' | head -1 | tr -d '#'); echo "pr_number: $PR_NUM"`
+!`PR_NUM=$(echo "$ARGUMENTS" | grep -oE '/pull/[0-9]+' | grep -oE '[0-9]+' || echo "$ARGUMENTS" | tr ' ' '\n' | grep -oE '^[#]?[0-9]+$' | head -1 | tr -d '#'); [ -z "$PR_NUM" ] && exit 0; echo "pr_number: $PR_NUM"`
 
-- PR metadata: !`PR_NUM=$(echo "$ARGUMENTS" | grep -oE '/pull/[0-9]+' | grep -oE '[0-9]+' || echo "$ARGUMENTS" | tr ' ' '\n' | grep -oE '^[#]?[0-9]+$' | head -1 | tr -d '#'); gh pr view "$PR_NUM" --json number,title,body,state,author,baseRefName,headRefName,url,reviewDecision`
-- PR comments: !`PR_NUM=$(echo "$ARGUMENTS" | grep -oE '/pull/[0-9]+' | grep -oE '[0-9]+' || echo "$ARGUMENTS" | tr ' ' '\n' | grep -oE '^[#]?[0-9]+$' | head -1 | tr -d '#'); gh pr view "$PR_NUM" --comments 2>/dev/null | head -200`
-- Changed files: !`PR_NUM=$(echo "$ARGUMENTS" | grep -oE '/pull/[0-9]+' | grep -oE '[0-9]+' || echo "$ARGUMENTS" | tr ' ' '\n' | grep -oE '^[#]?[0-9]+$' | head -1 | tr -d '#'); gh pr diff "$PR_NUM" --name-only`
-- CI status: !`PR_NUM=$(echo "$ARGUMENTS" | grep -oE '/pull/[0-9]+' | grep -oE '[0-9]+' || echo "$ARGUMENTS" | tr ' ' '\n' | grep -oE '^[#]?[0-9]+$' | head -1 | tr -d '#'); gh pr checks "$PR_NUM" 2>/dev/null | head -30`
+- PR metadata: !`PR_NUM=$(echo "$ARGUMENTS" | grep -oE '/pull/[0-9]+' | grep -oE '[0-9]+' || echo "$ARGUMENTS" | tr ' ' '\n' | grep -oE '^[#]?[0-9]+$' | head -1 | tr -d '#'); [ -z "$PR_NUM" ] && exit 0; gh pr view "$PR_NUM" --json number,title,body,state,author,baseRefName,headRefName,url,reviewDecision`
+- PR comments: !`PR_NUM=$(echo "$ARGUMENTS" | grep -oE '/pull/[0-9]+' | grep -oE '[0-9]+' || echo "$ARGUMENTS" | tr ' ' '\n' | grep -oE '^[#]?[0-9]+$' | head -1 | tr -d '#'); [ -z "$PR_NUM" ] && exit 0; gh pr view "$PR_NUM" --comments 2>/dev/null | head -200`
+- Changed files: !`PR_NUM=$(echo "$ARGUMENTS" | grep -oE '/pull/[0-9]+' | grep -oE '[0-9]+' || echo "$ARGUMENTS" | tr ' ' '\n' | grep -oE '^[#]?[0-9]+$' | head -1 | tr -d '#'); [ -z "$PR_NUM" ] && exit 0; gh pr diff "$PR_NUM" --name-only`
+- CI status: !`PR_NUM=$(echo "$ARGUMENTS" | grep -oE '/pull/[0-9]+' | grep -oE '[0-9]+' || echo "$ARGUMENTS" | tr ' ' '\n' | grep -oE '^[#]?[0-9]+$' | head -1 | tr -d '#'); [ -z "$PR_NUM" ] && exit 0; gh pr checks "$PR_NUM" 2>/dev/null | head -30`
 
 <details><summary>Full diff</summary>
 
-!`PR_NUM=$(echo "$ARGUMENTS" | grep -oE '/pull/[0-9]+' | grep -oE '[0-9]+' || echo "$ARGUMENTS" | tr ' ' '\n' | grep -oE '^[#]?[0-9]+$' | head -1 | tr -d '#'); gh pr diff "$PR_NUM"`
+!`PR_NUM=$(echo "$ARGUMENTS" | grep -oE '/pull/[0-9]+' | grep -oE '[0-9]+' || echo "$ARGUMENTS" | tr ' ' '\n' | grep -oE '^[#]?[0-9]+$' | head -1 | tr -d '#'); [ -z "$PR_NUM" ] && exit 0; gh pr diff "$PR_NUM"`
 
 </details>
 
