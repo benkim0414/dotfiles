@@ -64,9 +64,10 @@ correctness, bugs, logic errors, edge cases, race conditions, input validation
 at system boundaries, hardcoded secrets, security vulnerabilities, N+1 patterns.
 Instruct it to read files from the PR worktree path (from the background
 reviewer context above, field `worktree`) rather than the current directory,
-so it sees the PR head rather than any local edits. Report only issues with
-confidence >= 80: severity (critical/suggestion/nit), file:line, description,
-and a concrete fix.
+so it sees the PR head rather than any local edits. If the worktree field is
+empty or the directory does not exist, analyse the diff alone without reading
+files. Report only issues with confidence >= 80: severity
+(critical/suggestion/nit), file:line, description, and a concrete fix.
 
 **Agent B -- Design & Quality**
 
@@ -77,8 +78,9 @@ missing error handling, test coverage gaps, dead code, abstraction quality,
 consistency with existing codebase patterns.
 Instruct it to read files from the PR worktree path (from the background
 reviewer context above, field `worktree`) rather than the current directory.
-Report only issues with confidence >= 80: severity (critical/suggestion/nit),
-file:line, description, and a concrete fix.
+If the worktree field is empty or the directory does not exist, analyse the
+diff alone without reading files. Report only issues with confidence >= 80:
+severity (critical/suggestion/nit), file:line, description, and a concrete fix.
 
 Collect findings from both agents. Their combined output is the "Claude Code"
 review that will be merged with external reviewer findings in Step 4.
