@@ -184,7 +184,9 @@ Instruct it to use Read, Grep, Glob for additional file context, and to only
 report issues with confidence >= 80, providing for each: severity
 (critical/suggestion/nit), file:line, description, and a fix.
 
-Wait for both agents to complete, then collect all findings.
+Wait for both agents to complete. If an agent call fails (subagent type
+unavailable or tool error), log the failure and treat that agent's findings
+as empty -- do not abort the loop.
 
 For each finding from either agent:
 1. Evaluate against the current code -- skip false positives or changes that
