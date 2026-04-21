@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 
-# setup-address-pr.sh
+# setup.sh (pr:address)
 # Fetches PR metadata, review comments, and diff, then outputs structured
-# context for the address-pr skill to consume.
+# context for the pr:address skill to consume.
 
 set -euo pipefail
 
-# shellcheck source=../lib/portability.sh
-source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../lib/portability.sh"
+# shellcheck source=../../../lib/portability.sh
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../../../lib/portability.sh"
 
 PR_ARG=""
 
@@ -15,7 +15,7 @@ while [[ $# -gt 0 ]]; do
   case $1 in
     -h|--help)
       cat <<'HELP'
-Usage: /address-pr <pr-number-or-url>
+Usage: /pr:address <pr-number-or-url>
 
 Address all review comments in a PR: make code changes, commit atomically,
 push, and reply to each comment.
@@ -34,7 +34,7 @@ done
 
 if [[ -z "$PR_ARG" ]]; then
   echo "Error: no PR number or URL provided" >&2
-  echo "Usage: /address-pr <pr-number-or-url>" >&2
+  echo "Usage: /pr:address <pr-number-or-url>" >&2
   exit 1
 fi
 

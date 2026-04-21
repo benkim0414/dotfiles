@@ -1,4 +1,5 @@
 ---
+name: pr:address
 description: "Address all review comments in a PR"
 argument-hint: "<pr-number-or-url>"
 allowed-tools: >-
@@ -17,7 +18,7 @@ $ARGUMENTS
 ## Context
 
 ```!
-"$HOME/.claude/scripts/setup-address-pr.sh" $ARGUMENTS
+"$HOME/.claude/skills/address/scripts/setup.sh" $ARGUMENTS
 ```
 
 ## Your task

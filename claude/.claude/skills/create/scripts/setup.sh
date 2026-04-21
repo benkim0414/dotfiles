@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 
-# setup-create-pr.sh
+# setup.sh (pr:create)
 # Creates a ralph-loop state file with a multi-pass review prompt.
 # Delegates review to fresh-eyes Agent subagents (writer/reviewer pattern)
 # then collects external reviewers before creating the PR.
 
 set -euo pipefail
 
-# shellcheck source=../lib/portability.sh
-source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../lib/portability.sh"
+# shellcheck source=../../../lib/portability.sh
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../../../lib/portability.sh"
 
 MAX_ITERATIONS=10
 FORCE=false
@@ -29,7 +29,7 @@ while [[ $# -gt 0 ]]; do
       ;;
     -h|--help)
       cat <<'HELP'
-Usage: /create-pr [--max-iterations N] [--force]
+Usage: /pr:create [--max-iterations N] [--force]
 
 Multi-pass review of all worktree changes, then create a PR.
 Uses Ralph Loop to iterate until every review pass is clean.
@@ -49,7 +49,7 @@ HELP
       ;;
     *)
       echo "Error: unknown argument: $1" >&2
-      echo "Usage: /create-pr [--max-iterations N] [--force]" >&2
+      echo "Usage: /pr:create [--max-iterations N] [--force]" >&2
       exit 1
       ;;
   esac
@@ -58,7 +58,7 @@ done
 # Guard: must be in a worktree (not on main)
 CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || true)
 if [[ "$CURRENT_BRANCH" == "main" || "$CURRENT_BRANCH" == "master" ]]; then
-  echo "Error: /create-pr must be run from a worktree branch, not $CURRENT_BRANCH" >&2
+  echo "Error: /pr:create must be run from a worktree branch, not $CURRENT_BRANCH" >&2
   echo "Call EnterWorktree() first to create an isolated branch." >&2
   exit 1
 fi
