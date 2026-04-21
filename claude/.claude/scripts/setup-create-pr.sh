@@ -195,6 +195,16 @@ For each finding from either agent:
    then \`git commit\` with a conventional message per logical change.
 3. If any fixes were made, this phase counts as "made changes" for Phase 4.
 
+**ShellCheck gate** (required by project rules):
+
+After applying agent fixes, run ShellCheck on every shell script modified in
+this iteration:
+
+\`git diff \$MERGE_BASE..HEAD --name-only | grep '\.sh\$' | xargs -r shellcheck\`
+
+If ShellCheck reports warnings, fix them, then \`git add <specific-files>\`
+and \`git commit\`. This also counts as "made changes" for Phase 4.
+
 ### Phase 3: Collect External Reviews
 
 Wait for any background Codex/Copilot processes launched in Phase 1 to complete.
