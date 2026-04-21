@@ -9,3 +9,9 @@ status.show_tools = false
 
 [tools]
 node = "25.8.0"
+
+[env]
+# Load machine-local secrets (e.g. work MCP credentials) into every mise-activated shell.
+# File is populated once via `mise-load-op ~/.env.op ~/.env.local` (work laptop only).
+# Silently skipped if ~/.env.local does not exist -- safe on machines without work credentials.
+_.file = ["~/.env.local"]
