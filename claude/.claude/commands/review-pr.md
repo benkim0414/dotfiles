@@ -51,6 +51,9 @@ Extract: PR number, title, author, base branch, head branch, URL.
 
 ### Step 2: Fresh-Eyes Agent Review
 
+Note: the reviewer split below mirrors Phase 2 of setup-create-pr.sh -- keep
+both in sync if changing agent focus areas.
+
 Spawn 2 code-reviewer agents **in parallel** (two Agent tool calls in the same
 message) using subagent_type: "feature-dev:code-reviewer". Each agent starts
 with a clean context window -- no knowledge of this review session.
