@@ -37,19 +37,21 @@ set -euo pipefail
 
 # ---------------------------------------------------------------------------
 # Parse stdin once: all fields needed by any tool branch.
-# Tab-separated so paths/commands with spaces survive IFS-split read.
+# SOH (\x01) separated -- tab is IFS-whitespace and collapses empty fields
+# (e.g. Bash tool has no file_path, producing consecutive tabs that bash
+# merges, shifting all subsequent fields left).
 # ---------------------------------------------------------------------------
 SESSION_ID="" TOOL_NAME="" FILE_PATH="" OFFSET=0 LIMIT=-1 COMMAND="" OUTPUT_MODE=""
-IFS=$'\t' read -r SESSION_ID TOOL_NAME FILE_PATH OFFSET LIMIT COMMAND OUTPUT_MODE < <(
+IFS=$'\x01' read -r SESSION_ID TOOL_NAME FILE_PATH OFFSET LIMIT COMMAND OUTPUT_MODE < <(
   jq -r '[
     (.session_id // ""),
     (.tool_name // ""),
     (.tool_input.file_path // .tool_input.notebook_path // .tool_input.path // ""),
-    (.tool_input.offset // 0),
-    (.tool_input.limit // -1),
+    ((.tool_input.offset // 0) | tostring),
+    ((.tool_input.limit // -1) | tostring),
     (.tool_input.command // ""),
     (.tool_input.output_mode // "")
-  ] | @tsv' 2>/dev/null
+  ] | join("")' 2>/dev/null
 ) || true
 
 [[ "$SESSION_ID" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]] || exit 0
