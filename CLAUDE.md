@@ -88,7 +88,20 @@ source `$HOME/.claude/lib/portability.sh` directly (single source of truth,
 shared with the hooks) rather than a per-plugin copy.
 
 To update the plugin after editing files in `claude/.claude/plugins/pr/`:
-`/plugin marketplace update benkim0414` (or restart the session).
+
+```
+/plugin uninstall pr@benkim0414
+/plugin install pr@benkim0414
+/reload-plugins
+```
+
+`/plugin install` copies the plugin into a versioned cache at
+`~/.claude/plugins/cache/benkim0414/pr/<version>/` (a real copy, not a symlink
+into the stow tree), and the running session loads from that cache. `/plugin
+marketplace update benkim0414` only refreshes marketplace metadata -- it does
+NOT re-copy the cached plugin payload, so edits to `claude/.claude/plugins/pr/`
+will not take effect from that command alone. Uninstall + install rewrites the
+cache; `/reload-plugins` then re-reads it without a session restart.
 
 ## qmd (semantic code search)
 
