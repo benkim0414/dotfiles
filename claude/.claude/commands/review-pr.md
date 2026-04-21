@@ -56,7 +56,7 @@ message) using subagent_type: "feature-dev:code-reviewer". Each agent starts
 with a clean context window -- no knowledge of this review session.
 Pass the full diff (from the PR context above) in each agent's prompt.
 
-**Agent A -- Correctness & Security**
+**Correctness & Security Reviewer**
 
 Use the Agent tool with subagent_type: "feature-dev:code-reviewer". Write a
 prompt that includes the full PR diff and asks the agent to focus on:
@@ -69,7 +69,7 @@ empty or the directory does not exist, analyse the diff alone without reading
 files. Report only issues with confidence >= 80: severity
 (critical/suggestion/nit), file:line, description, and a concrete fix.
 
-**Agent B -- Design & Quality**
+**Design & Quality Reviewer**
 
 Use the Agent tool with subagent_type: "feature-dev:code-reviewer". Write a
 prompt that includes the full PR diff and asks the agent to focus on: naming,
