@@ -48,6 +48,12 @@ if [[ -n "$cwd" ]]; then
   fi
   if (( cache_age > 5 )); then
     git_branch=$(git -C "$cwd" rev-parse --abbrev-ref HEAD 2>/dev/null || true)
+    if [[ -n "$git_branch" ]]; then
+      git_dirty=$(git -C "$cwd" status --porcelain 2>/dev/null)
+      if [[ -n "$git_dirty" ]]; then
+        git_branch="${git_branch}*"
+      fi
+    fi
     printf '%s' "$git_branch" > "$git_cache" 2>/dev/null || true
   else
     git_branch=$(cat "$git_cache" 2>/dev/null || true)
