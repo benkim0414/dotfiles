@@ -184,9 +184,13 @@ Instruct it to use Read, Grep, Glob for additional file context, and to only
 report issues with confidence >= 80, providing for each: severity
 (critical/suggestion/nit), file:line, description, and a fix.
 
-Wait for both agents to complete. If an agent call fails (subagent type
-unavailable or tool error), log the failure and treat that agent's findings
-as empty -- do not abort the loop.
+Wait for both agents to complete. If one agent call fails (subagent type
+unavailable or tool error), log "Phase 2 [Agent A|B] failed: <error>" and
+treat that agent's findings as empty.
+
+If **both** agents fail, treat Phase 2 as having "made changes" so the loop
+does not proceed to Phase 5 without any review. Report the failure clearly
+and let the loop retry on the next iteration.
 
 For each finding from either agent:
 1. Evaluate against the current code -- skip false positives or changes that
@@ -200,7 +204,7 @@ For each finding from either agent:
 After applying agent fixes, run ShellCheck on every shell script modified in
 this iteration:
 
-\`git diff \$MERGE_BASE..HEAD --name-only | grep '\.sh\$' | xargs -r shellcheck\`
+\`git diff \$MERGE_BASE..HEAD --name-only | grep '\.sh\$' | while IFS= read -r f; do shellcheck "\$f"; done\`
 
 If ShellCheck reports warnings, fix them, then \`git add <specific-files>\`
 and \`git commit\`. This also counts as "made changes" for Phase 4.
