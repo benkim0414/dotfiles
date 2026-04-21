@@ -87,7 +87,7 @@ Parse the background reviewer context above for PIDs and output file paths.
 For each reviewer with a PID (not "none"):
 1. Wait for the process to finish (poll with `kill -0 <PID>` every 5s, max 120s)
 2. Read the output file: `cat /tmp/review-pr-<N>.<reviewer>.md`
-3. Parse findings and merge them with your own
+3. Parse findings and merge them with the agent findings from Step 2
 
 If a reviewer was skipped (PID is "none") or its output is empty/missing after
 the timeout, log it and continue with the findings you have.
