@@ -1,5 +1,4 @@
 ---
-name: pr:create
 description: "Review all worktree changes iteratively, then create a PR"
 argument-hint: "[--max-iterations N] [--force]"
 ---
@@ -9,7 +8,7 @@ argument-hint: "[--max-iterations N] [--force]"
 Execute the setup script to initialize the review loop:
 
 ```!
-"$HOME/.claude/skills/create/scripts/setup.sh" $ARGUMENTS
+"${CLAUDE_PLUGIN_ROOT}/skills/create/scripts/setup.sh" $ARGUMENTS
 ```
 
 Begin the review process now. Follow the instructions from the Ralph loop prompt above.

@@ -1,5 +1,4 @@
 ---
-name: pr:review
 description: "Review a PR with multiple AI reviewers (Claude Code agents, Codex, Copilot)"
 argument-hint: "<pr-number-or-url> [--post]"
 allowed-tools: >-
@@ -36,7 +35,7 @@ $ARGUMENTS
 ## Background reviewers
 
 ```!
-"$HOME/.claude/skills/review/scripts/setup.sh" $ARGUMENTS
+"${CLAUDE_PLUGIN_ROOT}/skills/review/scripts/setup.sh" $ARGUMENTS
 ```
 
 ## Your task
