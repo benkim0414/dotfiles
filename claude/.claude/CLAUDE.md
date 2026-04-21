@@ -51,10 +51,10 @@ injection at session start.
 - "MODE: no-pr": after committing, `ExitWorktree("keep")`, merge to main, push. No PRs.
 - Commit each self-contained logical change atomically.
 - Conventional commits: `type(scope): description` -- types: feat, fix, docs, chore, refactor, test, ci, perf
-- When implementation is complete: `/create-pr` to review and create the PR.
+- When implementation is complete: `/pr:create` to review and create the PR.
   Push with explicit refspec (`git push origin HEAD:<branch>`) to avoid `push.default=upstream` redirecting to main.
 - When PR is approved: `ExitWorktree("keep")` to return to main.
   Use `ExitWorktree("remove")` only to discard exploratory work with no commits.
 - After ExitWorktree: wait for the user to merge. Do NOT run `gh pr merge` proactively.
-- After merge: `/merge-pr` handles finalization.
+- After merge: `/pr:merge` handles finalization.
 - YOU MUST use merge commits (`gh pr merge --merge`), never squash or rebase.
