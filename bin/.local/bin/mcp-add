@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# mcp-add: Add an MCP server wrapped with mcp-compressor
+#
+# Usage:
+#   mcp-add [-s <scope>] <name> <url>           # HTTP/SSE server
+#   mcp-add [-s <scope>] <name> -- <cmd> [args] # stdio server
+#
+# Scopes (same as `claude mcp add --scope`):
+#   user    (default) — available in all projects for this user
+#   project           — stored in .mcp.json, shared with the repo
+#   local             — stored in .mcp.json.local, not committed
+set -euo pipefail
+
+SCOPE="user"
+while [[ $# -gt 0 && "$1" == -* ]]; do
+    case "$1" in
+        -s|--scope)
+            SCOPE="$2"
+            case "$SCOPE" in user|project|local) ;; *) echo "Invalid scope: $SCOPE (must be user, project, or local)" >&2; exit 1 ;; esac
+            shift 2 ;;
+        *) echo "Unknown option: $1" >&2; exit 1 ;;
+    esac
+done
+
+[[ $# -lt 2 ]] && {
+    echo "Usage: mcp-add [-s user|project|local] <name> <url>" >&2
+    echo "       mcp-add [-s user|project|local] <name> -- <cmd> [args]" >&2
+    exit 1
+}
+
+NAME="$1"; shift
+
+if [[ "$1" == "--" ]]; then
+    shift
+    exec claude mcp add --scope "$SCOPE" "$NAME" -- \
+        uvx mcp-compressor --server-name "$NAME" "$@"
+else
+    exec claude mcp add --scope "$SCOPE" "$NAME" -- \
+        uvx mcp-compressor --server-name "$NAME" "$1"
+fi
