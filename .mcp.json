@@ -1,8 +1,12 @@
 {
   "mcpServers": {
     "sequential-thinking": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]
+      "command": "uvx",
+      "args": [
+        "mcp-compressor",
+        "--server-name", "sequential-thinking",
+        "npx", "-y", "@modelcontextprotocol/server-sequential-thinking"
+      ]
     }
   }
 }

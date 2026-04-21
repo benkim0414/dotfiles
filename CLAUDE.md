@@ -17,21 +17,24 @@ stow -t ~ bat eza ghostty git lazygit mise nvim ssh starship tmux yazi zsh
 ```
 
 After stowing, register MCP servers globally so they are available in all
-Claude Code projects (not just this repo):
+Claude Code projects (not just this repo). Use `mcp-add` (from the bin package)
+to automatically wrap each server with mcp-compressor for token efficiency:
 
 ```sh
-claude mcp add --scope user sequential-thinking -- npx -y @modelcontextprotocol/server-sequential-thinking
+mcp-add sequential-thinking -- npx -y @modelcontextprotocol/server-sequential-thinking
 ```
 
 Register the qmd semantic search server:
 
 ```sh
 npm install -g @tobilu/qmd
-claude mcp add --scope user qmd -- qmd mcp
+mcp-add qmd -- qmd mcp
 ```
 
-These write to `~/.claude.json`, which is managed by Claude Code and cannot
-be stowed.
+`mcp-add` defaults to `--scope user`. Use `mcp-add -s project <name> ...` or
+`mcp-add -s local <name> ...` for project- or machine-scoped registration.
+These write to `~/.claude.json` (user scope) or `.mcp.json` (project/local scope),
+which are managed by Claude Code and cannot be stowed.
 
 ## qmd (semantic code search)
 
