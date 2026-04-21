@@ -11,5 +11,5 @@ source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${
 if [[ "${CLAUDE_GIT_WORKFLOW:-}" == "no-pr" ]]; then
   emit_context "PostToolUse" "Worktree exited. Merge the feature branch to main, then push."
 else
-  emit_context "PostToolUse" "Worktree exited. Wait for user to merge the PR, then run /merge-pr."
+  emit_context "PostToolUse" "Worktree exited. Wait for user to merge the PR, then run /pr:merge."
 fi

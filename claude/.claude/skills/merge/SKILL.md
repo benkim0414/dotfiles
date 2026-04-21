@@ -1,7 +1,8 @@
 ---
-allowed-tools: Bash(gh pr view:*), Bash(gh pr edit:*), Bash(gh pr merge:*), Bash(gh pr checks:*), Bash(gh api:*), Bash(rm:*), Bash(git fetch:*), Bash(git push:*), Bash(git show:*), Bash(git pull:*), Bash(git checkout:*), Bash(git worktree:*), Bash(git branch:*), Bash(git rev-parse:*), Bash(pwd), Read, Grep, Glob, Write, ExitWorktree
-argument-hint: "[pr-number-or-url]"
+name: pr:merge
 description: Verify PR test plan, tick completed items, and merge
+argument-hint: "[pr-number-or-url]"
+allowed-tools: Bash(gh pr view:*), Bash(gh pr edit:*), Bash(gh pr merge:*), Bash(gh pr checks:*), Bash(gh api:*), Bash(rm:*), Bash(git fetch:*), Bash(git push:*), Bash(git show:*), Bash(git pull:*), Bash(git checkout:*), Bash(git worktree:*), Bash(git branch:*), Bash(git rev-parse:*), Bash(pwd), Read, Grep, Glob, Write, ExitWorktree
 ---
 
 ## Context
@@ -20,7 +21,7 @@ Follow these steps in order.
 ### Step 1: Parse the PR
 
 Use the pre-loaded PR data above. If the pre-loaded data is empty (no PR number in arguments):
-- If the current branch is `main` or `master`, stop immediately with: "Error: no PR number provided and current branch is main. Usage: `/merge-pr <number>`"
+- If the current branch is `main` or `master`, stop immediately with: "Error: no PR number provided and current branch is main. Usage: `/pr:merge <number>`"
 - If on a feature branch, run `gh pr view --json number,title,body,state,statusCheckRollup,reviewDecision,url,headRefName` to auto-detect from the current branch.
 
 From the pre-loaded data, note the **Repo** line. If it shows an `owner/repo` value (extracted from a URL argument), this is a **cross-repo PR**. You MUST pass `-R <owner/repo>` to every `gh` command for the rest of this workflow. If it shows `<cwd>`, the PR belongs to the current repo and no `-R` flag is needed.
