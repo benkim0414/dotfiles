@@ -1,10 +1,8 @@
 ---
-description: Terraform/OpenTofu conventions -- plan before apply, state locking, provider pinning
-paths:
-  - "**/*.tf"
-  - "**/*.tfvars"
-  - "**/terragrunt.hcl"
-  - "**/.terraform.lock.hcl"
+name: rules-terraform
+description: >
+  Terraform/OpenTofu conventions: plan before apply, state locking, provider pinning.
+  Use when editing *.tf, *.tfvars, terragrunt.hcl, or .terraform.lock.hcl files.
 ---
 
 # Terraform / OpenTofu
