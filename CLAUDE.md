@@ -4,7 +4,7 @@ macOS/Linux dotfiles managed with GNU Stow and Homebrew.
 
 # Commands
 
-@.claude/docs/bootstrap.md
+Fresh-machine setup: `.claude/docs/bootstrap.md`
 
 ## Daily workflow
 
