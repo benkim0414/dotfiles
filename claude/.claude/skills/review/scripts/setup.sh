@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 
-# setup-review-pr.sh
+# setup.sh (pr:review)
 # Creates a temp worktree, launches Codex and Copilot reviews in the background,
-# and outputs structured context for the review-pr skill to consume.
+# and outputs structured context for the pr:review skill to consume.
 
 set -euo pipefail
 
-# shellcheck source=../lib/portability.sh
-source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../lib/portability.sh"
+# shellcheck source=../../../lib/portability.sh
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../../../lib/portability.sh"
 
 POST=false
 PR_ARG=""
@@ -20,7 +20,7 @@ while [[ $# -gt 0 ]]; do
       ;;
     -h|--help)
       cat <<'HELP'
-Usage: /review-pr <pr-number-or-url> [--post]
+Usage: /pr:review <pr-number-or-url> [--post]
 
 Review a PR with multiple AI reviewers (Claude Code, Codex, Copilot).
 
@@ -39,7 +39,7 @@ done
 
 if [[ -z "$PR_ARG" ]]; then
   echo "Error: no PR number or URL provided" >&2
-  echo "Usage: /review-pr <pr-number-or-url> [--post]" >&2
+  echo "Usage: /pr:review <pr-number-or-url> [--post]" >&2
   exit 1
 fi
 

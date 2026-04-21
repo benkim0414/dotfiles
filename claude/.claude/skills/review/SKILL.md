@@ -1,4 +1,5 @@
 ---
+name: pr:review
 description: "Review a PR with multiple AI reviewers (Claude Code agents, Codex, Copilot)"
 argument-hint: "<pr-number-or-url> [--post]"
 allowed-tools: >-
@@ -35,7 +36,7 @@ $ARGUMENTS
 ## Background reviewers
 
 ```!
-"$HOME/.claude/scripts/setup-review-pr.sh" $ARGUMENTS
+"$HOME/.claude/skills/review/scripts/setup.sh" $ARGUMENTS
 ```
 
 ## Your task
@@ -51,7 +52,7 @@ Extract: PR number, title, author, base branch, head branch, URL.
 
 ### Step 2: Fresh-Eyes Agent Review
 
-Note: the reviewer split below mirrors Phase 2 of setup-create-pr.sh -- keep
+Note: the reviewer split below mirrors Phase 2 of pr:create setup.sh -- keep
 both in sync if changing agent focus areas.
 
 Spawn 2 code-reviewer agents **in parallel** (two Agent tool calls in the same
