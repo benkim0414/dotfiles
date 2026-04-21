@@ -36,6 +36,32 @@ mcp-add qmd -- qmd mcp
 These write to `~/.claude.json` (user scope) or `.mcp.json` (project/local scope),
 which are managed by Claude Code and cannot be stowed.
 
+Register the Atlassian and Slack MCP servers (work laptop only):
+
+```sh
+mcp-add atlassian -- uvx mcp-atlassian
+mcp-add slack -- npx -y @modelcontextprotocol/server-slack
+```
+
+These require credentials in the environment. On the work laptop, create `~/.env.op`
+(not stowed) with `op://` references, then populate `~/.env.local` once:
+
+```sh
+# ~/.env.op format (fill in your actual 1Password vault/item paths):
+# JIRA_URL=op://Work/Atlassian/url
+# JIRA_USERNAME=op://Work/Atlassian/username
+# JIRA_API_TOKEN=op://Work/Atlassian/password
+# CONFLUENCE_URL=op://Work/Atlassian/url
+# CONFLUENCE_USERNAME=op://Work/Atlassian/username
+# CONFLUENCE_API_TOKEN=op://Work/Atlassian/password
+# SLACK_BOT_TOKEN=op://Work/Slack MCP/password
+# SLACK_TEAM_ID=op://Work/Slack MCP/team_id
+mise-load-op ~/.env.op ~/.env.local
+```
+
+`~/.env.local` is auto-loaded by mise into every shell via the global `_.file` setting.
+Re-run `mise-load-op` after token rotation.
+
 ## qmd (semantic code search)
 
 qmd is a global MCP server that provides semantic search over indexed code
