@@ -5,7 +5,7 @@
 #   rules/default.rules             -> deny/ask/allow command gating
 #   AGENTS.md                       -> behavioral instructions + domain rules
 
-model = "o3"
+model = "gpt-5.4"
 
 # workspace-write: file edits auto-approved within project dir;
 # .git/, .codex/, .agents/ always read-only (built-in protection).
@@ -20,6 +20,7 @@ web_search = "live"
 
 # Notification: Ghostty OSC 777 + tmux bell.
 notify = ["bash", "$HOME/.codex/hooks/notify.sh"]
+model_reasoning_effort = "medium"
 
 [features]
 unified_exec = true
@@ -41,8 +42,6 @@ theme = "catppuccin-mocha"
 [history]
 persistence = "save-all"
 
-# --- MCP Servers ---
-
 [mcp_servers.sequential-thinking]
 command = "npx"
 args = ["-y", "@modelcontextprotocol/server-sequential-thinking"]
@@ -53,6 +52,96 @@ command = "qmd"
 args = ["mcp"]
 enabled_tools = ["query", "get", "multi_get", "status"]
 
+[mcp_servers."awslabs.iam-mcp-server"]
+command = "uvx"
+args = ["awslabs.iam-mcp-server@latest"]
+startup_timeout_sec = 30.0
+
+[mcp_servers."awslabs.iam-mcp-server".env]
+AWS_REGION = "ap-southeast-2"
+
+[mcp_servers."awslabs.aws-pricing-mcp-server"]
+command = "uvx"
+args = ["awslabs.aws-pricing-mcp-server@latest"]
+startup_timeout_sec = 30.0
+
+[mcp_servers."awslabs.aws-pricing-mcp-server".env]
+AWS_REGION = "ap-southeast-2"
+FASTMCP_LOG_LEVEL = "ERROR"
+
+[mcp_servers."awslabs.cost-explorer-mcp-server"]
+command = "uvx"
+args = ["awslabs.cost-explorer-mcp-server@latest"]
+startup_timeout_sec = 30.0
+
+[mcp_servers."awslabs.cost-explorer-mcp-server".env]
+AWS_REGION = "ap-southeast-2"
+FASTMCP_LOG_LEVEL = "ERROR"
+
+[mcp_servers."awslabs.cfn-mcp-server"]
+command = "uvx"
+args = ["awslabs.cfn-mcp-server@latest"]
+startup_timeout_sec = 30.0
+
+[mcp_servers."awslabs.cfn-mcp-server".env]
+AWS_REGION = "ap-southeast-2"
+
+[mcp_servers."awslabs.aws-serverless-mcp-server"]
+command = "uvx"
+args = ["awslabs.aws-serverless-mcp-server@latest", "--allow-write", "--allow-sensitive-data-access"]
+startup_timeout_sec = 30.0
+
+[mcp_servers."awslabs.aws-serverless-mcp-server".env]
+AWS_REGION = "ap-southeast-2"
+
+[mcp_servers."awslabs.eks-mcp-server"]
+command = "uvx"
+args = ["awslabs.eks-mcp-server@latest", "--allow-sensitive-data-access"]
+startup_timeout_sec = 30.0
+
+[mcp_servers."awslabs.eks-mcp-server".env]
+AWS_REGION = "ap-southeast-2"
+
+[mcp_servers."awslabs.cloudwatch-mcp-server"]
+command = "uvx"
+args = ["awslabs.cloudwatch-mcp-server@latest"]
+startup_timeout_sec = 30.0
+
+[mcp_servers."awslabs.cloudwatch-mcp-server".env]
+AWS_REGION = "ap-southeast-2"
+
+[mcp_servers.kubernetes]
+command = "npx"
+args = ["kubernetes-mcp-server@latest"]
+startup_timeout_sec = 30.0
+
+[mcp_servers.grafana]
+command = "uvx"
+args = ["mcp-grafana"]
+env_vars = ["GRAFANA_API_KEY"]
+startup_timeout_sec = 30.0
+
+[mcp_servers.grafana.env]
+GRAFANA_URL = "https://monitoring.geocreation.com.au"
+
+[mcp_servers.argocd]
+command = "npx"
+args = ["argocd-mcp@latest", "stdio"]
+env_vars = ["ARGOCD_API_TOKEN"]
+startup_timeout_sec = 30.0
+
+[mcp_servers.argocd.env]
+ARGOCD_BASE_URL = "https://argocd.geocreation.com.au"
+
+[mcp_servers.sentry]
+url = "https://mcp.sentry.dev/mcp"
+
+[mcp_servers.atlassian]
+url = "https://mcp.atlassian.com/v1/mcp"
+
+[mcp_servers.openaiDeveloperDocs]
+url = "https://developers.openai.com/mcp"
+
 # --- Telemetry (replaces audit-log hook) ---
 
 [otel]
@@ -60,3 +149,24 @@ environment = "dev"
 exporter = "none"
 trace_exporter = "none"
 log_user_prompt = false
+
+[projects."/Users/ben/workspace/ops"]
+trust_level = "trusted"
+
+[projects."/Users/ben/workspace/web-api-gateway"]
+trust_level = "trusted"
+
+[projects."/Users/ben/workspace/geo-server"]
+trust_level = "trusted"
+
+[projects."/Users/ben/workspace/rec-registry-creation-service"]
+trust_level = "trusted"
+
+[projects."/Users/ben/workspace/dotfiles"]
+trust_level = "trusted"
+
+[projects."/Users/ben/workspace/envoy"]
+trust_level = "trusted"
+
+[projects."/Users/ben/workspace/mgob"]
+trust_level = "trusted"
