@@ -1,5 +1,4 @@
 ---
-name: pr:merge
 description: Verify PR test plan, tick completed items, and merge
 argument-hint: "[pr-number-or-url]"
 allowed-tools: Bash(gh pr view:*), Bash(gh pr edit:*), Bash(gh pr merge:*), Bash(gh pr checks:*), Bash(gh api:*), Bash(rm:*), Bash(git fetch:*), Bash(git push:*), Bash(git show:*), Bash(git pull:*), Bash(git checkout:*), Bash(git worktree:*), Bash(git branch:*), Bash(git rev-parse:*), Bash(pwd), Read, Grep, Glob, Write, ExitWorktree

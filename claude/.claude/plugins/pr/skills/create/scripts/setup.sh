@@ -7,8 +7,8 @@
 
 set -euo pipefail
 
-# shellcheck source=../../../lib/portability.sh
-source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../../../lib/portability.sh"
+# shellcheck source=/dev/null
+source "$HOME/.claude/lib/portability.sh"
 
 MAX_ITERATIONS=10
 FORCE=false
@@ -158,7 +158,7 @@ Skip Step 4 entirely if both \`has_codex\` and \`has_copilot\` are false.
 
 ### Phase 2: Fresh-Eyes Agent Review (while external reviewers run in background)
 
-Note: the reviewer split below mirrors Step 2 of review-pr.md -- keep both
+Note: the reviewer split below mirrors Step 2 of pr:review SKILL.md -- keep both
 in sync if changing agent focus areas.
 
 Spawn 2 code-reviewer agents **in parallel** (two Agent tool calls in the same
