@@ -12,7 +12,6 @@ BLUE='\033[38;2;137;180;250m'    # #89b4fa
 GREEN='\033[38;2;166;227;161m'   # #a6e3a1
 YELLOW='\033[38;2;249;226;175m'  # #f9e2af
 RED='\033[38;2;243;139;168m'     # #f38ba8
-TEAL='\033[38;2;148;226;213m'    # #94e2d5
 OVERLAY='\033[38;2;108;112;134m' # #6c7086
 
 # Read stdin once; parse all fields in a single jq invocation (tab-separated).
@@ -27,7 +26,7 @@ IFS=$'\t' read -r model ctx_pct rate_5h rate_7d cwd <<< "$(
   ] | @tsv'
 )"
 
-# Color thresholds: >=90 red, >=70 yellow, else green/teal.
+# Color thresholds: >=90 red, >=70 yellow, else green.
 if (( ctx_pct >= 90 )); then
   ctx_color="$RED"
 elif (( ctx_pct >= 70 )); then
@@ -106,7 +105,7 @@ for pair in "5h:$rate_5h" "7d:$rate_7d"; do
     elif (( pct >= 70 )); then
       rc="$YELLOW"
     else
-      rc="$TEAL"
+      rc="$GREEN"
     fi
     line_metrics+="${sep}${rc}${label} ${pct}%${RESET}"
   fi
