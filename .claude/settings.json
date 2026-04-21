@@ -1,0 +1,5 @@
+{
+  "env": {
+    "CLAUDE_GIT_WORKFLOW": "no-pr"
+  }
+}
