@@ -5,6 +5,7 @@
       "args": [
         "mcp-compressor",
         "--server-name", "sequential-thinking",
+        "--",
         "npx", "-y", "@modelcontextprotocol/server-sequential-thinking"
       ]
     }
