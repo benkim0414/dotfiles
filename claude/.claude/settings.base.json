@@ -141,6 +141,7 @@
       "RemoteTrigger"
     ]
   },
+  "model": "opusplan",
   "hooks": {
     "SessionStart": [
       {
