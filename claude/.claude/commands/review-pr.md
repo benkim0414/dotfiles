@@ -1,5 +1,5 @@
 ---
-description: "Review a PR with multiple AI reviewers (Claude Code, Codex, Copilot)"
+description: "Review a PR with multiple AI reviewers (Claude Code agents, Codex, Copilot)"
 argument-hint: "<pr-number-or-url> [--post]"
 allowed-tools: >-
   Bash(gh pr view:*), Bash(gh pr diff:*), Bash(gh pr review:*),
@@ -40,30 +40,53 @@ $ARGUMENTS
 
 ## Your task
 
-Review this pull request using a multi-agent approach. You are the primary
-reviewer (Claude Code). Codex and Copilot are running in the background.
+Review this pull request using a multi-agent approach. You orchestrate fresh-eyes
+reviewer agents (Claude Code subagents) and collect results from Codex and
+Copilot running in the background.
 
 ### Step 1: Guard checks
 
 Parse the PR metadata above. If the PR state is not OPEN, stop and report why.
 Extract: PR number, title, author, base branch, head branch, URL.
 
-### Step 2: Claude Code review
+### Step 2: Fresh-Eyes Agent Review
 
-Analyze the full diff above across these dimensions:
+Note: the reviewer split below mirrors Phase 2 of setup-create-pr.sh -- keep
+both in sync if changing agent focus areas.
 
-- **Correctness**: bugs, logic errors, edge cases, off-by-one, error handling gaps
-- **Security**: injection, secrets, auth bypass, missing input validation at system boundaries
-- **Design**: naming, abstraction, coupling, SRP violations
-- **Performance**: N+1 patterns, unnecessary allocations, missing indexes
-- **Testing**: missing coverage for critical or changed paths
-- **Conventions**: consistency with existing codebase patterns
+Spawn 2 code-reviewer agents **in parallel** (two Agent tool calls in the same
+message) using subagent_type: "feature-dev:code-reviewer". Each agent starts
+with a clean context window -- no knowledge of this review session.
+Pass the full diff (from the PR context above) in each agent's prompt.
 
-For each finding, record:
-- **Severity**: critical, suggestion, or nit
-- **File path** and **line number** (from the diff)
-- **Description** of the issue
-- **Code suggestion** (the corrected code) when you have a concrete fix
+**Correctness & Security Reviewer**
+
+Use the Agent tool with subagent_type: "feature-dev:code-reviewer". Write a
+prompt that includes the full PR diff and asks the agent to focus on:
+correctness, bugs, logic errors, edge cases, race conditions, input validation
+at system boundaries, hardcoded secrets, security vulnerabilities, N+1 patterns.
+Instruct it to read files from the PR worktree path (from the background
+reviewer context above, field `worktree`) rather than the current directory,
+so it sees the PR head rather than any local edits. If the worktree field is
+empty or the directory does not exist, analyse the diff alone without reading
+files. Report only issues with confidence >= 80: severity
+(critical/suggestion/nit), file:line, description, and a concrete fix.
+
+**Design & Quality Reviewer**
+
+Use the Agent tool with subagent_type: "feature-dev:code-reviewer". Write a
+prompt that includes the full PR diff and asks the agent to focus on: naming,
+DRY violations, unnecessary complexity, convention adherence (check CLAUDE.md),
+missing error handling, test coverage gaps, dead code, abstraction quality,
+consistency with existing codebase patterns.
+Instruct it to read files from the PR worktree path (from the background
+reviewer context above, field `worktree`) rather than the current directory.
+If the worktree field is empty or the directory does not exist, analyse the
+diff alone without reading files. Report only issues with confidence >= 80:
+severity (critical/suggestion/nit), file:line, description, and a concrete fix.
+
+Collect findings from both agents. Their combined output is the "Claude Code"
+review that will be merged with external reviewer findings in Step 4.
 
 ### Step 3: Collect external reviews
 
@@ -72,7 +95,7 @@ Parse the background reviewer context above for PIDs and output file paths.
 For each reviewer with a PID (not "none"):
 1. Wait for the process to finish (poll with `kill -0 <PID>` every 5s, max 120s)
 2. Read the output file: `cat /tmp/review-pr-<N>.<reviewer>.md`
-3. Parse findings and merge them with your own
+3. Parse findings and merge them with the agent findings from Step 2
 
 If a reviewer was skipped (PID is "none") or its output is empty/missing after
 the timeout, log it and continue with the findings you have.
