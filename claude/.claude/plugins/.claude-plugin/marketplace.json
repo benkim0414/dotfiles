@@ -1,0 +1,14 @@
+{
+  "name": "benkim0414",
+  "owner": {
+    "name": "Gunwoo Ben Kim",
+    "email": "benkim0414@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "pr",
+      "source": "./pr",
+      "description": "PR workflow: create, review, address, merge"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "name": "pr",
+  "description": "PR workflow: create, review, address, merge",
+  "version": "0.1.0",
+  "author": {
+    "name": "Gunwoo Ben Kim",
+    "email": "benkim0414@gmail.com"
+  }
+}
