@@ -35,8 +35,8 @@ Multi-pass review of all worktree changes, then create a PR.
 Uses Ralph Loop to iterate until every review pass is clean.
 
 Review passes (in order):
-  1. Agent A    -- correctness & security (fresh-eyes reviewer)
-  2. Agent B    -- design & quality (fresh-eyes reviewer)
+  1. Correctness & Security Reviewer  (fresh-eyes)
+  2. Design & Quality Reviewer        (fresh-eyes)
   3. Codex CLI  -- external review (skipped if not installed)
   4. Copilot    -- external review (skipped if not installed)
 
@@ -163,7 +163,7 @@ message) using subagent_type: "feature-dev:code-reviewer". Each agent starts
 with a clean context window -- no knowledge of the implementation history.
 Include the full diff and commit log (from Phase 1) in each agent's prompt.
 
-**Agent A -- Correctness & Security**
+**Correctness & Security Reviewer**
 
 Use the Agent tool with subagent_type: "feature-dev:code-reviewer". Write a
 prompt that includes the git log and git diff output from Phase 1, and asks
@@ -173,7 +173,7 @@ vulnerabilities. Instruct it to use Read, Grep, Glob for additional file
 context, and to only report issues with confidence >= 80, providing for each:
 severity (critical/suggestion/nit), file:line, description, and a fix.
 
-**Agent B -- Design & Quality**
+**Design & Quality Reviewer**
 
 Use the Agent tool with subagent_type: "feature-dev:code-reviewer". Write a
 prompt that includes the git log and git diff output from Phase 1, and asks
@@ -185,7 +185,7 @@ report issues with confidence >= 80, providing for each: severity
 (critical/suggestion/nit), file:line, description, and a fix.
 
 Wait for both agents to complete. If one agent call fails (subagent type
-unavailable or tool error), log "Phase 2 [Agent A|B] failed: <error>" and
+unavailable or tool error), log "Phase 2 [correctness-security|design-quality] reviewer failed: <error>" and
 treat that agent's findings as empty.
 
 If **both** agents fail, treat Phase 2 as having "made changes" so the loop
@@ -250,8 +250,8 @@ Iterations: 1 / $(if [[ $MAX_ITERATIONS -gt 0 ]]; then echo "$MAX_ITERATIONS"; e
 Completion promise: PR_CREATED (only when all review passes are clean and PR is created)
 
 Review passes:
-  1. Agent A        (correctness & security -- fresh-eyes reviewer)
-  2. Agent B        (design & quality -- fresh-eyes reviewer)
+  1. Correctness & Security Reviewer (fresh-eyes)
+  2. Design & Quality Reviewer       (fresh-eyes)
   3. Codex CLI      (external review -- $(if [[ "$HAS_CODEX" == "true" ]]; then echo "available"; else echo "not installed, skipped"; fi))
   4. Copilot        (external review -- $(if [[ "$HAS_COPILOT" == "true" ]]; then echo "available"; else echo "not installed, skipped"; fi))
 
