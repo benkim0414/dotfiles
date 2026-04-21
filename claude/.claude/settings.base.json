@@ -166,7 +166,7 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Read|NotebookRead|mcp__qmd__get",
+        "matcher": "Read|NotebookRead|mcp__qmd__get|mcp__qmd__multi_get|Bash|Grep",
         "hooks": [
           {
             "type": "command",
@@ -224,7 +224,7 @@
         ]
       },
       {
-        "matcher": "Bash|Write|Edit|MultiEdit|NotebookEdit|CronCreate|CronDelete|RemoteTrigger",
+        "matcher": "Bash|Write|Edit|MultiEdit|NotebookEdit|CronCreate|CronDelete|RemoteTrigger|Read|NotebookRead|Grep|mcp__qmd__get|mcp__qmd__multi_get",
         "hooks": [
           {
             "type": "command",
