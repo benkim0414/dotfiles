@@ -1,7 +1,8 @@
 ---
-description: GitHub Actions conventions -- SHA pinning, permissions, OIDC auth
-paths:
-  - ".github/**"
+name: rules-github-actions
+description: >
+  GitHub Actions security and convention rules: SHA pinning, least-privilege permissions,
+  OIDC auth. Use when editing .github/workflows/*.yml or any file under .github/.
 ---
 
 # GitHub Actions

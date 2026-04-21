@@ -1,10 +1,9 @@
 ---
-description: Dockerfile conventions -- image pinning, multi-stage builds, non-root user
-paths:
-  - "**/Dockerfile*"
-  - "**/docker-compose*.yml"
-  - "**/docker-compose*.yaml"
-  - "**/.dockerignore"
+name: rules-docker
+description: >
+  Docker best practices for image pinning, multi-stage builds, and non-root users.
+  Use when editing Dockerfile*, docker-compose*.yml, docker-compose*.yaml,
+  or .dockerignore files.
 ---
 
 # Dockerfiles
