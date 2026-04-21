@@ -1,13 +1,9 @@
 ---
-description: Helm chart conventions -- linting, template validation, version pinning
-paths:
-  - "**/Chart.yaml"
-  - "**/Chart.lock"
-  - "**/values.yaml"
-  - "**/values-*.yaml"
-  - "**/templates/**"
-  - "**/helmfile*.yaml"
-  - "**/charts/**"
+name: rules-helm
+description: >
+  Helm chart conventions: linting, template validation, version pinning.
+  Use when editing Chart.yaml, Chart.lock, values.yaml, values-*.yaml,
+  templates/, helmfile*.yaml, or charts/.
 ---
 
 # Helm Charts

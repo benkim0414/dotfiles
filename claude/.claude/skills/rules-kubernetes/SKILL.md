@@ -1,11 +1,9 @@
 ---
-description: Kubernetes manifest conventions -- security context, resources, probes, image pinning
-paths:
-  - "k8s/**"
-  - "**/deploy/**/*.yaml"
-  - "**/manifests/**"
-  - "**/base/**/*.yaml"
-  - "**/overlays/**/*.yaml"
+name: rules-kubernetes
+description: >
+  Kubernetes manifest standards: security context, resource limits, probes, image pinning.
+  Use when editing k8s manifests (Deployment, StatefulSet, DaemonSet, Service, Ingress,
+  CRD, kustomization) or any YAML under k8s/, manifests/, base/, or overlays/.
 ---
 
 # Kubernetes Manifests
