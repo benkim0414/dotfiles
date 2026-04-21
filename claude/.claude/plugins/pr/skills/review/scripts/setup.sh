@@ -43,8 +43,8 @@ if [[ -z "$PR_ARG" ]]; then
   exit 1
 fi
 
-# Extract numeric PR number from various formats (123, #123, URL/pull/123)
-PR_NUMBER=$(echo "$PR_ARG" | grep -oE '/pull/[0-9]+' | grep -oE '[0-9]+' || true)
+# Extract numeric PR number from various formats (123, #123, URL/pull/123, URL/pulls/123)
+PR_NUMBER=$(echo "$PR_ARG" | grep -oE '/pulls?/[0-9]+' | grep -oE '[0-9]+' || true)
 if [[ -z "$PR_NUMBER" ]]; then
   PR_NUMBER=$(echo "$PR_ARG" | tr -d '#' | grep -oE '[0-9]+$' || true)
 fi
@@ -101,7 +101,7 @@ fi
 
 # Launch Copilot review in background
 COPILOT_PID=none
-if [[ "$WORKTREE_OK" == "true" ]] && gh copilot --version &>/dev/null 2>&1; then
+if [[ "$WORKTREE_OK" == "true" ]] && gh copilot --version &>/dev/null; then
   (cd "$WORKTREE" && gh copilot -p \
     "Review the changes on this branch compared to origin/$BASE. Run 'git diff origin/$BASE..HEAD' to see the diff. Focus on bugs, security issues, and improvements. Be specific about file paths and line numbers. Format each finding as: **[severity]** \`file:line\` -- description" \
     --allow-all-tools > "$COPILOT_OUT" 2>&1) &
