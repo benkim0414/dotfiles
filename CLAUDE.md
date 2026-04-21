@@ -53,6 +53,11 @@ Code's internal known-marketplaces file -- neither is stowed:
 Verify with `/plugin list` (should show `pr@benkim0414` enabled) and
 `/pr:create --help`.
 
+SKILL.md shell blocks reference setup scripts via `${CLAUDE_PLUGIN_ROOT}`, an
+env var Claude Code sets to the plugin's installed directory. Setup scripts
+source `$HOME/.claude/lib/portability.sh` directly (single source of truth,
+shared with the hooks) rather than a per-plugin copy.
+
 To update the plugin after editing files in `claude/.claude/plugins/pr/`:
 `/plugin marketplace update benkim0414` (or restart the session).
 
