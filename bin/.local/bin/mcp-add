@@ -33,7 +33,7 @@ NAME="$1"; shift
 if [[ "$1" == "--" ]]; then
     shift
     exec claude mcp add --scope "$SCOPE" "$NAME" -- \
-        uvx mcp-compressor --server-name "$NAME" "$@"
+        uvx mcp-compressor --server-name "$NAME" -- "$@"
 else
     exec claude mcp add --scope "$SCOPE" "$NAME" -- \
         uvx mcp-compressor --server-name "$NAME" "$1"
