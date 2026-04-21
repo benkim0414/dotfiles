@@ -2,8 +2,8 @@
 
 # setup-create-pr.sh
 # Creates a ralph-loop state file with a multi-pass review prompt.
-# Delegates review to pluggable skills (/simplify, /review, /codex:review)
-# then falls back to a manual self-check before creating the PR.
+# Delegates review to fresh-eyes Agent subagents (writer/reviewer pattern)
+# then collects external reviewers before creating the PR.
 
 set -euo pipefail
 
@@ -35,12 +35,10 @@ Multi-pass review of all worktree changes, then create a PR.
 Uses Ralph Loop to iterate until every review pass is clean.
 
 Review passes (in order):
-  1. /simplify     -- code quality, reuse, efficiency (auto-fixes)
-  2. /review       -- general review (skipped if unavailable)
-  3. /codex:review -- codex review (skipped if unavailable)
-  4. Self-check    -- security, conventions, ShellCheck
-  5. Codex CLI     -- external review (skipped if not installed)
-  6. Copilot       -- external review (skipped if not installed)
+  1. Correctness & Security Reviewer  (fresh-eyes)
+  2. Design & Quality Reviewer        (fresh-eyes)
+  3. Codex CLI  -- external review (skipped if not installed)
+  4. Copilot    -- external review (skipped if not installed)
 
 Options:
   --max-iterations N   Maximum review iterations (default: 10)
@@ -158,45 +156,63 @@ Use \`run_in_background: true\` on each Bash call so they run concurrently with 
 
 Skip Step 4 entirely if both \`has_codex\` and \`has_copilot\` are false.
 
-### Phase 2: Run Review Skills (while external reviewers run in background)
+### Phase 2: Fresh-Eyes Agent Review (while external reviewers run in background)
 
-Run each review skill via the Skill tool. Each pass targets a different
-dimension of quality. If a skill is not available, skip it gracefully.
+Note: the reviewer split below mirrors Step 2 of review-pr.md -- keep both
+in sync if changing agent focus areas.
 
-**Pass 1 -- /simplify** (code quality, reuse, efficiency)
-- Invoke: use the Skill tool with skill "simplify"
-- This skill auto-fixes issues it finds.
-- After it completes, if files were changed, \`git add <specific-files>\`
-  (never \`git add -A\` or \`git add .\`) and \`git commit\` with a conventional message.
+Spawn 2 code-reviewer agents **in parallel** (two Agent tool calls in the same
+message) using subagent_type: "feature-dev:code-reviewer". Each agent starts
+with a clean context window -- no knowledge of the implementation history.
+Include the full diff and commit log (from Phase 1) in each agent's prompt.
 
-**Passes 2 & 3 -- run in parallel** (after Pass 1 is complete)
+**Correctness & Security Reviewer**
 
-Launch both passes concurrently using parallel tool calls:
+Use the Agent tool with subagent_type: "feature-dev:code-reviewer". Write a
+prompt that includes the git log and git diff output from Phase 1, and asks
+the agent to focus on: correctness, bugs, logic errors, edge cases, race
+conditions, input validation at system boundaries, hardcoded secrets, security
+vulnerabilities. Instruct it to use Read, Grep, Glob for additional file
+context, and to only report issues with confidence >= 80, providing for each:
+severity (critical/suggestion/nit), file:line, description, and a fix.
 
-- **Pass 2 -- /review** (general review)
-  - Invoke: use the Skill tool with skill "review"
-  - If the skill is unavailable (error), log "Pass 2 skipped: /review not available" and continue.
+**Design & Quality Reviewer**
 
-- **Pass 3 -- /codex:review** (codex review)
-  - Invoke: use the Skill tool with skill "codex:review"
-  - If the skill is unavailable (error), log "Pass 3 skipped: /codex:review not available" and continue.
+Use the Agent tool with subagent_type: "feature-dev:code-reviewer". Write a
+prompt that includes the git log and git diff output from Phase 1, and asks
+the agent to focus on: naming, DRY violations, unnecessary complexity,
+convention adherence (check CLAUDE.md for project rules), missing error
+handling for critical paths, test coverage gaps, dead code, abstraction quality.
+Instruct it to use Read, Grep, Glob for additional file context, and to only
+report issues with confidence >= 80, providing for each: severity
+(critical/suggestion/nit), file:line, description, and a fix.
 
-After both parallel passes complete, collect all reported issues. If either
-pass reported issues, fix them, then \`git add <specific-files>\` and
-\`git commit\` with a conventional message.
+Wait for both agents to complete. If one agent call fails (subagent type
+unavailable or tool error), log "Phase 2 [correctness-security|design-quality] reviewer failed: <error>" and
+treat that agent's findings as empty.
 
-### Phase 3: Self-check
+If **both** agents fail, treat Phase 2 as having "made changes" so the loop
+does not proceed to Phase 5 without any review. Report the failure clearly
+and let the loop retry on the next iteration.
 
-After all skill passes, do a final manual review of the full diff:
-- **Correctness**: bugs, logic errors, off-by-one, edge cases
-- **Security**: hardcoded secrets, injection, missing input validation at boundaries
-- **Quality**: dead code, unreachable branches, unnecessary complexity
-- **Conventions**: adherence to CLAUDE.md and project-level conventions
-- **Shell scripts**: ShellCheck compliance (no warnings)
+For each finding from either agent:
+1. Evaluate against the current code -- skip false positives or changes that
+   would make the code worse. The goal is convergence, not perfection.
+2. Fix genuine issues atomically: \`git add <specific-files>\` (never \`-A\` or \`.\`)
+   then \`git commit\` with a conventional message per logical change.
+3. If any fixes were made, this phase counts as "made changes" for Phase 4.
 
-If any issues found, fix and commit with conventional message.
+**ShellCheck gate** (required by project rules):
 
-### Phase 4: Collect External Reviews
+After applying agent fixes, run ShellCheck on every shell script modified in
+this iteration:
+
+\`git diff \$MERGE_BASE..HEAD --name-only | grep '\.sh\$' | while IFS= read -r f; do shellcheck "\$f"; done\`
+
+If ShellCheck reports warnings, fix them, then \`git add <specific-files>\`
+and \`git commit\`. This also counts as "made changes" for Phase 4.
+
+### Phase 3: Collect External Reviews
 
 Wait for any background Codex/Copilot processes launched in Phase 1 to complete.
 Read their output files (branch name is sanitized: slashes replaced with dashes):
@@ -212,13 +228,13 @@ Clean up output files: \`rm -f /tmp/create-pr-$SAFE_BRANCH-codex.md /tmp/create-
 
 Skip this phase if no external reviewers were launched.
 
-### Phase 5: Decide
+### Phase 4: Decide
 
 - If ANY phase made changes this iteration -> continue to next iteration
   (do NOT output the completion promise)
-- If all phases were clean (no changes) -> proceed to Phase 6
+- If all phases were clean (no changes) -> proceed to Phase 5
 
-### Phase 6: Create PR
+### Phase 5: Create PR
 
 When all review passes are clean and no changes were made:
 1. Push the branch: \`git push origin HEAD:\$(git branch --show-current)\`
@@ -237,12 +253,10 @@ Iterations: 1 / $(if [[ $MAX_ITERATIONS -gt 0 ]]; then echo "$MAX_ITERATIONS"; e
 Completion promise: PR_CREATED (only when all review passes are clean and PR is created)
 
 Review passes:
-  1. /simplify     (code quality, reuse, efficiency)
-  2. /review       (general review -- skipped if unavailable)
-  3. /codex:review (codex review -- skipped if unavailable)
-  4. Self-check    (security, conventions, ShellCheck)
-  5. Codex CLI     (external review -- $(if [[ "$HAS_CODEX" == "true" ]]; then echo "available"; else echo "not installed, skipped"; fi))
-  6. Copilot       (external review -- $(if [[ "$HAS_COPILOT" == "true" ]]; then echo "available"; else echo "not installed, skipped"; fi))
+  1. Correctness & Security Reviewer (fresh-eyes)
+  2. Design & Quality Reviewer       (fresh-eyes)
+  3. Codex CLI      (external review -- $(if [[ "$HAS_CODEX" == "true" ]]; then echo "available"; else echo "not installed, skipped"; fi))
+  4. Copilot        (external review -- $(if [[ "$HAS_COPILOT" == "true" ]]; then echo "available"; else echo "not installed, skipped"; fi))
 
 The Ralph Loop stop hook will iterate until clean.
 To cancel: /cancel-ralph
