@@ -12,10 +12,18 @@ source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${
 
 # Emit additionalContext only (silent -- Claude sees it, user doesn't).
 # Usage: emit_context "SessionStart" "Branch: main. Call EnterWorktree()."
+#
+# PostCompact is not a valid hookEventName for hookSpecificOutput; Claude Code
+# rejects it. Use systemMessage instead, which is injected into the system
+# prompt after compaction and achieves the same re-orientation effect.
 emit_context() {
   local event="$1" ctx="$2"
-  jq -n --arg e "$event" --arg c "$ctx" \
-    '{hookSpecificOutput: {hookEventName: $e, additionalContext: $c}}'
+  if [[ "$event" == "PostCompact" ]]; then
+    jq -n --arg c "$ctx" '{systemMessage: $c}'
+  else
+    jq -n --arg e "$event" --arg c "$ctx" \
+      '{hookSpecificOutput: {hookEventName: $e, additionalContext: $c}}'
+  fi
 }
 
 # Emit additionalContext + a user-visible systemMessage.
