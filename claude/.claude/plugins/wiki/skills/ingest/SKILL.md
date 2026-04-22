@@ -96,14 +96,18 @@ This is the canonical target that atomic notes' `Source:` wikilinks will resolve
 
 ```markdown
 ---
-aliases:
-  - <short alternate title if the full title is unwieldy, otherwise omit>
 tags:
   - type/reference
   - topic/<primary-topic>
 created: YYYY-MM-DD
 read: true
 ---
+```
+
+Omit `aliases:` entirely unless the title is so long it needs a short-form handle
+for inline linking. Do not write `aliases: []`.
+
+```markdown
 
 Session log for <2–4 sentences: task and outcome>.
 
@@ -145,22 +149,28 @@ created: YYYY-MM-DD
 ---
 ```
 
-Rules:
-- Exactly one `type/*` tag. Use `type/claim` for a specific observed behavior;
+Run the following sub-steps in order — do not interleave tagging with note writing:
+
+**4a. Scan** — List all atomic note titles this batch will produce. Do not write
+any files yet.
+
+**4b. Decide tags** — From the scan:
+- Pick one `type/*` per note: `type/claim` for a specific observed behavior,
   `type/concept` for a general abstraction. Never `type/reference` or `type/log`
-  in atomic notes (those are reserved for the session reference note and log files).
-- **Primary domain tag (required):** Derive one domain `topic/*` tag from the
-  session's subject (e.g. `topic/claude-code`, `topic/kubernetes`). Every atomic
-  note in the batch must carry this tag — do not let a sibling slip through without it.
-- **Concern tags (consistent across batch):** Before writing any note's frontmatter,
-  list all atomic notes this batch will produce and decide which concern tags apply
-  to the batch as a whole (e.g. `topic/automation`, `topic/security`). Record that
-  set explicitly, then apply it uniformly when writing each note. If one note in the
-  batch gets `topic/automation`, every sibling that touches automation must too. Do
-  not tag note-by-note in isolation.
-- `aliases: [...]` only if there are natural alternate search handles.
-  Omit entirely when not needed — do not write `aliases: []`.
+  in atomic notes.
+- **Primary domain tag (required):** Derive one domain `topic/*` from the session
+  subject (e.g. `topic/claude-code`, `topic/kubernetes`) — every atomic note in
+  the batch must carry it.
+- **Concern tags (consistent):** Decide which concern tags apply to the batch as a
+  whole (e.g. `topic/automation`, `topic/security`). Record the set; apply it
+  uniformly. If one note gets `topic/automation`, every sibling that touches
+  automation must too.
+- `aliases: [...]` only if there are natural short-form handles. Omit entirely
+  when not needed — do not write `aliases: []`.
 - `created` = today in `YYYY-MM-DD`.
+
+**4c. Write notes** — For each learning, create one file using the tags decided in
+4b and the body/links rules below.
 
 **Body:** 50–300 words. One claim per note. Write the *why* and the *surprise
 factor* — what would trip up a future reader. Do not restate the title verbatim
@@ -189,15 +199,23 @@ The title in the wikilink must match the exact filename of the 3b vault note
 2. **qmd hits**: related existing vault notes from the step 2 dedup queries.
 If no related notes exist, omit the Related line — do not write "Related: —".
 
-After writing all atomic notes in the batch, return to the vault reference note
-created in step 3b and replace the `## Learnings produced` placeholder with a
-wikilinked list of every atomic note title produced in this step.
+After all atomic notes from 4c have been written, return to the vault reference
+note created in step 3b and replace the `## Learnings produced` placeholder with
+a wikilinked list of every atomic note title produced in this step.
 
 ## Step 5: Review pass
 
 Spawn one `feature-dev:code-reviewer` subagent. Read each file written in steps
-3b and 4 and include their full text verbatim in the subagent prompt, prefixed
-with the file path in a fenced block label. Instruct the reviewer to check:
+3b and 4c and include their full text verbatim in the subagent prompt. Prefix
+each file's content with its path as the fenced-block language label, e.g.:
+
+````
+```Resources/Claude Code/My Note Title.md
+<file contents>
+```
+````
+
+Instruct the reviewer to check:
 
 1. `type/*` is correct and `read: true` is set on the reference note.
 2. Primary-domain tag is present on every atomic note.
@@ -220,7 +238,7 @@ reports zero must-fix issues, note that in the final summary.
 Check whether the raw transcript has been staged or committed by running:
 
 ```bash
-git -C "$WIKI_VAULT" ls-files --others --exclude-standard -- "raw/transcripts/<filename>"
+git -C "${WIKI_VAULT}" ls-files --others --exclude-standard -- "raw/transcripts/<filename>"
 ```
 
 If that command produces output (the file is listed), the raw transcript is
@@ -259,10 +277,11 @@ Then print the next-steps checklist for the user to run inside the vault:
 1. cd "$WIKI_VAULT"
 2. git diff --stat  (review what was written)
 3. /lint  (vault skill — catches frontmatter errors, broken wikilinks, orphans)
-4. (optional) Update Resources/<topic>/MOC — <Topic>.md. Place each note under
-   the section whose theme matches the note's primary concern (git mechanics →
-   Surfaces/Git, not Workflow; hooks → Tools, not Workflow). When in doubt, open
-   the MOC and place the entry adjacent to its closest sibling by topic.
+4. (optional) Update the MOC in the folder that received the new notes. Place
+   each note under the section whose theme matches the note's primary concern —
+   not a generic catch-all section. When in doubt, open the MOC and place the
+   entry adjacent to its closest existing sibling by topic. Example: for
+   Claude Code, git mechanics → Surfaces/Git (not Workflow); hooks → Tools.
 5. (optional) Append entry to Log — Ingests.md
 6. git add <files> && git commit -m "Ingest session learnings: <topic>"
    (include raw transcript, reference note, and all atomic notes in one commit)
