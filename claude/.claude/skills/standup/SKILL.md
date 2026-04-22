@@ -66,7 +66,7 @@ exactly — they capture Ben's real writing style and must not be deviated from.
 
 **Voice and tone:**
 - Opener: exactly `Good morning, team.` — always this phrase, no variation
-- Use bullet points (•) for items — 1 to 4 bullets; never more than 4
+- Use bullet points for items — 1 to 4 bullets; never more than 4. Each bullet is prefixed with one space: ` •`
 - No emoji under any circumstances
 - Professional, direct, British English — "organise" not "organize", "colour" not "color", etc.
 - Action-oriented phrasing: "I'm continuing…", "I'll begin…", "I'll be working on…"
@@ -84,8 +84,10 @@ exactly — they capture Ben's real writing style and must not be deviated from.
 **Reference standup — Ben's actual post (for calibration):**
 ```
 Good morning, team.
-• I'm continuing to organise the INFRA board. There are several items to address, but progress has been delayed due to higher-priority tasks arising.
-• I'll begin migrating the business calendar service to the monorepo this afternoon.
+
+ • I'm continuing to organise the INFRA board. There are several items to address, but progress has been delayed due to higher-priority tasks arising.
+
+ • I'll begin migrating the business calendar service to the monorepo this afternoon.
 ```
 
 Note the natural sentence construction, the explanation of delay, the absence of emoji,
@@ -117,6 +119,12 @@ substituting the final message text (channel ID is #dev-team):
   }
 }
 ```
+
+**Message format rules for the `text` field:**
+- The `slack_post_message` tool only supports `text` — `blocks` (Block Kit) is not available and will be silently ignored.
+- Separate the opener from the first bullet, and each bullet from the next, with a blank line (`\n\n`).
+- Each bullet must be prefixed with one space: ` •` (not `•` alone, and not `-`).
+- Example structure: `Good morning, team.\n\n • First item.\n\n • Second item.`
 
 If the call returns an error or the response contains no `ts` field, display the full
 error response and stop. Do not retry silently.
