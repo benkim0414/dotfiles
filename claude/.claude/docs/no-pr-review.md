@@ -7,7 +7,9 @@ ShellCheck gate, `git push`, or `gh pr create`.
 ## Step 1: Gather diff
 
 ```
-MERGE_BASE=$(git merge-base HEAD origin/main)
+MAIN_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/origin/||')
+MAIN_BRANCH=${MAIN_BRANCH:-main}
+MERGE_BASE=$(git merge-base HEAD "origin/${MAIN_BRANCH}")
 git log --oneline "$MERGE_BASE..HEAD"
 git diff "$MERGE_BASE..HEAD"
 ```
@@ -64,10 +66,9 @@ For each finding from either agent:
 
 - If any fixes were applied in Step 3, return to Step 1 (re-gather diff,
   re-run both reviewers).
-- If no fixes were applied and both reviewers return only Nits (no Critical,
-  no Suggestions), the loop is clean -- exit.
-- If two consecutive iterations report the same residual Nits with no new
-  fixes, exit to avoid an infinite nit loop.
+- If no fixes were applied (the fix list from Step 3 was empty), exit the
+  loop -- the branch is clean enough to merge. Remaining Nits may be noted
+  but do not block the merge.
 
 ## Step 5: Proceed
 
@@ -83,3 +84,6 @@ The following are intentionally omitted -- they are PR-mode concerns:
 - ShellCheck gate
 - `git push origin HEAD:<branch>`
 - `gh pr create`
+- CI / branch-protection status checks
+- `gh pr review` approval gate
+- Waiting for PR merge
