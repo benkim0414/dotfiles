@@ -6,8 +6,9 @@ argument-hint: "[topic]"
 # Wiki Ingest — Session Learnings
 
 Distill durable learnings from the current Claude Code session into the personal
-knowledge vault. Write atomic notes + a raw transcript digest. Print a next-steps
-checklist. Do not touch git, qmd, or `Log — Ingests.md` — the user handles those.
+knowledge vault. Write a raw transcript digest, a vault reference note, and atomic
+concept notes. Print a next-steps checklist. Do not touch git, qmd, or
+`Log — Ingests.md` — the user handles those.
 
 ## Preflight
 
@@ -95,6 +96,8 @@ This is the canonical target that atomic notes' `Source:` wikilinks will resolve
 
 ```markdown
 ---
+aliases:
+  - <short alternate title if the full title is unwieldy, otherwise omit>
 tags:
   - type/reference
   - topic/<primary-topic>
@@ -149,11 +152,12 @@ Rules:
 - **Primary domain tag (required):** Derive one domain `topic/*` tag from the
   session's subject (e.g. `topic/claude-code`, `topic/kubernetes`). Every atomic
   note in the batch must carry this tag — do not let a sibling slip through without it.
-- **Concern tags (consistent across batch):** Before writing any note, decide which
-  concern tags apply to the batch as a whole (e.g. `topic/automation`, `topic/security`).
-  Apply them uniformly — if one note in the batch gets `topic/automation`, every
-  sibling that touches automation must too. Derive the concern set once; do not
-  tag note-by-note in isolation.
+- **Concern tags (consistent across batch):** Before writing any note's frontmatter,
+  list all atomic notes this batch will produce and decide which concern tags apply
+  to the batch as a whole (e.g. `topic/automation`, `topic/security`). Record that
+  set explicitly, then apply it uniformly when writing each note. If one note in the
+  batch gets `topic/automation`, every sibling that touches automation must too. Do
+  not tag note-by-note in isolation.
 - `aliases: [...]` only if there are natural alternate search handles.
   Omit entirely when not needed — do not write `aliases: []`.
 - `created` = today in `YYYY-MM-DD`.
@@ -176,18 +180,24 @@ cannot assume surrounding context from a script or hook file.
 - Related: [[<sibling from this batch that shares a theme>]], [[<adjacent note from qmd>]]
 ```
 
-`Source:` uses the wikilink title of the vault reference note created in step 3b
-(not a raw file path). `Related:` must include:
+`Source:` uses the wikilink title of the vault reference note created in step 3b.
+The title in the wikilink must match the exact filename of the 3b vault note
+(without `.md`); do not use the raw-file heading or the raw file path. `Related:` must include:
 1. **Sibling cross-links**: any other note produced in this same batch that shares
    a theme. After writing all notes in the batch, revisit each and add sibling
    links that belong. Do not treat batch notes as isolated.
 2. **qmd hits**: related existing vault notes from the step 2 dedup queries.
 If no related notes exist, omit the Related line — do not write "Related: —".
 
+After writing all atomic notes in the batch, return to the vault reference note
+created in step 3b and replace the `## Learnings produced` placeholder with a
+wikilinked list of every atomic note title produced in this step.
+
 ## Step 5: Review pass
 
-Spawn one `feature-dev:code-reviewer` subagent. Pass it the full contents of all
-files written in steps 3b and 4 and instruct it to check:
+Spawn one `feature-dev:code-reviewer` subagent. Read each file written in steps
+3b and 4 and include their full text verbatim in the subagent prompt, prefixed
+with the file path in a fenced block label. Instruct the reviewer to check:
 
 1. `type/*` is correct and `read: true` is set on the reference note.
 2. Primary-domain tag is present on every atomic note.
@@ -207,7 +217,19 @@ reports zero must-fix issues, note that in the final summary.
 
 ## Step 6: Summary
 
-Run `git -C "$WIKI_VAULT" status --short` and inspect the output before printing.
+Check whether the raw transcript has been staged or committed by running:
+
+```bash
+git -C "$WIKI_VAULT" ls-files --others --exclude-standard -- "raw/transcripts/<filename>"
+```
+
+If that command produces output (the file is listed), the raw transcript is
+untracked. Surface this warning at the top of the summary:
+
+```
+WARNING: raw transcript not yet tracked — commit it with the atomic notes or it
+will be lost when the branch is cleaned up.
+```
 
 Print a table of what was written, grouped by category:
 
@@ -215,10 +237,10 @@ Print a table of what was written, grouped by category:
 ## Notes written
 
 ### Raw source
-raw/transcripts/YYYY-MM-DD--<slug>--claude-code.md  [untracked]
+raw/transcripts/YYYY-MM-DD--<slug>--claude-code.md  [untracked / tracked]
 
 ### Reference note
-Resources/<topic>/Session Transcript — <title>.md  [untracked]
+Resources/<topic>/Session Transcript — <title>.md
 
 ### Atomic notes
 | File | Type |
@@ -227,14 +249,6 @@ Resources/<topic>/Session Transcript — <title>.md  [untracked]
 
 ### Skipped (already captured)
 [[Existing Note Title]]
-```
-
-If the raw transcript appears as untracked in `git status`, surface this warning
-at the top of the summary:
-
-```
-WARNING: raw transcript not yet tracked — commit it with the atomic notes or it
-will be lost when the branch is cleaned up.
 ```
 
 Then print the next-steps checklist for the user to run inside the vault:
