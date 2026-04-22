@@ -47,7 +47,7 @@ if [[ -n "$GIT_ABS_DIR" && -n "$GIT_COMMON_DIR" && "$GIT_ABS_DIR" != "$GIT_COMMO
 else
   CTX="Post-compaction context: main worktree (branch: ${BRANCH}). Call EnterWorktree() before any edits."
   if [[ "${CLAUDE_GIT_WORKFLOW:-}" == "no-pr" ]]; then
-    CTX+=" MODE: no-pr."
+    CTX+=" MODE: no-pr -- before merging, run the two-agent review loop per ~/.claude/docs/no-pr-review.md until clean, then ExitWorktree, merge to main, push. No PRs."
   fi
 fi
 
