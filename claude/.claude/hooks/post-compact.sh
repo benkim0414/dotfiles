@@ -44,6 +44,9 @@ CTX=""
 # Detect linked worktree vs main working tree.
 if [[ -n "$GIT_ABS_DIR" && -n "$GIT_COMMON_DIR" && "$GIT_ABS_DIR" != "$GIT_COMMON_DIR" ]]; then
   CTX="Post-compaction context: worktree session active (branch: ${BRANCH}). Isolation confirmed; edits are safe."
+  if [[ "${CLAUDE_GIT_WORKFLOW:-}" == "no-pr" ]]; then
+    CTX+=" MODE: no-pr -- before ExitWorktree, run the two-agent review loop per ~/.claude/docs/no-pr-review.md until clean."
+  fi
 else
   CTX="Post-compaction context: main worktree (branch: ${BRANCH}). Call EnterWorktree() before any edits."
   if [[ "${CLAUDE_GIT_WORKFLOW:-}" == "no-pr" ]]; then
