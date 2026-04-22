@@ -28,6 +28,7 @@ gum
 impala
 inxi
 jq
+keychain
 kdenlive
 lazydocker
 lazygit
