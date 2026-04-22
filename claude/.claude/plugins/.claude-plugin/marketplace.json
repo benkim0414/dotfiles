@@ -9,6 +9,11 @@
       "name": "pr",
       "source": "./pr",
       "description": "PR workflow: create, review, address, merge"
+    },
+    {
+      "name": "wiki",
+      "source": "./wiki",
+      "description": "Personal knowledge wiki: ingest session learnings into an Obsidian vault"
     }
   ]
 }
