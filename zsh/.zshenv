@@ -32,23 +32,9 @@ export EZA_ICONS_AUTO=true
 
 export BAT_THEME="Catppuccin Mocha"
 
-# SSH agent socket: ensure every shell (including new tmux panes) finds
-# the running ssh-agent.
-# - Linux: systemd user service manages the agent; just point to its socket.
-# - macOS: the launchd agent is unreachable in tmux and SSH sessions.
-#   Use a fixed socket and start our own agent if none is reachable.
-#   UseKeychain in ssh_config reads the passphrase from Keychain on first
-#   use, so the agent only needs to be seeded once per boot.
-if [[ "$OSTYPE" == "linux"* ]]; then
-    export SSH_AUTH_SOCK="$XDG_RUNTIME_DIR/ssh-agent.socket"
-elif [[ "$OSTYPE" == "darwin"* ]]; then
-    export SSH_AUTH_SOCK="$HOME/.ssh/agent.sock"
-    ssh-add -l &>/dev/null
-    if [[ $? -eq 2 ]]; then
-        rm -f "$SSH_AUTH_SOCK"
-        eval "$(ssh-agent -a "$SSH_AUTH_SOCK")" >/dev/null
-    fi
-fi
+# keychain writes the agent socket path here on login; all shells source it
+# so tmux panes and non-login shells find the same agent without re-prompting.
+[[ -f "$HOME/.keychain/$HOST-sh" ]] && source "$HOME/.keychain/$HOST-sh"
 
 # Suppress zoxide's doctor diagnostic in non-interactive shells (e.g. Claude
 # Code's Bash tool) where chpwd_functions is not restored from the snapshot.
