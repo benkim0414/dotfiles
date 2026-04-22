@@ -154,7 +154,7 @@ if [[ -n "$SESSION_ID" ]]; then
   CTX+="Main worktree (branch: ${BRANCH}). Call EnterWorktree() before any edits."
   MSG="[git-workflow] Main worktree (branch: ${BRANCH}). Call EnterWorktree() before any edits."
   if [[ "${CLAUDE_GIT_WORKFLOW:-}" == "no-pr" ]]; then
-    CTX+=" MODE: no-pr -- merge to main and push directly after work. No PRs."
+    CTX+=" MODE: no-pr -- before merging, run the two-agent review loop per ~/.claude/docs/no-pr-review.md until clean, then ExitWorktree, merge to main, push. No PRs."
     MSG+=" MODE: no-pr"
   fi
 else
