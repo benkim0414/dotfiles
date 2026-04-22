@@ -1,9 +1,8 @@
 ---
 name: standup
 description: >
-  Draft and post your daily virtual standup to #dev-team based on assigned INFRA
-  Jira tickets. Composes in Ben's personal writing style. Run each morning before
-  posting your update.
+  Draft and post a daily virtual standup to #dev-team based on assigned INFRA
+  Jira tickets. Composes in Ben's personal writing style.
 ---
 
 # Virtual Standup
@@ -95,11 +94,14 @@ and the forward-looking phrasing. Match this register.
 ## Step 4 — Show preview
 
 Display the composed standup message verbatim inside a code block so the user can
-review formatting. Then ask: **Post this to #dev-team?** Offer three options:
-post, edit, or cancel.
+review formatting. Then ask: **Post this to #dev-team?**
 
-If the user wants to edit, ask them to provide their revised text directly. Display
-their revised text in a code block and repeat the Post / Edit / Cancel prompt.
+- If the user replies with any affirmative (yes, post, go ahead, looks good, send it,
+  ship it), proceed to Step 5.
+- If the user replies with edit, revise, change, or provides corrected text directly,
+  ask them for the revised text if not already supplied. Display it in a code block and
+  repeat this prompt.
+- If the user replies with cancel, no, stop, or abort, confirm cancellation and stop.
 
 ## Step 5 — Post to Slack
 
