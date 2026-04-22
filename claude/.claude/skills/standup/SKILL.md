@@ -33,7 +33,7 @@ upcoming work:
 {
   "tool_name": "jira_search",
   "tool_input": {
-    "jql": "project = INFRA AND assignee = currentUser() AND status = 'To Do' AND priority in (Highest, High) ORDER BY priority ASC, updated DESC",
+    "jql": "project = INFRA AND assignee = currentUser() AND status = 'To Do' AND priority in (Highest, High) ORDER BY priority DESC, updated DESC",
     "fields": "summary,status,updated,issuetype",
     "limit": 5
   }
@@ -57,9 +57,9 @@ Call `mcp__atlassian__atlassian_invoke_tool` with the following arguments:
 
 ## Step 3 — Compose the standup
 
-If all three queries (Steps 1, 1b, and 2) return zero results, stop and report:
-"No Jira activity found. Please check that the Jira MCP is connected and that INFRA
-tickets are assigned to you, then re-run."
+If the combined ticket list from all executed queries is empty (no tickets from
+Steps 1, 1b, or 2), stop and report: "No Jira activity found. Please check that the
+Jira MCP is connected and that INFRA tickets are assigned to you, then re-run."
 
 Otherwise, write the standup message using the ticket data. Follow these style rules
 exactly — they capture Ben's real writing style and must not be deviated from.
