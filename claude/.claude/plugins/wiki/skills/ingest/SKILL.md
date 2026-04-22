@@ -1,5 +1,5 @@
 ---
-description: "Distill session learnings into atomic notes in the 2ndbrAIn vault"
+description: "Distill session learnings into atomic notes in the configured wiki vault"
 argument-hint: "[topic]"
 ---
 
@@ -11,9 +11,12 @@ checklist. Do not touch git, qmd, or `Log — Ingests.md` — the user handles t
 
 ## Preflight
 
-1. Resolve the vault path: `${WIKI_VAULT:-/home/benkim0414/workspace/2ndbrAIn}`.
-2. Read `$WIKI_VAULT/CLAUDE.md` to load the vault's note conventions before writing
-   anything. If the file cannot be read, abort with a clear error.
+1. Resolve the vault path from `$WIKI_VAULT`. If unset, abort:
+   `WIKI_VAULT is not set — add it to the env block in ~/.claude/settings.json.`
+2. Read `$WIKI_VAULT/CLAUDE.md`. This file is the source of truth for the vault's
+   folder layout, tag taxonomy, filename rules, and frontmatter schema — defer to it
+   for every convention-level decision below. If the file cannot be read, abort with
+   a clear error.
 
 ## Step 1: Distill
 
@@ -42,8 +45,9 @@ Target 3–8 notes maximum. Quality over quantity.
 
 ## Step 2: Dedup
 
-For each candidate, call `mcp__qmd__query` scoped to the `2ndbrain` collection
-using a paraphrase of the claim. If the top result is clearly the same claim (not
+For each candidate, call `mcp__qmd__query` with a paraphrase of the claim. Query
+all collections (no collection filter) — this transparently includes any future
+work-vault overlay. If the top result is clearly the same claim (not
 just related), skip creating a new note. Record it as "already captured as
 [[existing title]]" in the final summary. When in doubt, create the new note —
 duplicates are cheaper to merge than gaps are to reconstruct.
@@ -84,9 +88,10 @@ part of the note graph.
 
 ## Step 4: Write atomic notes
 
-For each learning, create one file in `$WIKI_VAULT/Resources/<topic>/`. Create
-the subfolder if it doesn't exist. Existing topic folders: `Claude Code/`,
-`Codex/`, `Kubernetes/`, `LLM Engineering/`.
+For each learning, create one file in the appropriate topic folder under the vault.
+Pick the folder based on the vault layout described in `$WIKI_VAULT/CLAUDE.md`.
+Create a new topic folder only if the vault's conventions allow it and nothing
+existing fits.
 
 **Filename:** Full descriptive sentence, title-cased, `.md`. The title must be a
 complete claim, not a topic label.
@@ -107,9 +112,8 @@ Rules:
 - Exactly one `type/*` tag. Use `type/claim` for a specific observed behavior;
   `type/concept` for a general abstraction. Never `type/reference` (reserved for
   imported external docs) or `type/log` (reserved for log files).
-- At least one `topic/*` tag. Match the vault's existing taxonomy where possible:
-  `topic/claude-code`, `topic/kubernetes`, `topic/infrastructure`,
-  `topic/automation`, `topic/llm-engineering`, `topic/knowledge-management`.
+- At least one `topic/*` tag. Match the vault's existing taxonomy as documented
+  in its `CLAUDE.md` (e.g. `topic/claude-code`, `topic/kubernetes`).
   Create a new `topic/x` only if nothing existing fits.
 - Include `aliases: [...]` only if there are natural alternate search handles.
   Omit the field entirely when not needed — do not write `aliases: []`.
@@ -152,7 +156,7 @@ Then print the next-steps checklist for the user to run inside the vault:
 ```
 ## Next steps
 
-1. cd /home/benkim0414/workspace/2ndbrAIn
+1. cd "$WIKI_VAULT"
 2. git diff --stat  (review what was written)
 3. /lint  (vault skill — catches frontmatter errors, broken wikilinks, orphans)
 4. (optional) Update Resources/<topic>/MOC — <topic>.md to include the new notes
