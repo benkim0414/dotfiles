@@ -48,7 +48,7 @@ All work happens on isolated worktree branches. Hooks enforce worktree isolation
 main-branch protection, and selective staging -- follow the `[git-workflow]` context
 injection at session start.
 
-- "MODE: no-pr": after committing, `ExitWorktree("keep")`, merge to main, push. No PRs.
+- "MODE: no-pr": after committing, run the two-agent review loop (`~/.claude/docs/no-pr-review.md`) until clean, then `ExitWorktree("keep")`, merge to main, push. No PRs.
 - Commit each self-contained logical change atomically.
 - Conventional commits: `type(scope): description` -- types: feat, fix, docs, chore, refactor, test, ci, perf
 - When implementation is complete: `/pr:create` to review and create the PR.
