@@ -154,8 +154,11 @@ If $ARGUMENTS starts with `http://` or `https://`:
    <Article content as returned by WebFetch.>
    ```
 
-   Source slug: strip `www.` and TLD from domain (`blog.openai.com` -> `openai`,
-   `*.substack.com` -> use subdomain).
+   Source slug: extract the primary brand or organization name from the
+   domain. Strip generic subdomains (`www`, `blog`, `docs`, `developer`)
+   and TLDs. Examples: `blog.openai.com` -> `openai`,
+   `www.nytimes.com` -> `nytimes`, `developer.mozilla.org` -> `mozilla`,
+   `*.substack.com` -> use subdomain (`simonw.substack.com` -> `simonw`).
 
 3. The file is immutable after creation. Proceed to step 2.
 
