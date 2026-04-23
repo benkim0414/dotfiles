@@ -3,7 +3,7 @@
   "env": {
     "DISABLE_COST_WARNINGS": "1",
     "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "160000",
-    "WIKI_VAULT": "/home/benkim0414/workspace/2ndbrAIn"
+    "WIKI_VAULT": "/home/benkim0414/workspace/wiki"
   },
   "model": "opusplan",
   "effortLevel": "auto",
