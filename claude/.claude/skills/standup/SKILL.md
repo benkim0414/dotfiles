@@ -142,7 +142,7 @@ substituting the final message text (channel ID is #dev-team):
 - The `slack_post_message` tool only supports `text` — `blocks` (Block Kit) is not available and will be silently ignored.
 - Separate the opener from the first bullet, and each bullet from the next, with a blank line (`\n\n`).
 - Each bullet must be prefixed with one space: ` •` (not `•` alone, and not `-`).
-- Use smart apostrophes (`'` U+2019) and em-dashes (`—` U+2014) — not straight quotes or hyphens.
+- Use smart apostrophes (`'` U+2019) and em-dashes (`—` U+2014) for inline elaboration — not straight quotes or hyphens.
 - Example structure: `Good morning, team.\n\n • First item.\n\n • Second item.`
 
 If the call returns an error or the response contains no `ts` field, display the full
