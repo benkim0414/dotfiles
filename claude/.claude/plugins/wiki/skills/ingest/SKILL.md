@@ -99,7 +99,7 @@ If $ARGUMENTS matches a YouTube URL (`youtube.com/watch`, `youtu.be/`,
 
 1. Extract metadata and transcript with yt-dlp:
    ```bash
-   yt-dlp --write-auto-sub --sub-lang en --skip-download \
+   yt-dlp --write-auto-sub --sub-lang en --convert-subs vtt --skip-download \
      --print title --print channel --print upload_date --print description \
      -o "%(id)s" "$URL" 2>/dev/null
    ```
@@ -231,6 +231,10 @@ After writing all pages in the batch:
 - Use red links (wikilinks to non-existent pages) for concepts that deserve
   a page but do not have one yet.
 
+For session ingests (1a), return to the raw transcript and replace the
+`## Learnings produced` placeholder with `[[wikilinks]]` to every page
+created or updated in this step.
+
 ## Step 5: Update overview pages
 
 If an overview page exists for any domain touched by this ingest
@@ -280,6 +284,9 @@ Apply all findings with >= 70% confidence. Skip this step for URL/file/topic
 ingests.
 
 ## Step 9: Summary
+
+Check whether the raw source is tracked:
+`git -C "$WIKI_VAULT" ls-files --error-unmatch -- "raw/..." 2>/dev/null && echo tracked || echo untracked`.
 
 Print a table of what was written:
 
