@@ -66,10 +66,22 @@ exactly — they capture Ben's real writing style and must not be deviated from.
 
 **Voice and tone:**
 - Opener: exactly `Good morning, team.` — always this phrase, no variation
-- Use bullet points (•) for items — 1 to 4 bullets; never more than 4
+- Use bullet points for items — 2 to 4 bullets; never more than 4. Each bullet is prefixed with ` •` (space + bullet, not bare `•` or `-`)
 - No emoji under any circumstances
 - Professional, direct, British English — "organise" not "organize", "colour" not "color", etc.
-- Action-oriented phrasing: "I'm continuing…", "I'll begin…", "I'll be working on…"
+- Verb patterns (in order of frequency):
+  - "I'll be [gerund]…" — dominant future form: "I'll be focusing on…", "I'll be managing…"
+  - "I'll also be [gerund]…" — very common for secondary items
+  - "I'm continuing [to verb / noun]…" — ongoing work
+  - "I'll begin [gerund]…" — new work
+  - "Wrapped up [noun]" — completed items, no pronoun
+  - "I'm [gerund]…" — current activity: "I'm testing…"
+  - "plan to [verb] shortly" — occasional
+- Typographic conventions: use smart apostrophes (' U+2019, not ') and em-dashes (— U+2014) for inline elaboration
+- Compound sentences are common: main statement followed by clarifying detail after a comma, em-dash, or colon
+- Sub-bullets: rare, but when needed use `◦` (U+25E6) indented 4 spaces under the parent bullet
+- Completed work first: mention yesterday's finished items before today's plan when relevant
+- No sign-off — the standup ends with the last bullet, no "Thanks" or closer
 - Explain rationale when relevant (e.g. "progress has been delayed due to higher-priority tasks arising")
 - Jira tickets formatted as inline links: `<https://green-energy-trading.atlassian.net/browse/INFRA-XXX|INFRA-XXX>`
 - Concise — do not enumerate every ticket, summarise related items where sensible
@@ -77,19 +89,27 @@ exactly — they capture Ben's real writing style and must not be deviated from.
 
 **Ticket mapping:**
 - Active tickets (In Progress / QA / Ready / In Review) → describe as today's work
-- Recently Done tickets → briefly note completion (e.g. "Wrapped up INFRA-XXX yesterday.")
+- Recently Done tickets → briefly note completion (e.g. "Wrapped up the certificates deployment earlier this week.")
+- Group related tickets in one set of parentheses: `(INFRA-219, INFRA-256)`
 - To Do tickets (from Step 1b) → frame as today's plan ("I'll be starting…", "I'll begin…")
 - Blockers: mention inline if a ticket's status or summary makes a blocker apparent
 
-**Reference standup — Ben's actual post (for calibration):**
+**Reference standup — based on Ben's 20 Apr post (adapted to bot format for calibration):**
 ```
 Good morning, team.
-• I'm continuing to organise the INFRA board. There are several items to address, but progress has been delayed due to higher-priority tasks arising.
-• I'll begin migrating the business calendar service to the monorepo this afternoon.
+
+ • Yesterday's maintenance was completed successfully. One key benefit is that, following the node group instance type upgrades, we can now utilise more resources at the same cost (INFRA-219, INFRA-256).
+
+ • Thanks to Michael's support, the full Sentry integration is now ready. This will replace UXCam while providing equivalent functionality, including session replay in the Onsite app (INFRA-213).
+
+ • This morning, I'm testing the certificates service with two replicas and plan to deploy it to production shortly (INFRA-221, INFRA-234, INFRA-237).
+
+ • I'll also be organising the INFRA board—closing completed tickets and preparing for the next major initiative: migrating to an Nx monorepo.
 ```
 
-Note the natural sentence construction, the explanation of delay, the absence of emoji,
-and the forward-looking phrasing. Match this register.
+Note: completed work mentioned first, compound sentences with clarifying detail after
+commas and em-dashes, smart apostrophes, grouped ticket references in parentheses,
+"I'll also be" pattern, and no sign-off. Match this register exactly.
 
 ## Step 4 — Show preview
 
@@ -117,6 +137,13 @@ substituting the final message text (channel ID is #dev-team):
   }
 }
 ```
+
+**Message format rules for the `text` field:**
+- The `slack_post_message` tool only supports `text` — `blocks` (Block Kit) is not available and will be silently ignored.
+- Separate the opener from the first bullet, and each bullet from the next, with a blank line (`\n\n`).
+- Each bullet must be prefixed with one space: ` •` (not `•` alone, and not `-`).
+- Use smart apostrophes (`'` U+2019) and em-dashes (`—` U+2014) for inline elaboration — not straight quotes or hyphens.
+- Example structure: `Good morning, team.\n\n • First item.\n\n • Second item.`
 
 If the call returns an error or the response contains no `ts` field, display the full
 error response and stop. Do not retry silently.
