@@ -1,7 +1,7 @@
 {
   "name": "wiki",
-  "description": "Personal knowledge wiki: ingest session learnings into an Obsidian vault",
-  "version": "0.1.0",
+  "description": "LLM wiki: ingest sources (sessions, URLs, topics) into a Karpathy-pattern knowledge base",
+  "version": "0.2.0",
   "author": {
     "name": "Gunwoo Ben Kim",
     "email": "benkim0414@gmail.com"

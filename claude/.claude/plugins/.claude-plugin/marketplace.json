@@ -13,7 +13,7 @@
     {
       "name": "wiki",
       "source": "./wiki",
-      "description": "Personal knowledge wiki: ingest session learnings into an Obsidian vault"
+      "description": "LLM wiki: ingest sources (sessions, URLs, topics) into a Karpathy-pattern knowledge base"
     }
   ]
 }

@@ -1,25 +1,43 @@
 ---
-description: "Distill session learnings into atomic notes in the configured wiki vault"
-argument-hint: "[topic]"
+description: "Ingest a source into the wiki: session learnings, URL, YouTube, file path, or topic research"
+argument-hint: "[session | URL | raw/<path> | topic]"
+allowed-tools:
+  - Read
+  - Write
+  - Edit
+  - Glob
+  - Grep
+  - Bash
+  - WebFetch
+  - WebSearch
+  - AskUserQuestion
+  - Agent
 ---
 
-# Wiki Ingest — Session Learnings
+# Wiki Ingest
 
-Distill durable learnings from the current Claude Code session into the personal
-knowledge vault. Write a raw transcript digest, a vault reference note, and atomic
-concept notes. Print a next-steps checklist. Do not touch git, qmd, or
-`Log — Ingests.md` — the user handles those.
+Acquire a source, create or update wiki pages, and maintain the index and log.
+This implements the ingest operation from Karpathy's LLM wiki pattern.
+
+All vault conventions (page types, frontmatter schema, naming rules, linking
+rules) live in `$WIKI_VAULT/CLAUDE.md`. This skill reads that file at runtime
+and defers to it for every convention-level decision. The procedure below
+describes only the steps to follow.
 
 ## Preflight
 
-1. Resolve the vault path from `$WIKI_VAULT`. If unset, abort:
-   `WIKI_VAULT is not set — add it to the env block in ~/.claude/settings.json.`
-2. Read `$WIKI_VAULT/CLAUDE.md`. This file is the source of truth for the vault's
-   folder layout, tag taxonomy, filename rules, and frontmatter schema — defer to it
-   for every convention-level decision below. If the file cannot be read, abort with
-   a clear error.
+1. Resolve vault path: `WIKI_VAULT="${WIKI_VAULT:-$HOME/workspace/wiki}"`.
+   If the directory does not exist, abort with a clear error.
+2. Read `$WIKI_VAULT/CLAUDE.md`. If it cannot be read, abort.
 
-## Step 1: Distill
+## Step 1: Acquire source
+
+Determine the input type from $ARGUMENTS and follow the matching path.
+Dispatch order: 1a (session) -> 1b (file path) -> 1c (YouTube) -> 1d (web URL) -> 1e (topic).
+
+### 1a. Session learnings
+
+If $ARGUMENTS is empty or equals "session":
 
 Reflect on the current conversation. Produce a shortlist of candidate learnings.
 
@@ -36,255 +54,271 @@ Reflect on the current conversation. Produce a shortlist of candidate learnings.
 - Transient task state (current branch, WIP, what's next)
 - Generic advice not derived from a specific observed behavior this session
 
-**Self-check per candidate:** *"Would me-in-six-weeks benefit from this note surfacing
-in a qmd query with no memory of this session? If no, skip it."*
+**Self-check:** *"Would me-in-six-weeks benefit from this surfacing in a query
+with no memory of this session? If no, skip it."*
 
-If nothing passes the filter, print "no durable learnings this session" and stop.
-Do not write any files.
+If nothing passes, print "no durable learnings this session" and stop.
 
-Target 3–8 notes maximum. Quality over quantity.
-
-## Step 2: Dedup
-
-For each candidate, call `mcp__qmd__query` with a paraphrase of the claim. Query
-all collections (no collection filter) — this transparently includes any future
-work-vault overlay. If the top result is clearly the same claim (not
-just related), skip creating a new note. Record it as "already captured as
-[[existing title]]" in the final summary. When in doubt, create the new note —
-duplicates are cheaper to merge than gaps are to reconstruct.
-
-## Step 3: Write the raw transcript digest and vault reference note
-
-### 3a. Raw transcript digest
-
-Create one file at `$WIKI_VAULT/raw/transcripts/YYYY-MM-DD--<slug>--claude-code.md`
-where:
-- `YYYY-MM-DD` is today's date
-- `<slug>` is a 2–5 word kebab-case description of the session topic (use ARGUMENTS
-  if provided; otherwise infer from the conversation)
+Write a raw transcript digest to
+`$WIKI_VAULT/raw/transcripts/YYYY-MM-DD--<slug>--claude-code.md`:
 
 ```markdown
 ---
-tags:
-  - type/log
-  - topic/<primary-topic>
 source: claude-code-session
 created: YYYY-MM-DD
 ---
 
-# Session Transcript — <one-line summary of the session>
+# Session: <one-line summary>
 
 ## Task
-<2–4 sentences: what the user asked for and the goal.>
+<2-4 sentences: what the user asked for and the goal.>
 
 ## What happened
-<3–8 bullets: approach, dead-ends, surprises, outcome. Compressed narrative —
-not a turn-by-turn replay.>
+<3-8 bullets: approach, dead-ends, surprises, outcome.>
 
 ## Learnings produced
-- [[Atomic Note Title 1]]
-- [[Atomic Note Title 2]]
+<Populated after step 4 with [[wikilinks]] to created/updated pages.>
 ```
 
-No `## Links` section in the transcript digest — it lives in `raw/` and is not
-part of the note graph.
+Proceed to step 2 with this raw file.
 
-### 3b. Vault reference note
+### 1b. File path
 
-Create one vault note at `$WIKI_VAULT/Resources/<primary-topic-folder>/Session Transcript — <title>.md`.
-This is the canonical target that atomic notes' `Source:` wikilinks will resolve to.
+If $ARGUMENTS starts with `raw/` or is a file path:
+
+- Read the file from `$WIKI_VAULT/raw/` (or the provided path).
+- Extract metadata (title, author, date, URL) from YAML frontmatter.
+- **Captures** (`raw/captures/*`): if the capture is primarily a URL, fetch it
+  via 1c or 1d. If it is a thought/observation, proceed to step 2.
+- Proceed to step 2.
+
+### 1c. YouTube URL
+
+If $ARGUMENTS matches a YouTube URL (`youtube.com/watch`, `youtu.be/`,
+`youtube.com/live/`, `youtube.com/shorts/`):
+
+1. Extract metadata and transcript with yt-dlp:
+   ```bash
+   yt-dlp --write-auto-sub --sub-lang en --convert-subs vtt --skip-download \
+     --print title --print channel --print upload_date --print description \
+     -o "%(id)s" "$URL" 2>/dev/null
+   ```
+   If yt-dlp is unavailable, fall back to WebFetch.
+
+   Read the generated `<id>.en.vtt` file. Strip VTT timestamps and
+   deduplicate repeated auto-caption lines into clean paragraphs. If no
+   `.vtt` file was produced (no English subs available), fall back to
+   WebFetch for a transcript or note "transcript unavailable" in the raw
+   file. Delete the `.vtt` file after extraction.
+
+2. Write to `$WIKI_VAULT/raw/transcripts/YYYY-MM-DD--<slug>--youtube.md`:
+   ```markdown
+   ---
+   title: "Video Title"
+   channel: "Channel Name"
+   url: <URL>
+   date: YYYY-MM-DD
+   type: transcript
+   fetched: YYYY-MM-DD
+   ---
+
+   ## Description
+   <First 500 chars of description.>
+
+   ## Transcript
+   <Full transcript, organized into paragraphs.>
+   ```
+
+3. The file is immutable after creation. Proceed to step 2.
+
+### 1d. Web URL
+
+If $ARGUMENTS starts with `http://` or `https://`:
+
+1. Fetch with WebFetch. Prompt: "Return the complete article as clean markdown.
+   Preserve headings, code blocks, lists, links. Remove navigation, ads,
+   sidebars. At the top output: TITLE: <title>, AUTHOR: <author or unknown>,
+   DATE: <date or unknown>."
+
+2. Write to `$WIKI_VAULT/raw/articles/YYYY-MM-DD--<slug>--<source>.md`:
+   ```markdown
+   ---
+   title: "Article Title"
+   author: "Author Name"
+   url: <URL>
+   date: YYYY-MM-DD
+   type: article
+   fetched: YYYY-MM-DD
+   ---
+
+   <Article content as returned by WebFetch.>
+   ```
+
+   Source slug: extract the primary brand or organization name from the
+   domain. Strip generic subdomains (`www`, `blog`, `docs`, `developer`)
+   and TLDs. Examples: `blog.openai.com` -> `openai`,
+   `www.nytimes.com` -> `nytimes`, `developer.mozilla.org` -> `mozilla`,
+   `*.substack.com` -> use subdomain (`simonw.substack.com` -> `simonw`).
+
+3. The file is immutable after creation. Proceed to step 2.
+
+### 1e. Topic research
+
+If $ARGUMENTS is free text (no URL, no file path):
+
+1. WebSearch for the topic. Get 5-10 candidates.
+2. Filter: discard landing pages, marketing, paywalled teasers, duplicates.
+   Prefer official docs, long-form posts, recent sources.
+3. Select 2-4 sources. Confirm with AskUserQuestion before fetching.
+4. Fetch each via 1c (YouTube) or 1d (web URL). Each becomes its own raw file.
+5. Run steps 2-7 for each raw file. Dedup across sources naturally via step 3.
+6. After all per-source processing, append a grouping entry to log.md:
+   ```markdown
+   ## [YYYY-MM-DD] Research: <topic>
+   - **Query**: `<topic>`
+   - **Sources ingested**: `raw/articles/...`, `raw/transcripts/...`
+   - **Total pages touched**: N
+   ```
+
+## Step 2: Analyze source
+
+Read the full raw file. Identify:
+- Title, author, date, URL (if applicable)
+- 3-7 key entities, concepts, or ideas
+- Key claims or assertions
+- Tags that apply (flat, lowercase, hyphenated)
+
+## Step 3: Search existing pages
+
+For each entity or concept identified in step 2:
+1. Search `$WIKI_VAULT/pages/` by title (Glob) and tags (Grep in frontmatter).
+2. If qmd MCP is available, also query with a paraphrase. Skip gracefully if
+   qmd is not available or returns no results.
+3. Classify each as: existing page to UPDATE, or new page to CREATE.
+
+**Compounding rule:** if an entity or concept page already exists for the
+subject, UPDATE it (append new information, add source to `sources` list,
+bump `updated` date). Do not create a new page for something already covered.
+
+For session ingests (1a), also apply the dedup self-check: if a learning is
+already captured in an existing page, skip it and note "already captured in
+[[Page Title]]" in the final summary.
+
+## Step 4: Create or update pages
+
+Read `$WIKI_VAULT/CLAUDE.md` for page type definitions, frontmatter schema,
+body templates, and naming conventions. Follow them exactly.
+
+### 4a. Summary page (one per raw source)
+
+Always create one `type: summary` page for each raw source. Use the naming
+convention from CLAUDE.md (source title with attribution).
+
+### 4b. Entity and concept pages
+
+For each entity or concept from step 2:
+
+- **If the page exists**: read it, append new information to the relevant
+  section, add the raw file to `sources`, set `updated` to today. Do not
+  overwrite or delete existing content.
+- **If the page does not exist** and the subject is substantial enough:
+  create it following the body template from CLAUDE.md.
+
+Target 3-8 pages created or updated per source (not counting the summary).
+
+### 4c. Cross-linking
+
+After writing all pages in the batch:
+- Add `[[wikilinks]]` inline wherever one page mentions another.
+- Ensure every page has a `## See also` section with at least one wikilink.
+- Use red links (wikilinks to non-existent pages) for concepts that deserve
+  a page but do not have one yet.
+
+For session ingests (1a), return to the raw transcript and replace the
+`## Learnings produced` placeholder with `[[wikilinks]]` to every page
+created or updated in this step.
+
+## Step 5: Update overview pages
+
+If an overview page exists for any domain touched by this ingest
+(`$WIKI_VAULT/pages/Overview -- <domain>.md`), update it:
+- Add new pages to the appropriate section with one-line descriptions.
+- Update the page count if shown.
+
+If no overview exists and 3+ pages now share a tag, note this in the summary
+as a candidate for a new overview page.
+
+## Step 6: Update index.md
+
+Read `$WIKI_VAULT/index.md`. For every page created or renamed in step 4:
+- Add it under the appropriate domain section with `(type)` annotation and
+  a one-line description.
+- Update the `Pages: N` count and `Last updated` date.
+- If a new domain section is needed (3+ pages share a tag), create it and
+  move pages from `## Uncategorized`.
+
+## Step 7: Append to log.md
+
+Append one entry to `$WIKI_VAULT/log.md`:
 
 ```markdown
----
-tags:
-  - type/reference
-  - topic/<primary-topic>
-created: YYYY-MM-DD
-read: true
----
+## [YYYY-MM-DD] Ingest: <Source Title>
+- **Source**: `raw/<path>`
+- **Created**: [[Page A]], [[Page B]], ...
+- **Updated**: [[Page C]], ...
 ```
 
-Omit `aliases:` entirely unless the title is so long it needs a short-form handle
-for inline linking. Do not write `aliases: []`.
+## Step 8: Review pass (session ingests only)
 
-```markdown
+For session ingests (1a only), spawn one `feature-dev:code-reviewer` subagent.
+Include the full text of every page written in steps 4a-4b. Instruct the
+reviewer to check:
 
-Session log for <2–4 sentences: task and outcome>.
+1. `type` field is valid and matches the page content.
+2. `tags` has at least one entry; tags are consistent across related pages.
+3. `sources` lists the correct raw file path(s).
+4. `created` and `updated` dates are valid; `updated >= created`.
+5. `## See also` exists on every page with at least one wikilink.
+6. Code snippets are self-contained (every referenced variable is assigned
+   in the block or annotated with `# defined elsewhere: <location>`).
+7. The raw transcript path exists on disk.
 
-## What happened
+Apply all findings with >= 70% confidence. Skip this step for URL/file/topic
+ingests.
 
-<Copy compressed narrative from 3a — 3–8 bullets.>
+## Step 9: Summary
 
-## Learnings produced
+Check whether the raw source is tracked:
+`git -C "$WIKI_VAULT" ls-files --error-unmatch -- "raw/..." 2>/dev/null && echo tracked || echo untracked`.
 
-<List atomic notes as wikilinks — populated after step 4.>
-
-## Links
-
-- Raw: `raw/transcripts/YYYY-MM-DD--<slug>--claude-code.md`
-- Related: [[<adjacent session or note from qmd query>]]
-```
-
-`read: true` because the session is self-generated — there is no unread backlog.
-
-## Step 4: Write atomic notes
-
-For each learning, create one file in the appropriate topic folder under the vault.
-Pick the folder based on the vault layout described in `$WIKI_VAULT/CLAUDE.md`.
-Create a new topic folder only if the vault's conventions allow it and nothing
-existing fits.
-
-**Filename:** Full descriptive sentence, title-cased, `.md`. The title must be a
-complete claim, not a topic label.
-- Good: `Claude Code Read-Once Hook Blocks Re-Reads Within 1200s.md`
-- Bad: `Read Once Hook.md`
-
-**Frontmatter:**
-```yaml
----
-tags:
-  - type/claim
-  - topic/<primary-topic>
-created: YYYY-MM-DD
----
-```
-
-Run the following sub-steps in order — do not interleave tagging with note writing:
-
-**4a. Scan** — List all atomic note titles this batch will produce. Do not write
-any files yet.
-
-**4b. Decide tags** — From the scan:
-- Pick one `type/*` per note: `type/claim` for a specific observed behavior,
-  `type/concept` for a general abstraction. Never `type/reference` or `type/log`
-  in atomic notes.
-- **Primary domain tag (required):** Derive one domain `topic/*` from the session
-  subject (e.g. `topic/claude-code`, `topic/kubernetes`) — every atomic note in
-  the batch must carry it.
-- **Concern tags (consistent):** Decide which concern tags apply to the batch as a
-  whole (e.g. `topic/automation`, `topic/security`). Record the set; apply it
-  uniformly. If one note gets `topic/automation`, every sibling that touches
-  automation must too.
-- `aliases: [...]` only if there are natural short-form handles. Omit entirely
-  when not needed — do not write `aliases: []`.
-- `created` = today in `YYYY-MM-DD`.
-
-**4c. Write notes** — For each learning, create one file using the tags decided in
-4b and the body/links rules below.
-
-**Body:** 50–300 words. One claim per note. Write the *why* and the *surprise
-factor* — what would trip up a future reader. Do not restate the title verbatim
-in the opening sentence.
-
-**Self-contained code snippets:** Every fenced code block must be runnable as
-shown. Any variable referenced (`$FOO`, `${BAR}`) must either have its
-assignment visible earlier in the same block, or carry an inline comment
-`# defined elsewhere: <where>`. Atomic notes are read in isolation — a reader
-cannot assume surrounding context from a script or hook file.
-
-**Links section (required on every note):**
-```markdown
-## Links
-
-- Source: [[Session Transcript — <title>]]
-- Related: [[<sibling from this batch that shares a theme>]], [[<adjacent note from qmd>]]
-```
-
-`Source:` uses the wikilink title of the vault reference note created in step 3b.
-The title in the wikilink must match the exact filename of the 3b vault note
-(without `.md`); do not use the raw-file heading or the raw file path. `Related:` must include:
-1. **Sibling cross-links**: any other note produced in this same batch that shares
-   a theme. After writing all notes in the batch, revisit each and add sibling
-   links that belong. Do not treat batch notes as isolated.
-2. **qmd hits**: related existing vault notes from the step 2 dedup queries.
-If no related notes exist, omit the Related line — do not write "Related: —".
-
-After all atomic notes from 4c have been written, return to the vault reference
-note created in step 3b and replace the `## Learnings produced` placeholder with
-a wikilinked list of every atomic note title produced in this step.
-
-## Step 5: Review pass
-
-Spawn one `feature-dev:code-reviewer` subagent. Read each file written in steps
-3b and 4c and include their full text verbatim in the subagent prompt. Prefix
-each file's content with its path as the fenced-block language label, e.g.:
-
-````
-```Resources/Claude Code/My Note Title.md
-<file contents>
-```
-````
-
-Instruct the reviewer to check:
-
-1. `type/*` is correct and `read: true` is set on the reference note.
-2. Primary-domain tag is present on every atomic note.
-3. Concern tags are consistent across siblings in the batch.
-4. `## Links` section exists on every note; the `Source:` wikilink title matches
-   the reference note title from step 3b (so it resolves without a broken link).
-5. Sibling cross-links: atomic notes in this batch that share a theme link to
-   each other in `Related:`.
-6. Code snippets are self-contained (every referenced var assigned in the block
-   or annotated with `# defined elsewhere: <location>`).
-7. The raw transcript path cited in the reference note body exists on disk.
-
-Return findings as confidence-graded issues; ≥70% confidence = must-fix.
-
-Apply all ≥70% findings in-place. Then proceed to step 6. If the reviewer
-reports zero must-fix issues, note that in the final summary.
-
-## Step 6: Summary
-
-Check whether the raw transcript has been staged or committed by running:
-
-```bash
-git -C "${WIKI_VAULT}" ls-files --others --exclude-standard -- "raw/transcripts/<filename>"
-```
-
-If that command produces output (the file is listed), the raw transcript is
-untracked. Surface this warning at the top of the summary:
+Print a table of what was written:
 
 ```
-WARNING: raw transcript not yet tracked — commit it with the atomic notes or it
-will be lost when the branch is cleaned up.
-```
-
-Print a table of what was written, grouped by category:
-
-```
-## Notes written
+## Pages written
 
 ### Raw source
-raw/transcripts/YYYY-MM-DD--<slug>--claude-code.md  [untracked / tracked]
+raw/<path>  [untracked / tracked]
 
-### Reference note
-Resources/<topic>/Session Transcript — <title>.md
+### Summary
+pages/<Summary Title>.md  (created)
 
-### Atomic notes
-| File | Type |
-|------|------|
-| Resources/<topic>/Note Title.md | type/claim |
+### Entity / concept pages
+| Page | Type | Action |
+|------|------|--------|
+| pages/<Title>.md | entity | created |
+| pages/<Title>.md | concept | updated |
 
 ### Skipped (already captured)
-[[Existing Note Title]]
+[[Existing Page Title]]
 ```
 
-Then print the next-steps checklist for the user to run inside the vault:
+Then print next steps:
 
 ```
 ## Next steps
 
 1. cd "$WIKI_VAULT"
 2. git diff --stat  (review what was written)
-3. /lint  (vault skill — catches frontmatter errors, broken wikilinks, orphans)
-4. (optional) Update the MOC in the folder that received the new notes. Place
-   each note under the section whose theme matches the note's primary concern —
-   not a generic catch-all section. When in doubt, open the MOC and place the
-   entry adjacent to its closest existing sibling by topic. Example: for
-   Claude Code, git mechanics → Surfaces/Git (not Workflow); hooks → Tools.
-5. (optional) Append entry to Log — Ingests.md
-6. git add <files> && git commit -m "Ingest session learnings: <topic>"
-   (include raw transcript, reference note, and all atomic notes in one commit)
-7. qmd update && qmd embed
-8. qmd query "<paraphrase of one new learning>"  (verify retrieval)
+3. git add <files> && git commit -m "Ingest: <source title>"
+4. (optional) qmd update && qmd embed
 ```
