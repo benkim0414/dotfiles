@@ -105,6 +105,12 @@ If $ARGUMENTS matches a YouTube URL (`youtube.com/watch`, `youtu.be/`,
    ```
    If yt-dlp is unavailable, fall back to WebFetch.
 
+   Read the generated `<id>.en.vtt` file. Strip VTT timestamps and
+   deduplicate repeated auto-caption lines into clean paragraphs. If no
+   `.vtt` file was produced (no English subs available), fall back to
+   WebFetch for a transcript or note "transcript unavailable" in the raw
+   file. Delete the `.vtt` file after extraction.
+
 2. Write to `$WIKI_VAULT/raw/transcripts/YYYY-MM-DD--<slug>--youtube.md`:
    ```markdown
    ---
