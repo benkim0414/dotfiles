@@ -239,8 +239,10 @@ Skip this phase if no external reviewers were launched.
 When all review passes are clean and no changes were made:
 1. Push the branch: \`git push origin HEAD:\$(git branch --show-current)\`
 2. Create a PR with \`gh pr create --assignee @me\` including a summary and test plan
-3. Clean up the loop state file: \`rm -f .claude/ralph-loop.local.md\`
-4. Output: <promise>PR_CREATED</promise>
+3. Ensure self-assignment (idempotent safety net in case --assignee was dropped):
+   \`gh pr edit --add-assignee @me\`
+4. Clean up the loop state file: \`rm -f .claude/ralph-loop.local.md\`
+5. Output: <promise>PR_CREATED</promise>
 
 Only output the promise when the PR has been successfully created.
 The state file MUST be removed before outputting the promise.
