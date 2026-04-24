@@ -16,15 +16,31 @@ OVERLAY='\033[38;2;108;112;134m' # #6c7086
 
 # Read stdin once; parse all fields in a single jq invocation (tab-separated).
 json=$(cat)
-IFS=$'\t' read -r model ctx_pct rate_5h rate_7d cwd <<< "$(
+IFS=$'\t' read -r model ctx_tokens_raw ctx_size rate_5h rate_7d cwd <<< "$(
   printf '%s' "$json" | jq -r '[
     (.model.display_name // "unknown" | ltrimstr("Claude ") | ascii_downcase),
-    (.context_window.used_percentage // 0 | floor | tostring),
+    ((.context_window.current_usage.input_tokens // 0)
+      + (.context_window.current_usage.cache_creation_input_tokens // 0)
+      + (.context_window.current_usage.cache_read_input_tokens // 0)
+      + (.context_window.current_usage.output_tokens // 0) | tostring),
+    (.context_window.context_window_size // 200000 | tostring),
     (.rate_limits.five_hour.used_percentage // 0 | floor | tostring),
     (.rate_limits.seven_day.used_percentage // 0 | floor | tostring),
     (.cwd // "")
   ] | @tsv'
 )"
+
+# Recompute percentage including output tokens (forward projection for next turn).
+ctx_pct=$(( ctx_size > 0 ? ctx_tokens_raw * 100 / ctx_size : 0 ))
+
+# Format token count as Xk or XM.
+if (( ctx_tokens_raw >= 1000000 )); then
+  ctx_tokens_fmt="$(( ctx_tokens_raw / 1000000 ))M"
+elif (( ctx_tokens_raw >= 1000 )); then
+  ctx_tokens_fmt="$(( ctx_tokens_raw / 1000 ))k"
+else
+  ctx_tokens_fmt="${ctx_tokens_raw}"
+fi
 
 # Color thresholds: >=90 red, >=70 yellow, else green.
 if (( ctx_pct >= 90 )); then
@@ -101,7 +117,7 @@ if [[ -n "$git_branch" ]]; then
 fi
 
 # Line 2 (metrics): context %, rate limits.
-line_metrics="${ctx_color}ctx ${ctx_pct}%${RESET}"
+line_metrics="${ctx_color}ctx ${ctx_tokens_fmt} (${ctx_pct}%)${RESET}"
 for pair in "5h:$rate_5h" "7d:$rate_7d"; do
   label="${pair%%:*}"
   pct="${pair##*:}"
