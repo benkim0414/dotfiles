@@ -61,3 +61,10 @@ Without claude-skills cloned, it copies the base as-is.
 - GUI apps: `cask "<name>"` -- keep sorted alphabetically.
 - After adding an entry: `brew bundle --file=Brewfile`.
 - No tap entries unless the formula is outside homebrew-core.
+
+# Statusline (claude/.claude/statusline.sh)
+
+- Test with mock JSON: `echo '{...}' | bash claude/.claude/statusline.sh | cat -v`
+- Token fields live under `context_window.current_usage.{input_tokens,cache_creation_input_tokens,cache_read_input_tokens,output_tokens}` and `context_window.context_window_size`.
+- `used_percentage` excludes output tokens and ignores `CLAUDE_CODE_AUTO_COMPACT_WINDOW`; extract raw `current_usage` fields for any custom formula.
+- `current_usage` is `null` before the first API call — all jq extractions from it need `// 0` fallbacks.
