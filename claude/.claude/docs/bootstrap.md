@@ -61,7 +61,8 @@ Re-run `mise-load-op` after token rotation.
 
 The `claude/` stow package ships a local marketplace at `claude/.claude/plugins/`
 with the `wiki` plugin (`/wiki:ingest`). The `pr` plugin (`/pr:create`,
-`/pr:review`, `/pr:address`, `/pr:merge`) lives in a separate private repo.
+`/pr:review`, `/pr:address`, `/pr:merge`) lives in a separate private repo
+(`benkim0414/skills`, registered as the `skills` marketplace).
 Colon-namespaced slash commands are plugin-only in Claude Code; user-level skills
 can only use the directory name.
 
@@ -72,8 +73,17 @@ known-marketplaces file -- neither is stowed:
 ```
 /plugin marketplace add ~/.claude/plugins
 /plugin install wiki@benkim0414
+```
 
-/plugin marketplace add benkim0414/skills
+The `skills` marketplace is a private repo -- clone it first, then register it
+by local path:
+
+```sh
+gh repo clone benkim0414/skills ~/workspace/benkim0414/skills
+```
+
+```
+/plugin marketplace add ~/workspace/benkim0414/skills
 /plugin install pr@skills
 ```
 
@@ -91,11 +101,14 @@ To update the wiki plugin after editing files in `claude/.claude/plugins/wiki/`:
 /reload-plugins
 ```
 
-To update the pr plugin after pushing changes to the `benkim0414/skills` repo:
+To update the pr plugin after pulling changes to the `benkim0414/skills` clone:
+
+```sh
+git -C ~/workspace/benkim0414/skills pull
+```
 
 ```
 /plugin uninstall pr@skills
-/plugin marketplace update skills
 /plugin install pr@skills
 /reload-plugins
 ```
