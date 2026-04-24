@@ -159,7 +159,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash $HOME/.claude/hooks/prompt-context.sh",
+            "command": "bash $HOME/.claude/hooks/resolve-pr-refs.sh",
             "timeout": 10
           }
         ]
@@ -181,7 +181,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash $HOME/.claude/hooks/bash-pretool.sh"
+            "command": "bash $HOME/.claude/hooks/git-safety.sh"
           }
         ]
       },
@@ -240,7 +240,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash $HOME/.claude/hooks/tool-failure.sh",
+            "command": "bash $HOME/.claude/hooks/failure-recovery.sh",
             "timeout": 5
           }
         ]
@@ -251,7 +251,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash $HOME/.claude/hooks/post-compact.sh",
+            "command": "bash $HOME/.claude/hooks/restore-git-context.sh",
             "timeout": 10
           }
         ]
