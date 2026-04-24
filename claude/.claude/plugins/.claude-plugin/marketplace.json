@@ -6,11 +6,6 @@
   },
   "plugins": [
     {
-      "name": "pr",
-      "source": "./pr",
-      "description": "PR workflow: create, review, address, merge"
-    },
-    {
       "name": "wiki",
       "source": "./wiki",
       "description": "LLM wiki: ingest sources (sessions, URLs, topics) into a Karpathy-pattern knowledge base"

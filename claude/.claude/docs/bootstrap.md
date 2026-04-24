@@ -59,43 +59,59 @@ Re-run `mise-load-op` after token rotation.
 
 ## Claude Code plugins
 
-The `claude/` stow package ships a private, local-only plugin at
-`claude/.claude/plugins/pr/` exposing `/pr:create`, `/pr:review`, `/pr:address`,
-and `/pr:merge`. Colon-namespaced slash commands are plugin-only in Claude Code;
-user-level skills can only use the directory name.
+The `claude/` stow package ships a local marketplace at `claude/.claude/plugins/`
+with the `wiki` plugin (`/wiki:ingest`). The `pr` plugin (`/pr:create`,
+`/pr:review`, `/pr:address`, `/pr:merge`) lives in a separate private repo
+(`benkim0414/skills`, registered as the `skills` marketplace).
+Colon-namespaced slash commands are plugin-only in Claude Code; user-level skills
+can only use the directory name.
 
-On a fresh machine, register the local marketplace and install the plugin
-once. These write to `~/.claude/settings.json` (`enabledPlugins`) and Claude
-Code's internal known-marketplaces file -- neither is stowed:
+On a fresh machine, register both marketplaces and install their plugins. These
+write to `~/.claude/settings.json` (`enabledPlugins`) and Claude Code's internal
+known-marketplaces file -- neither is stowed:
 
 ```
 /plugin marketplace add ~/.claude/plugins
-/plugin install pr@benkim0414
+/plugin install wiki@benkim0414
 ```
 
-Verify with `/plugin list` (should show `pr@benkim0414` enabled) and
-`/pr:create --help`.
+The `skills` marketplace is a private repo -- clone it first, then register it
+by local path:
 
-SKILL.md shell blocks reference setup scripts via `${CLAUDE_PLUGIN_ROOT}`, an
-env var Claude Code sets to the plugin's installed directory. Setup scripts
-source `$HOME/.claude/lib/portability.sh` directly (single source of truth,
-shared with the hooks) rather than a per-plugin copy.
-
-To update the plugin after editing files in `claude/.claude/plugins/pr/`:
+```sh
+gh repo clone benkim0414/skills ~/workspace/benkim0414/skills
+```
 
 ```
-/plugin uninstall pr@benkim0414
-/plugin install pr@benkim0414
+/plugin marketplace add ~/workspace/benkim0414/skills
+/plugin install pr@skills
+```
+
+Verify with `/plugin list` and `/pr:create --help`.
+
+`/plugin install` copies each plugin into a versioned cache at
+`~/.claude/plugins/cache/<marketplace>/<plugin>/<version>/` (a real copy, not a
+symlink). `/reload-plugins` reloads the cache without a session restart.
+
+To update the wiki plugin after editing files in `claude/.claude/plugins/wiki/`:
+
+```
+/plugin uninstall wiki@benkim0414
+/plugin install wiki@benkim0414
 /reload-plugins
 ```
 
-`/plugin install` copies the plugin into a versioned cache at
-`~/.claude/plugins/cache/benkim0414/pr/<version>/` (a real copy, not a symlink
-into the stow tree), and the running session loads from that cache. `/plugin
-marketplace update benkim0414` only refreshes marketplace metadata -- it does
-NOT re-copy the cached plugin payload, so edits to `claude/.claude/plugins/pr/`
-will not take effect from that command alone. Uninstall + install rewrites the
-cache; `/reload-plugins` then re-reads it without a session restart.
+To update the pr plugin after pulling changes to the `benkim0414/skills` clone:
+
+```sh
+git -C ~/workspace/benkim0414/skills pull
+```
+
+```
+/plugin uninstall pr@skills
+/plugin install pr@skills
+/reload-plugins
+```
 
 ## qmd (semantic code search)
 
