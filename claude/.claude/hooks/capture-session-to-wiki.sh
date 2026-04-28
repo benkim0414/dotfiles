@@ -6,6 +6,7 @@ set -euo pipefail
 WIKI_VAULT="${WIKI_VAULT:-$HOME/workspace/wiki}"
 CAPTURES_DIR="$WIKI_VAULT/raw/captures"
 LOG_FILE="$HOME/.claude/logs/wiki-capture.log"
+mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null || true
 
 _log() {
   local msg="$*"
@@ -32,7 +33,7 @@ fi
 
 # Fallback: derive transcript path from cwd-slug + session_id.
 if [[ -z "$TRANSCRIPT" && -n "$CWD" ]]; then
-  CWD_SLUG=$(printf '%s' "$CWD" | sed 's|^/||; s|/|-|g')
+  CWD_SLUG=$(printf '%s' "$CWD" | sed 's|/|-|g')
   TRANSCRIPT="$HOME/.claude/projects/${CWD_SLUG}/${SESSION_ID}.jsonl"
 fi
 
