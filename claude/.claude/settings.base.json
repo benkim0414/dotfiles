@@ -246,6 +246,17 @@
         ]
       }
     ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $HOME/.claude/hooks/capture-session-to-wiki.sh",
+            "async": true
+          }
+        ]
+      }
+    ],
     "PostCompact": [
       {
         "hooks": [
@@ -253,6 +264,17 @@
             "type": "command",
             "command": "bash $HOME/.claude/hooks/restore-git-context.sh",
             "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $HOME/.claude/hooks/capture-session-to-wiki.sh",
+            "async": true
           }
         ]
       }
