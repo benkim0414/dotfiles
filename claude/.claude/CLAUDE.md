@@ -42,6 +42,10 @@ Fall back to Glob/Grep when:
 Never automate `qmd collection add`, `qmd embed`, or `qmd update` --
 indexing is always a manual user action.
 
+## Wiki capture
+
+On `PreCompact` and `SessionEnd` (including `/clear`), the hook `capture-session-to-wiki.sh` writes a small stub to `${WIKI_VAULT}/raw/captures/` — one file per session, updated in-place on repeated compactions. Sessions with no tool calls or under 1 minute are skipped as trivial. To curate, run the wiki's local ingest skill from inside the wiki repo against unconsumed entries in `raw/captures/`.
+
 ## Git Workflow
 
 All work happens on isolated worktree branches. Hooks enforce worktree isolation,
