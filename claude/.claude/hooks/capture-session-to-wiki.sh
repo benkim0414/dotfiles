@@ -106,6 +106,11 @@ if [[ -f "$TRANSCRIPT" ]]; then
 
   if [[ -n "$PARSED" ]]; then
     IFS=$'\t' read -r TURNS TOOL_CALLS FIRST_PROMPT LAST_PROMPT FILES_RAW BRANCH T0 T1 <<< "$PARSED"
+    # @tsv encodes real newlines/tabs as \n/\t; restore them for readable prose.
+    FIRST_PROMPT="${FIRST_PROMPT//$'\\n'/$'\n'}"
+    FIRST_PROMPT="${FIRST_PROMPT//$'\\t'/$'\t'}"
+    LAST_PROMPT="${LAST_PROMPT//$'\\n'/$'\n'}"
+    LAST_PROMPT="${LAST_PROMPT//$'\\t'/$'\t'}"
 
     # Compute duration in minutes (GNU date; gracefully skip on failure).
     if [[ -n "$T0" && -n "$T1" ]]; then
