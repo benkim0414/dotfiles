@@ -61,6 +61,9 @@ _eval_cache zoxide zoxide init zsh --cmd cd
 eval "$(starship init zsh)"
 eval "$(mise activate zsh)"
 
+# Per-machine env (gitignored on each machine, sourced if present)
+[ -r ~/.openclaw/.env ] && set -a && . ~/.openclaw/.env && set +a
+
 alias vi="nvim"
 alias vim="nvim"
 
