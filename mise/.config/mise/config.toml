@@ -8,7 +8,7 @@ status.show_env = false
 status.show_tools = false
 
 [tools]
-node = "25.8.0"
+node = "24"
 lazygit = "latest"
 "npm:@openai/codex" = "latest"
 
