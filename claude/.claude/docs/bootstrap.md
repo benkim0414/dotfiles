@@ -3,6 +3,7 @@
 ```sh
 sudo dnf install -y git curl stow zsh tmux gcc make
 curl https://mise.run | sh                # install mise (per-user, ~/.local/bin)
+source ~/.local/share/mise/env            # add mise to PATH for this shell
 chsh -s "$(command -v zsh)"               # if login shell isn't already zsh
 mkdir -p ~/.local/bin
 stow -t ~ bin                         # stow bin first (includes claude-sync)
@@ -34,6 +35,7 @@ claude-sync                           # merge base + work overlay, stow claude
 mkdir -p ~/.codex
 stow -t ~ codex                       # stow codex config
 stow -t ~ bat eza ghostty git lazygit mise nvim ssh starship tmux yazi zsh
+mise install                          # provision node, lazygit, codex CLI per ~/.config/mise/config.toml
 ```
 
 After stowing, register MCP servers globally so they are available in all
