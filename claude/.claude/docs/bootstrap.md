@@ -3,7 +3,7 @@
 ```sh
 sudo dnf install -y git curl stow zsh tmux gcc make
 curl https://mise.run | sh                # install mise (per-user, ~/.local/bin)
-source ~/.local/share/mise/env            # add mise to PATH for this shell
+export PATH="$HOME/.local/bin:$PATH"      # put mise on PATH for the rest of this shell
 chsh -s "$(command -v zsh)"               # if login shell isn't already zsh
 mkdir -p ~/.local/bin
 stow -t ~ bin                         # stow bin first (includes claude-sync)
