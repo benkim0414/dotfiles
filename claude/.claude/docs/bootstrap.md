@@ -1,4 +1,29 @@
-## Bootstrap (fresh machine)
+## Bootstrap (Fedora)
+
+```sh
+sudo dnf install -y git curl stow zsh tmux gcc make
+curl https://mise.run | sh                # install mise (per-user, ~/.local/bin)
+chsh -s "$(command -v zsh)"               # if login shell isn't already zsh
+mkdir -p ~/.local/bin
+stow -t ~ bin                         # stow bin first (includes claude-sync)
+mkdir -p ~/.claude/plugins            # prevent tree-folding (see stow gotchas)
+claude-sync                           # merge base + work overlay, stow claude
+mkdir -p ~/.codex
+stow -t ~ codex                       # stow codex config
+stow -t ~ bat eza ghostty git lazygit mise nvim ssh starship tmux yazi zsh
+mise install                          # provision node, lazygit, codex CLI per ~/.config/mise/config.toml
+```
+
+mise installs each tool under `~/.local/share/mise/installs/<tool>/<ver>/bin/`
+and prepends those paths in `mise activate zsh` -- so `lazygit`, `codex`, and
+any future mise-managed binary always resolve before zsh's `AUTO_CD` can fall
+through to a same-named stow package directory in this repo.
+
+GUI apps in `Brewfile` (`bitwarden`, `google-chrome`, `ghostty`, `raycast`,
+`docker-desktop`, `claude`, `codex`) are macOS-only -- install on Fedora via
+Flatpak, vendor RPMs, or copr. Not managed by this repo.
+
+## Bootstrap (macOS)
 
 ```sh
 brew bundle --file=Brewfile
