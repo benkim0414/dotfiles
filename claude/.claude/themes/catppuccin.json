@@ -1,0 +1,55 @@
+{
+  "name": "Catppuccin Mocha",
+  "base": "dark",
+  "overrides": {
+    "claude":        "#cba6f7",
+    "text":          "#cdd6f4",
+    "inverseText":   "#1e1e2e",
+    "inactive":      "#a6adc8",
+    "subtle":        "#6c7086",
+    "permission":    "#cba6f7",
+    "remember":      "#f5c2e7",
+
+    "success":       "#a6e3a1",
+    "error":         "#f38ba8",
+    "warning":       "#f9e2af",
+    "merged":        "#cba6f7",
+
+    "promptBorder":  "#b4befe",
+    "planMode":      "#94e2d5",
+    "autoAccept":    "#a6e3a1",
+    "bashBorder":    "#fab387",
+    "ide":           "#89dceb",
+    "fastMode":      "#f5e0dc",
+
+    "diffAdded":         "#1e3729",
+    "diffAddedDimmed":   "#19281f",
+    "diffAddedWord":     "#28593e",
+    "diffRemoved":       "#3e2230",
+    "diffRemovedDimmed": "#2a1a22",
+    "diffRemovedWord":   "#702848",
+
+    "userMessageBackground": "#313244",
+    "selectionBg":           "#585b70",
+
+    "claudeShimmer":      "#b4befe",
+    "successShimmer":     "#94e2d5",
+    "errorShimmer":       "#eba0ac",
+    "warningShimmer":     "#fab387",
+    "planModeShimmer":    "#89dceb",
+    "autoAcceptShimmer":  "#94e2d5",
+    "bashBorderShimmer":  "#f9e2af",
+    "permissionShimmer":  "#b4befe",
+    "rememberShimmer":    "#f5e0dc",
+    "mergedShimmer":      "#f5c2e7",
+
+    "red_FOR_SUBAGENTS_ONLY":    "#f38ba8",
+    "blue_FOR_SUBAGENTS_ONLY":   "#89b4fa",
+    "green_FOR_SUBAGENTS_ONLY":  "#a6e3a1",
+    "yellow_FOR_SUBAGENTS_ONLY": "#f9e2af",
+    "purple_FOR_SUBAGENTS_ONLY": "#cba6f7",
+    "orange_FOR_SUBAGENTS_ONLY": "#fab387",
+    "pink_FOR_SUBAGENTS_ONLY":   "#f5c2e7",
+    "cyan_FOR_SUBAGENTS_ONLY":   "#89dceb"
+  }
+}
