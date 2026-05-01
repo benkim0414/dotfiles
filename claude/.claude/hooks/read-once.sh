@@ -33,7 +33,9 @@
 # The Read fast path retains the same 4 jq forks as the original single-tool hook.
 set -euo pipefail
 
-[[ "${READ_ONCE_DISABLE:-0}" == "1" ]] && exit 0
+# NOTE: READ_ONCE_DISABLE=1 is an operator escape hatch. It is checked below,
+# after stdin is parsed, so the bypass can be logged for audit purposes.
+# Do not advertise this env var in deny messages — the agent reads them.
 
 # ---------------------------------------------------------------------------
 # Parse stdin once: all fields needed by any tool branch.
@@ -55,6 +57,32 @@ IFS=$'\x01' read -r SESSION_ID TOOL_NAME FILE_PATH OFFSET LIMIT COMMAND OUTPUT_M
 ) || true
 
 [[ "$SESSION_ID" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]] || exit 0
+
+# READ_ONCE_DISABLE=1: allow immediately, but log the bypass for audit.
+if [[ "${READ_ONCE_DISABLE:-0}" == "1" ]]; then
+  {
+    _log_dir="${HOME}/.claude/logs"
+    mkdir -p "$_log_dir" 2>/dev/null || true
+    _log_date=$(date +%Y-%m-%d 2>/dev/null || true)
+    _log_file="${_log_dir}/read-once-bypass-${_log_date}.log"
+    if [[ -f "$_log_file" ]]; then
+      _sz=$(stat -c %s "$_log_file" 2>/dev/null || stat -f %z "$_log_file" 2>/dev/null || echo 0)
+      if (( _sz > 52428800 )); then
+        mv "$_log_file" "${_log_file}.1" 2>/dev/null || true
+      fi
+    fi
+    jq -cn \
+      --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || true)" \
+      --arg sid "$SESSION_ID" \
+      --arg tool "$TOOL_NAME" \
+      --arg cmd "${COMMAND:0:200}" \
+      --arg path "$FILE_PATH" \
+      --arg cwd "$PWD" \
+      '{ts:$ts,session_id:$sid,tool:$tool,command:$cmd,path:$path,cwd:$cwd,event:"read_once_bypass"}' \
+      >> "$_log_file" 2>/dev/null || true
+  } &
+  exit 0
+fi
 
 # ---------------------------------------------------------------------------
 # Per-tool fast-exits (before sourcing library or touching the cache).
@@ -81,6 +109,15 @@ if [[ "$TOOL_NAME" == "Bash" ]]; then
 
   # Collect non-flag tokens as potential file arguments.
   _skip_next=0
+  # Per-tool flags that consume the next token as a value.
+  # cat/bat/view/less/more treat -n as a no-arg toggle (number lines), unlike
+  # head/tail where -n N requires a value. A shared regex across unrelated tools
+  # silently lets file paths slip past the cache as consumed flag values.
+  case "$READ_TOOL" in
+    head|tail) _skip_re='^-(n|c)$' ;;   # head/tail -n N | -c N
+    sed)       _skip_re='^-(e|f)$' ;;   # sed -e EXPR | -f FILE
+    *)         _skip_re='^$' ;;          # cat/bat/view/less/more — no value flags
+  esac
   read -ra _tokens <<< "$_rest" || true
   _pipe_re='^[|<>]'
   for _tok in "${_tokens[@]}"; do
@@ -89,8 +126,8 @@ if [[ "$TOOL_NAME" == "Bash" ]]; then
     # Pipe or redirection: stop collecting.
     [[ "$_tok" =~ $_pipe_re ]] && break
     if [[ "$_tok" =~ ^- ]]; then
-      # Options that consume the next token as their value.
-      [[ "$_tok" =~ ^-(n|c|f|r|F|m|e)$ ]] && _skip_next=1
+      # Options that consume the next token as their value (per-tool).
+      [[ "$_tok" =~ $_skip_re ]] && _skip_next=1
       continue
     fi
     # Strip surrounding single or double quotes.
@@ -191,7 +228,7 @@ _check_path() {
           rc_record "$abs" "$current_mtime" "[[${offset}, ${limit}]]"
           local tokens
           tokens=$(( size / 4 ))
-          local reason="read-once: ${abs} changed since last read (~${tokens} tokens). Diff (${diff_lines} lines) below — apply this instead of re-reading. Set READ_ONCE_DISABLE=1 to force a full re-read.
+          local reason="read-once: ${abs} changed since last read (~${tokens} tokens). Diff (${diff_lines} lines) below — apply this instead of re-reading.
 ${diff_out}"
           jq -cn --arg r "$reason" '{
             hookSpecificOutput: {
