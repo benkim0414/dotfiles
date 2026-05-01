@@ -49,7 +49,7 @@ rc_deny() {
   local abs="$1" age="$2" size="$3"
   local tokens
   tokens=$(( size / 4 ))
-  local reason="read-once: ${abs} already in context (read ${age}s ago, unchanged, ~${tokens} tokens). Edit the file, request a different offset/limit, wait ${TTL}s for TTL, or set READ_ONCE_DISABLE=1 to bypass."
+  local reason="read-once: ${abs} already in context (read ${age}s ago, unchanged, ~${tokens} tokens). Use the content already loaded earlier in this conversation. To invalidate: edit the file, or request a different offset/limit."
   jq -cn --arg r "$reason" '{
     hookSpecificOutput: {
       hookEventName: "PreToolUse",
