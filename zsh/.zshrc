@@ -15,7 +15,6 @@ setopt COMPLETE_IN_WORD          # Complete from both ends of word
 setopt ALWAYS_TO_END             # Move cursor to end after completion
 setopt MENU_COMPLETE             # Show completion menu on tab
 setopt AUTO_MENU                 # Auto-show completion menu
-setopt AUTO_CD                   # cd by typing directory name
 setopt EXTENDED_GLOB             # Extended glob patterns
 setopt INTERACTIVE_COMMENTS      # Allow # comments in interactive shell
 setopt NO_HASH_CMDS              # Disable command hashing (needed for mise)
