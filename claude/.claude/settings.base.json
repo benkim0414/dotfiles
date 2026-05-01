@@ -300,6 +300,7 @@
     "commit-commands@claude-plugins-official": true,
     "feature-dev@claude-plugins-official": true,
     "ralph-loop@claude-plugins-official": true,
-    "remember@claude-plugins-official": false
+    "remember@claude-plugins-official": false,
+    "caveman@caveman": true
   }
 }
