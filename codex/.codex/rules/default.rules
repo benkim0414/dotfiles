@@ -24,8 +24,10 @@ prefix_rule(pattern=["git", "push", "origin", "main"], decision="forbidden",
             justification="Push to feature branch, not main")
 prefix_rule(pattern=["git", "push", "origin", "master"], decision="forbidden",
             justification="Push to feature branch, not master")
-prefix_rule(pattern=["git", "merge"], decision="forbidden",
-            justification="Use PRs for merging, not local merge")
+prefix_rule(pattern=["git", "push", "origin", "HEAD:main"], decision="forbidden",
+            justification="Push to feature branch, not main")
+prefix_rule(pattern=["git", "push", "origin", "HEAD:master"], decision="forbidden",
+            justification="Push to feature branch, not master")
 prefix_rule(pattern=["git", "rebase"], decision="forbidden",
             justification="Use merge commits, never rebase")
 prefix_rule(pattern=["git", "cherry-pick"], decision="forbidden",
@@ -37,7 +39,11 @@ prefix_rule(pattern=["git", "cherry-pick"], decision="forbidden",
 # fire. AGENTS.md security boundaries provide defense-in-depth.
 prefix_rule(pattern=["cat", "~/.ssh/"], decision="forbidden",
             justification="SSH keys are sensitive")
+prefix_rule(pattern=["cat", "$HOME/.ssh/"], decision="forbidden",
+            justification="SSH keys are sensitive")
 prefix_rule(pattern=["less", "~/.ssh/"], decision="forbidden",
+            justification="SSH keys are sensitive")
+prefix_rule(pattern=["less", "$HOME/.ssh/"], decision="forbidden",
             justification="SSH keys are sensitive")
 prefix_rule(pattern=["head", "~/.ssh/"], decision="forbidden",
             justification="SSH keys are sensitive")
@@ -45,17 +51,27 @@ prefix_rule(pattern=["tail", "~/.ssh/"], decision="forbidden",
             justification="SSH keys are sensitive")
 prefix_rule(pattern=["cat", "~/.aws/credentials"], decision="forbidden",
             justification="AWS credentials are sensitive")
+prefix_rule(pattern=["cat", "$HOME/.aws/credentials"], decision="forbidden",
+            justification="AWS credentials are sensitive")
 prefix_rule(pattern=["less", "~/.aws/credentials"], decision="forbidden",
             justification="AWS credentials are sensitive")
 prefix_rule(pattern=["cat", "~/.kube/config"], decision="forbidden",
+            justification="Kubernetes config contains credentials")
+prefix_rule(pattern=["cat", "$HOME/.kube/config"], decision="forbidden",
             justification="Kubernetes config contains credentials")
 prefix_rule(pattern=["less", "~/.kube/config"], decision="forbidden",
             justification="Kubernetes config contains credentials")
 prefix_rule(pattern=["cat", "~/.docker/config.json"], decision="forbidden",
             justification="Docker config contains credentials")
+prefix_rule(pattern=["cat", "$HOME/.docker/config.json"], decision="forbidden",
+            justification="Docker config contains credentials")
 prefix_rule(pattern=["cat", "~/.netrc"], decision="forbidden",
             justification="Netrc contains credentials")
+prefix_rule(pattern=["cat", "$HOME/.netrc"], decision="forbidden",
+            justification="Netrc contains credentials")
 prefix_rule(pattern=["cat", "~/.config/gh/hosts.yml"], decision="forbidden",
+            justification="GitHub CLI config contains tokens")
+prefix_rule(pattern=["cat", "$HOME/.config/gh/hosts.yml"], decision="forbidden",
             justification="GitHub CLI config contains tokens")
 
 # Block password manager CLI
@@ -63,6 +79,8 @@ prefix_rule(pattern=["bw", "get"], decision="forbidden",
             justification="Do not extract secrets from Bitwarden")
 prefix_rule(pattern=["bw", "list"], decision="forbidden",
             justification="Do not list secrets from Bitwarden")
+prefix_rule(pattern=["bw", "unlock"], decision="forbidden",
+            justification="Do not unlock Bitwarden from Codex")
 prefix_rule(pattern=["op", "read"], decision="forbidden",
             justification="Do not extract secrets from 1Password")
 prefix_rule(pattern=["op", "item", "get"], decision="forbidden",
@@ -85,18 +103,46 @@ prefix_rule(pattern=["git", "push", "--force"], decision="prompt",
             justification="Force push requires approval")
 prefix_rule(pattern=["git", "push", "-f"], decision="prompt",
             justification="Force push requires approval")
+prefix_rule(pattern=["git", "push", "--force-with-lease"], decision="prompt",
+            justification="Force-with-lease push requires approval")
 prefix_rule(pattern=["git", "clean", "-f"], decision="prompt",
             justification="Git clean requires approval")
 prefix_rule(pattern=["git", "branch", "-D"], decision="prompt",
             justification="Force branch deletion requires approval")
+prefix_rule(pattern=["git", "merge"], decision="prompt",
+            justification="Local merge requires confirmation; only use after the no-PR review loop is clean")
 
 # GitHub CLI destructive operations
 prefix_rule(pattern=["gh", "repo", "delete"], decision="prompt",
             justification="Repo deletion requires approval")
+prefix_rule(pattern=["gh", "repo", "archive"], decision="prompt",
+            justification="Repo archive requires approval")
+prefix_rule(pattern=["gh", "release", "delete"], decision="prompt",
+            justification="Release deletion requires approval")
 prefix_rule(pattern=["gh", "pr", "merge"], decision="prompt",
             justification="PR merge requires approval")
 prefix_rule(pattern=["gh", "issue", "close"], decision="prompt",
             justification="Issue close requires approval")
+prefix_rule(pattern=["gh", "issue", "lock"], decision="prompt",
+            justification="Issue lock requires approval")
+prefix_rule(pattern=["gh", "issue", "delete"], decision="prompt",
+            justification="Issue deletion requires approval")
+prefix_rule(pattern=["gh", "run", "cancel"], decision="prompt",
+            justification="Workflow run cancellation requires approval")
+prefix_rule(pattern=["gh", "workflow", "disable"], decision="prompt",
+            justification="Workflow disable requires approval")
+prefix_rule(pattern=["gh", "cache", "delete"], decision="prompt",
+            justification="GitHub cache deletion requires approval")
+prefix_rule(pattern=["gh", "secret", "delete"], decision="prompt",
+            justification="GitHub secret deletion requires approval")
+prefix_rule(pattern=["gh", "variable", "delete"], decision="prompt",
+            justification="GitHub variable deletion requires approval")
+prefix_rule(pattern=["gh", "label", "delete"], decision="prompt",
+            justification="GitHub label deletion requires approval")
+prefix_rule(pattern=["gh", "api", "--method", "DELETE"], decision="prompt",
+            justification="GitHub API deletion requires approval")
+prefix_rule(pattern=["gh", "api", "-X", "DELETE"], decision="prompt",
+            justification="GitHub API deletion requires approval")
 
 # Infrastructure destructive operations
 prefix_rule(pattern=["kubectl", "delete"], decision="prompt",
@@ -111,6 +157,10 @@ prefix_rule(pattern=["docker", "rmi"], decision="prompt",
             justification="Image removal requires approval")
 prefix_rule(pattern=["docker", "system", "prune"], decision="prompt",
             justification="Docker prune requires approval")
+prefix_rule(pattern=["docker", "volume", "rm"], decision="prompt",
+            justification="Docker volume removal requires approval")
+prefix_rule(pattern=["docker", "network", "rm"], decision="prompt",
+            justification="Docker network removal requires approval")
 
 # Global package installs
 prefix_rule(pattern=["pip", "install"], decision="prompt",

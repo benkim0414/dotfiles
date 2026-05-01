@@ -5,7 +5,8 @@
 #   rules/default.rules             -> deny/ask/allow command gating
 #   AGENTS.md                       -> behavioral instructions + domain rules
 
-model = "gpt-5.4"
+model = "gpt-5.5"
+model_auto_compact_token_limit = 160000
 
 # workspace-write: file edits auto-approved within project dir;
 # .git/, .codex/, .agents/ always read-only (built-in protection).
@@ -26,10 +27,15 @@ model_reasoning_effort = "medium"
 unified_exec = true
 multi_agent = true
 shell_tool = true
+codex_hooks = true
 
 [shell_environment_policy]
 inherit = "all"
 exclude = ["AWS_SECRET*", "OPENAI_API_KEY", "*_TOKEN", "*_SECRET"]
+
+[shell_environment_policy.set]
+CODEX_GIT_WORKFLOW = "no-pr"
+WIKI_VAULT = "/home/benkim0414/workspace/wiki"
 
 [sandbox_workspace_write]
 network_access = false
@@ -39,8 +45,60 @@ writable_roots = []
 notifications = true
 theme = "catppuccin-mocha"
 
+[tui.model_availability_nux]
+"gpt-5.5" = 2
+
 [history]
 persistence = "save-all"
+
+[[hooks.SessionStart]]
+matcher = "startup|resume|clear"
+
+[[hooks.SessionStart.hooks]]
+type = "command"
+command = 'bash "$HOME/.codex/hooks/git-session-start.sh"'
+timeout = 10
+statusMessage = "Loading git workflow context"
+
+[[hooks.UserPromptSubmit]]
+
+[[hooks.UserPromptSubmit.hooks]]
+type = "command"
+command = 'bash "$HOME/.codex/hooks/resolve-pr-refs.sh"'
+timeout = 10
+
+[[hooks.PreToolUse]]
+matcher = "^Bash$"
+
+[[hooks.PreToolUse.hooks]]
+type = "command"
+command = 'bash "$HOME/.codex/hooks/git-safety.sh"'
+timeout = 10
+statusMessage = "Checking git command safety"
+
+[[hooks.PreToolUse]]
+matcher = "Edit|Write|^apply_patch$"
+
+[[hooks.PreToolUse.hooks]]
+type = "command"
+command = 'bash "$HOME/.codex/hooks/worktree-guard.sh"'
+timeout = 10
+statusMessage = "Checking worktree isolation"
+
+[[hooks.PostToolUse]]
+matcher = "Bash|Edit|Write|^apply_patch$|mcp__.*"
+
+[[hooks.PostToolUse.hooks]]
+type = "command"
+command = 'bash "$HOME/.codex/hooks/audit-log.sh"'
+timeout = 10
+
+[[hooks.Stop]]
+
+[[hooks.Stop.hooks]]
+type = "command"
+command = 'bash "$HOME/.codex/hooks/capture-session-to-wiki.sh"'
+timeout = 10
 
 [mcp_servers.sequential-thinking]
 command = "npx"
@@ -51,93 +109,6 @@ enabled_tools = ["sequentialthinking"]
 command = "qmd"
 args = ["mcp"]
 enabled_tools = ["query", "get", "multi_get", "status"]
-
-[mcp_servers."awslabs.iam-mcp-server"]
-command = "uvx"
-args = ["awslabs.iam-mcp-server@latest"]
-startup_timeout_sec = 30.0
-
-[mcp_servers."awslabs.iam-mcp-server".env]
-AWS_REGION = "ap-southeast-2"
-
-[mcp_servers."awslabs.aws-pricing-mcp-server"]
-command = "uvx"
-args = ["awslabs.aws-pricing-mcp-server@latest"]
-startup_timeout_sec = 30.0
-
-[mcp_servers."awslabs.aws-pricing-mcp-server".env]
-AWS_REGION = "ap-southeast-2"
-FASTMCP_LOG_LEVEL = "ERROR"
-
-[mcp_servers."awslabs.cost-explorer-mcp-server"]
-command = "uvx"
-args = ["awslabs.cost-explorer-mcp-server@latest"]
-startup_timeout_sec = 30.0
-
-[mcp_servers."awslabs.cost-explorer-mcp-server".env]
-AWS_REGION = "ap-southeast-2"
-FASTMCP_LOG_LEVEL = "ERROR"
-
-[mcp_servers."awslabs.cfn-mcp-server"]
-command = "uvx"
-args = ["awslabs.cfn-mcp-server@latest"]
-startup_timeout_sec = 30.0
-
-[mcp_servers."awslabs.cfn-mcp-server".env]
-AWS_REGION = "ap-southeast-2"
-
-[mcp_servers."awslabs.aws-serverless-mcp-server"]
-command = "uvx"
-args = ["awslabs.aws-serverless-mcp-server@latest", "--allow-write", "--allow-sensitive-data-access"]
-startup_timeout_sec = 30.0
-
-[mcp_servers."awslabs.aws-serverless-mcp-server".env]
-AWS_REGION = "ap-southeast-2"
-
-[mcp_servers."awslabs.eks-mcp-server"]
-command = "uvx"
-args = ["awslabs.eks-mcp-server@latest", "--allow-sensitive-data-access"]
-startup_timeout_sec = 30.0
-
-[mcp_servers."awslabs.eks-mcp-server".env]
-AWS_REGION = "ap-southeast-2"
-
-[mcp_servers."awslabs.cloudwatch-mcp-server"]
-command = "uvx"
-args = ["awslabs.cloudwatch-mcp-server@latest"]
-startup_timeout_sec = 30.0
-
-[mcp_servers."awslabs.cloudwatch-mcp-server".env]
-AWS_REGION = "ap-southeast-2"
-
-[mcp_servers.kubernetes]
-command = "npx"
-args = ["kubernetes-mcp-server@latest"]
-startup_timeout_sec = 30.0
-
-[mcp_servers.grafana]
-command = "uvx"
-args = ["mcp-grafana"]
-env_vars = ["GRAFANA_API_KEY"]
-startup_timeout_sec = 30.0
-
-[mcp_servers.grafana.env]
-GRAFANA_URL = "https://monitoring.geocreation.com.au"
-
-[mcp_servers.argocd]
-command = "npx"
-args = ["argocd-mcp@latest", "stdio"]
-env_vars = ["ARGOCD_API_TOKEN"]
-startup_timeout_sec = 30.0
-
-[mcp_servers.argocd.env]
-ARGOCD_BASE_URL = "https://argocd.geocreation.com.au"
-
-[mcp_servers.sentry]
-url = "https://mcp.sentry.dev/mcp"
-
-[mcp_servers.atlassian]
-url = "https://mcp.atlassian.com/v1/mcp"
 
 [mcp_servers.openaiDeveloperDocs]
 url = "https://developers.openai.com/mcp"
@@ -169,4 +140,13 @@ trust_level = "trusted"
 trust_level = "trusted"
 
 [projects."/Users/ben/workspace/mgob"]
+trust_level = "trusted"
+
+[projects."/home/benkim0414/workspace/hermes"]
+trust_level = "trusted"
+
+[projects."/home/benkim0414"]
+trust_level = "trusted"
+
+[projects."/home/benkim0414/workspace/dotfiles"]
 trust_level = "trusted"
