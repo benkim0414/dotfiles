@@ -12,13 +12,14 @@ claude-sync                           # merge base + work overlay, stow claude
 mkdir -p ~/.codex
 stow -t ~ codex                       # stow codex config
 stow -t ~ bat eza ghostty git lazygit mise nvim ssh starship tmux yazi zsh
-mise install                          # provision node, lazygit, codex CLI per ~/.config/mise/config.toml
+mise install                          # provision node, nvim, lazygit, codex CLI per ~/.config/mise/config.toml
 ```
 
 mise installs each tool under `~/.local/share/mise/installs/<tool>/<ver>/bin/`
-and prepends those paths in `mise activate zsh` -- so `lazygit`, `codex`, and
-any future mise-managed binary always resolve before zsh's `AUTO_CD` can fall
-through to a same-named stow package directory in this repo.
+and prepends those paths in `mise activate zsh`. The zsh config also leaves
+`AUTO_CD` disabled so a missing command like `nvim`, `lazygit`, or `codex`
+fails normally instead of changing into this repo's same-named stow package
+directory.
 
 GUI apps in `Brewfile` (`bitwarden`, `google-chrome`, `ghostty`, `raycast`,
 `docker-desktop`, `claude`, `codex`) are macOS-only -- install on Fedora via
@@ -35,7 +36,7 @@ claude-sync                           # merge base + work overlay, stow claude
 mkdir -p ~/.codex
 stow -t ~ codex                       # stow codex config
 stow -t ~ bat eza ghostty git lazygit mise nvim ssh starship tmux yazi zsh
-mise install                          # provision node, lazygit, codex CLI per ~/.config/mise/config.toml
+mise install                          # provision node, nvim, lazygit, codex CLI per ~/.config/mise/config.toml
 ```
 
 After stowing, register MCP servers globally so they are available in all

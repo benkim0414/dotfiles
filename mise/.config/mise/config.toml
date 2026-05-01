@@ -9,6 +9,7 @@ status.show_tools = false
 
 [tools]
 node = "24"
+neovim = "latest"
 lazygit = "latest"
 "npm:@openai/codex" = "latest"
 go = "latest"
