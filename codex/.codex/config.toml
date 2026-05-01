@@ -5,7 +5,8 @@
 #   rules/default.rules             -> deny/ask/allow command gating
 #   AGENTS.md                       -> behavioral instructions + domain rules
 
-model = "gpt-5.4"
+model = "gpt-5.5"
+model_auto_compact_token_limit = 160000
 
 # workspace-write: file edits auto-approved within project dir;
 # .git/, .codex/, .agents/ always read-only (built-in protection).
@@ -26,10 +27,15 @@ model_reasoning_effort = "medium"
 unified_exec = true
 multi_agent = true
 shell_tool = true
+codex_hooks = true
 
 [shell_environment_policy]
 inherit = "all"
 exclude = ["AWS_SECRET*", "OPENAI_API_KEY", "*_TOKEN", "*_SECRET"]
+
+[shell_environment_policy.set]
+CODEX_GIT_WORKFLOW = "no-pr"
+WIKI_VAULT = "/home/benkim0414/workspace/wiki"
 
 [sandbox_workspace_write]
 network_access = false
@@ -39,8 +45,60 @@ writable_roots = []
 notifications = true
 theme = "catppuccin-mocha"
 
+[tui.model_availability_nux]
+"gpt-5.5" = 2
+
 [history]
 persistence = "save-all"
+
+[[hooks.SessionStart]]
+matcher = "startup|resume|clear"
+
+[[hooks.SessionStart.hooks]]
+type = "command"
+command = 'bash "$HOME/.codex/hooks/git-session-start.sh"'
+timeout = 10
+statusMessage = "Loading git workflow context"
+
+[[hooks.UserPromptSubmit]]
+
+[[hooks.UserPromptSubmit.hooks]]
+type = "command"
+command = 'bash "$HOME/.codex/hooks/resolve-pr-refs.sh"'
+timeout = 10
+
+[[hooks.PreToolUse]]
+matcher = "^Bash$"
+
+[[hooks.PreToolUse.hooks]]
+type = "command"
+command = 'bash "$HOME/.codex/hooks/git-safety.sh"'
+timeout = 10
+statusMessage = "Checking git command safety"
+
+[[hooks.PreToolUse]]
+matcher = "Edit|Write|^apply_patch$"
+
+[[hooks.PreToolUse.hooks]]
+type = "command"
+command = 'bash "$HOME/.codex/hooks/worktree-guard.sh"'
+timeout = 10
+statusMessage = "Checking worktree isolation"
+
+[[hooks.PostToolUse]]
+matcher = "Bash|Edit|Write|^apply_patch$|mcp__.*"
+
+[[hooks.PostToolUse.hooks]]
+type = "command"
+command = 'bash "$HOME/.codex/hooks/audit-log.sh"'
+timeout = 10
+
+[[hooks.Stop]]
+
+[[hooks.Stop.hooks]]
+type = "command"
+command = 'bash "$HOME/.codex/hooks/capture-session-to-wiki.sh"'
+timeout = 10
 
 [mcp_servers.sequential-thinking]
 command = "npx"
@@ -169,4 +227,13 @@ trust_level = "trusted"
 trust_level = "trusted"
 
 [projects."/Users/ben/workspace/mgob"]
+trust_level = "trusted"
+
+[projects."/home/benkim0414/workspace/hermes"]
+trust_level = "trusted"
+
+[projects."/home/benkim0414"]
+trust_level = "trusted"
+
+[projects."/home/benkim0414/workspace/dotfiles"]
 trust_level = "trusted"

@@ -39,6 +39,15 @@ is a manual user action.
 All work MUST happen on isolated worktree branches. Never commit or edit
 directly on the main branch.
 
+Codex hooks add guardrails for this workflow:
+- `SessionStart` injects current git/worktree context.
+- `PreToolUse` blocks `apply_patch` edits from the main worktree.
+- `PreToolUse` checks Git shell commands for unsafe staging, commits, and pushes.
+
+These hooks are guardrails, not the only source of truth. Codex hook
+interception can miss some tool paths, so follow these instructions even if a
+hook does not fire.
+
 ### Branch creation
 
 1. Create a worktree: `git worktree add ../<branch-name> -b <branch-name>`
@@ -58,6 +67,22 @@ directly on the main branch.
 - Push with explicit refspec: `git push origin HEAD:<branch-name>`
 - Create PRs with `gh pr create`.
 - Use merge commits only: `gh pr merge --merge`. NEVER squash or rebase.
+
+### No-PR mode
+
+This Codex setup defaults to `CODEX_GIT_WORKFLOW=no-pr`, matching the local
+Claude mode.
+
+When implementation is complete:
+
+1. Commit all logical changes atomically in the worktree.
+2. Run the review loop in `~/.codex/docs/no-pr-review.md` until clean.
+3. Return to the main worktree.
+4. Merge the feature branch into main with a merge commit.
+5. Push main.
+
+No-PR mode allows the final local merge after the review loop. It does not
+relax selective staging, conventional commits, or the ban on rebase/squash.
 
 ### After merge
 
@@ -90,6 +115,16 @@ NEVER run password manager commands:
 
 - When the user mentions a PR number (e.g., "PR #42", "#42"), fetch its
   details with `gh pr view <number>` before responding.
+
+## Wiki Capture
+
+Codex writes lightweight session capture stubs to
+`${WIKI_VAULT}/raw/captures/` from the `Stop` hook when a session has enough
+activity to be worth curating. Claude has richer `PreCompact` and `SessionEnd`
+hook points; Codex currently uses `Stop`, so capture timing is best-effort.
+
+The capture is a stub, not a finished wiki page. Curate durable learnings
+manually from the referenced transcript.
 
 ## Domain: Dockerfiles
 
