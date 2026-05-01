@@ -19,7 +19,7 @@
     "planMode":      "#94e2d5",
     "autoAccept":    "#a6e3a1",
     "bashBorder":    "#fab387",
-    "ide":           "#89dceb",
+    "ide":           "#74c7ec",
     "fastMode":      "#f5e0dc",
 
     "diffAdded":         "#1e3729",
@@ -33,11 +33,9 @@
     "selectionBg":           "#585b70",
 
     "claudeShimmer":      "#b4befe",
-    "successShimmer":     "#94e2d5",
     "errorShimmer":       "#eba0ac",
     "warningShimmer":     "#fab387",
     "planModeShimmer":    "#89dceb",
-    "autoAcceptShimmer":  "#94e2d5",
     "bashBorderShimmer":  "#f9e2af",
     "permissionShimmer":  "#b4befe",
     "rememberShimmer":    "#f5e0dc",
