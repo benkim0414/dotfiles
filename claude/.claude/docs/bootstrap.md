@@ -140,6 +140,27 @@ git -C ~/workspace/benkim0414/skills pull
 /reload-plugins
 ```
 
+The `caveman` plugin (token-reduction via terse output) comes from the
+upstream `JuliusBrussee/caveman` marketplace. Register it and install:
+
+```
+/plugin marketplace add JuliusBrussee/caveman
+/plugin install caveman@caveman
+```
+
+`enabledPlugins` in `settings.base.json` already sets `"caveman@caveman": true`,
+so caveman auto-activates at `full` intensity on session start after install.
+To update caveman when upstream publishes a new version:
+
+```
+/plugin uninstall caveman@caveman
+/plugin install caveman@caveman
+/reload-plugins
+```
+
+Do **not** run caveman's standalone `install.sh` — it writes into
+`~/.claude/hooks/`, which is stow-symlinked from this repo.
+
 ## qmd (semantic code search)
 
 qmd is a global MCP server that provides semantic search over indexed code
