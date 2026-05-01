@@ -81,6 +81,7 @@ if [[ "${READ_ONCE_DISABLE:-0}" == "1" ]]; then
       '{ts:$ts,session_id:$sid,tool:$tool,command:$cmd,path:$path,cwd:$cwd,event:"read_once_bypass"}' \
       >> "$_log_file" 2>/dev/null || true
   } &
+  disown
   exit 0
 fi
 
@@ -116,7 +117,7 @@ if [[ "$TOOL_NAME" == "Bash" ]]; then
   case "$READ_TOOL" in
     head|tail) _skip_re='^-(n|c)$' ;;   # head/tail -n N | -c N
     sed)       _skip_re='^-(e|f)$' ;;   # sed -e EXPR | -f FILE
-    *)         _skip_re='^$' ;;          # cat/bat/view/less/more — no value flags
+    *)         _skip_re='' ;;            # cat/bat/view/less/more — no value flags
   esac
   read -ra _tokens <<< "$_rest" || true
   _pipe_re='^[|<>]'
@@ -127,7 +128,7 @@ if [[ "$TOOL_NAME" == "Bash" ]]; then
     [[ "$_tok" =~ $_pipe_re ]] && break
     if [[ "$_tok" =~ ^- ]]; then
       # Options that consume the next token as their value (per-tool).
-      [[ "$_tok" =~ $_skip_re ]] && _skip_next=1
+      [[ -n "$_skip_re" && "$_tok" =~ $_skip_re ]] && _skip_next=1
       continue
     fi
     # Strip surrounding single or double quotes.
