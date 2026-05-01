@@ -6,7 +6,7 @@
     "text":          "#cdd6f4",
     "inverseText":   "#1e1e2e",
     "inactive":      "#a6adc8",
-    "subtle":        "#6c7086",
+    "subtle":        "#7f849c",
     "permission":    "#cba6f7",
     "remember":      "#f5c2e7",
 
@@ -48,6 +48,6 @@
     "purple_FOR_SUBAGENTS_ONLY": "#cba6f7",
     "orange_FOR_SUBAGENTS_ONLY": "#fab387",
     "pink_FOR_SUBAGENTS_ONLY":   "#f5c2e7",
-    "cyan_FOR_SUBAGENTS_ONLY":   "#89dceb"
+    "cyan_FOR_SUBAGENTS_ONLY":   "#94e2d5"
   }
 }
