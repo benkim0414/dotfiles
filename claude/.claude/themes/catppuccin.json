@@ -3,10 +3,16 @@
   "base": "dark",
   "overrides": {
     "claude":        "#cba6f7",
+    "claudeBlue_FOR_SYSTEM_SPINNER":        "#89b4fa",
+    "claudeBlueShimmer_FOR_SYSTEM_SPINNER": "#b4befe",
+
     "text":          "#cdd6f4",
     "inverseText":   "#1e1e2e",
     "inactive":      "#a6adc8",
+    "inactiveShimmer": "#bac2de",
     "subtle":        "#7f849c",
+    "background":    "#1e1e2e",
+    "suggestion":    "#b4befe",
     "permission":    "#cba6f7",
     "remember":      "#f5c2e7",
 
@@ -15,12 +21,14 @@
     "warning":       "#f9e2af",
     "merged":        "#cba6f7",
 
-    "promptBorder":  "#b4befe",
+    "promptBorder":        "#b4befe",
+    "promptBorderShimmer": "#bac2de",
     "planMode":      "#94e2d5",
     "autoAccept":    "#a6e3a1",
     "bashBorder":    "#fab387",
     "ide":           "#74c7ec",
     "fastMode":      "#f5e0dc",
+    "fastModeShimmer": "#f2cdcd",
 
     "diffAdded":         "#1e3729",
     "diffAddedDimmed":   "#19281f",
@@ -29,8 +37,23 @@
     "diffRemovedDimmed": "#2a1a22",
     "diffRemovedWord":   "#702848",
 
-    "userMessageBackground": "#313244",
-    "selectionBg":           "#585b70",
+    "userMessageBackground":      "#313244",
+    "userMessageBackgroundHover": "#45475a",
+    "messageActionsBackground":   "#181825",
+    "bashMessageBackgroundColor": "#313244",
+    "memoryBackgroundColor":      "#313244",
+    "selectionBg":                "#585b70",
+
+    "rate_limit_fill":  "#b4befe",
+    "rate_limit_empty": "#585b70",
+
+    "briefLabelYou":    "#74c7ec",
+    "briefLabelClaude": "#cba6f7",
+
+    "professionalBlue": "#89b4fa",
+    "chromeYellow":     "#f9e2af",
+    "clawd_body":       "#cba6f7",
+    "clawd_background": "#11111b",
 
     "claudeShimmer":      "#b4befe",
     "errorShimmer":       "#eba0ac",
@@ -40,6 +63,21 @@
     "permissionShimmer":  "#b4befe",
     "rememberShimmer":    "#f5e0dc",
     "mergedShimmer":      "#f5c2e7",
+
+    "rainbow_red":             "#f38ba8",
+    "rainbow_orange":          "#fab387",
+    "rainbow_yellow":          "#f9e2af",
+    "rainbow_green":           "#a6e3a1",
+    "rainbow_blue":            "#89b4fa",
+    "rainbow_indigo":          "#74c7ec",
+    "rainbow_violet":          "#cba6f7",
+    "rainbow_red_shimmer":     "#eba0ac",
+    "rainbow_orange_shimmer":  "#f2cdcd",
+    "rainbow_yellow_shimmer":  "#f5e0dc",
+    "rainbow_green_shimmer":   "#94e2d5",
+    "rainbow_blue_shimmer":    "#89dceb",
+    "rainbow_indigo_shimmer":  "#b4befe",
+    "rainbow_violet_shimmer":  "#f5c2e7",
 
     "red_FOR_SUBAGENTS_ONLY":    "#f38ba8",
     "blue_FOR_SUBAGENTS_ONLY":   "#89b4fa",
