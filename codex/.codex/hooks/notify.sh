@@ -16,7 +16,7 @@ IFS=$'\t' read -r MESSAGE SESSION_ID CWD NTYPE <<< "$(
     (.message // ""),
     (.session_id // ""),
     (.cwd // ""),
-    (.notification_type // .type // "idle_prompt")
+    ((.notification_type // "") | if . == "" then "idle_prompt" else . end)
   ] | @tsv'
 )"
 
