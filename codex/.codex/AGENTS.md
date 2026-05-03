@@ -175,83 +175,22 @@ The capture is a raw inbox item, not a finished wiki page. Curate durable
 learnings with the wiki ingest workflow or manually promote them from the
 referenced transcript.
 
-## Domain Rules
+## Instruction Hygiene
 
-### Dockerfiles
+- Keep this global file concise and focused on guidance that should apply in
+  every repository.
+- Put repository-specific rules in that repository's `AGENTS.md`.
+- Put growing domain guidance in `docs/<domain>/AGENTS.md` and read it only
+  when the task touches that domain.
+- Promote repeated procedural workflows into Codex skills only after they recur.
 
-- Pin base image tags to exact versions: `python:3.13.1-slim`, not `python:3`
-  or `python:latest`.
-- Always verify base image digests via web search.
-- Use multi-stage builds for compiled languages; separate build dependencies
-  from runtime.
-- Copy dependency manifests first, such as `package.json` or
-  `requirements.txt`, then source files to maximize layer cache hits.
-- Create and switch to a non-root user: `RUN useradd -r appuser && USER appuser`.
-- Combine apt update, install, and cleanup in one `RUN` step:
-  `RUN apt-get update && apt-get install -y pkg && rm -rf /var/lib/apt/lists/*`.
+## Domain Guidance
 
-### Kubernetes Manifests
+Read the matching domain guide before touching files in that area:
 
-Every Deployment, StatefulSet, and DaemonSet must include the following.
-
-Security context:
-
-- Pod-level: `runAsNonRoot: true`, `seccompProfile.type: RuntimeDefault`.
-- Container-level: `allowPrivilegeEscalation: false`,
-  `readOnlyRootFilesystem: true`, `capabilities.drop: ["ALL"]`.
-- Never use `hostNetwork`, `hostPID`, `hostIPC`, or `hostPath` volumes.
-- Set `automountServiceAccountToken: false` unless the pod needs Kubernetes API
-  access.
-
-Resource management:
-
-- Set both `resources.requests` and `resources.limits` for CPU and memory on
-  every container.
-- Add `livenessProbe` and `readinessProbe` on every container.
-- Include a `PodDisruptionBudget` for production workloads.
-
-Image and versioning:
-
-- Pin image tags to exact versions. Never use `:latest` or bare major/minor
-  tags.
-- Always verify image digests via web search.
-- Use current stable apiVersions: `apps/v1`, `networking.k8s.io/v1`,
-  `policy/v1`.
-- Label consistently: `app.kubernetes.io/name`,
-  `app.kubernetes.io/version`, `app.kubernetes.io/component`.
-
-### Terraform / OpenTofu
-
-- Always show `terraform plan` output before any apply. Never combine or skip
-  the plan step.
-- Pin provider versions in `required_providers`: `version = "~> 5.0"`, not
-  `>= 5.0` or omitted.
-- Use remote backend with state locking, such as S3 plus DynamoDB or equivalent.
-  Never use local state in shared environments.
-- Add `lifecycle { prevent_destroy = true }` on stateful resources, such as
-  databases, storage, and networking.
-- Mark sensitive outputs with `sensitive = true` to prevent leaks in logs and
-  CI output.
-
-### GitHub Actions
-
-- Pin actions by full commit SHA, not tag: `actions/checkout@<sha>`, not
-  `@v4`.
-- Always declare a job-level `permissions:` block with least privilege.
-- Use OIDC with `id-token: write` for cloud auth instead of long-lived
-  credential secrets.
-- Guard comment-triggered workflows against self-triggers:
-  `if: github.actor != 'claude[bot]'`.
-
-### Helm Charts
-
-- Validate before committing: `helm lint --strict` and
-  `helm template . --validate`.
-- Always verify chart versions via web search.
-- Provide complete defaults in `values.yaml` for all templated values.
-- Quote string interpolations in templates: `"{{ .Values.image.tag }}"`, not
-  bare `{{ .Values.image.tag }}`.
-
-### Shell Scripts
-
-- ShellCheck must pass with no warnings before committing.
+- Dockerfiles: `docs/docker/AGENTS.md`
+- Kubernetes manifests: `docs/kubernetes/AGENTS.md`
+- Terraform / OpenTofu: `docs/terraform-opentofu/AGENTS.md`
+- GitHub Actions: `docs/github-actions/AGENTS.md`
+- Helm charts: `docs/helm/AGENTS.md`
+- Shell scripts: `docs/shell/AGENTS.md`
