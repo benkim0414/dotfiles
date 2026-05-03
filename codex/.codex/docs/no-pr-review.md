@@ -31,4 +31,4 @@ After any fix commit, return to step 1 and review the new full branch diff again
 
 ## 4. Merge
 
-When no genuine findings remain, merge back to main with a merge commit and push. Do not squash or rebase.
+When no genuine findings remain, merge back to main with a merge commit, then push with `git push origin HEAD:main`. Do not squash or rebase.

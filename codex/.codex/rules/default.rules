@@ -24,8 +24,6 @@ prefix_rule(pattern=["git", "push", "origin", "main"], decision="forbidden",
             justification="Push to feature branch, not main")
 prefix_rule(pattern=["git", "push", "origin", "master"], decision="forbidden",
             justification="Push to feature branch, not master")
-prefix_rule(pattern=["git", "push", "origin", "HEAD:main"], decision="forbidden",
-            justification="Push to feature branch, not main")
 prefix_rule(pattern=["git", "push", "origin", "HEAD:master"], decision="forbidden",
             justification="Push to feature branch, not master")
 prefix_rule(pattern=["git", "rebase"], decision="forbidden",
