@@ -139,8 +139,44 @@ assert_codex_action_required_title() {
   printf 'ok - %s\n' "$name"
 }
 
+assert_codex_spinner_title() {
+  local name="codex spinner title strips loading glyph"
+  local run_dir args_file input_file
+
+  run_dir="$TMPDIR_ROOT/codex-spinner-title"
+  args_file="$run_dir/fzf-args"
+  input_file="$run_dir/fzf-input"
+  mkdir -p "$run_dir/dotfiles" "$run_dir/other"
+
+  env \
+    PATH="$stub_bin:$PATH" \
+    XDG_CACHE_HOME="$run_dir/cache" \
+    FZF_ARGS_FILE="$args_file" \
+    FZF_INPUT_FILE="$input_file" \
+    TMUX_TEST_SIZE="120 40" \
+    TMUX_TEST_PATH_ONE="$run_dir/dotfiles" \
+    TMUX_TEST_PATH_TWO="$run_dir/other" \
+    TMUX_TEST_TITLE_ONE="⠼ dotfiles" \
+    TMUX_TEST_TITLE_TWO="Codex Two" \
+    bash "$REPO_ROOT/bin/.local/bin/tmux-attention-picker"
+
+  if grep -qF "⠼" "$input_file"; then
+    printf 'not ok - %s\nspinner glyph leaked into picker label\n' "$name" >&2
+    cat "$input_file" >&2
+    return 1
+  fi
+  if ! grep -qF "dotfiles" "$input_file"; then
+    printf 'not ok - %s\nmissing normalized project label\n' "$name" >&2
+    cat "$input_file" >&2
+    return 1
+  fi
+
+  printf 'ok - %s\n' "$name"
+}
+
 assert_layout "narrow tall uses vertical preview" "119 40" "down,50%,border-top,wrap,follow"
 assert_layout "flip column boundary stays horizontal" "120 40" "right,50%,border-left,wrap,follow"
 assert_layout "narrow short stays horizontal" "119 39" "right,50%,border-left,wrap,follow"
 assert_layout "bad tmux size falls back horizontal" "not-a-size" "right,50%,border-left,wrap,follow"
 assert_codex_action_required_title
+assert_codex_spinner_title
