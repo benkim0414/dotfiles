@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+dotfiles="${DOTFILES:-$HOME/workspace/dotfiles}"
+codex_dir="$dotfiles/codex/.codex"
+base_config="$codex_dir/config.base.toml"
+generated_config="$codex_dir/config.toml"
+
+if [[ ! -f "$base_config" ]]; then
+  printf 'codex-sync: missing base config: %s\n' "$base_config" >&2
+  exit 1
+fi
+
+install -m 0644 "$base_config" "$generated_config"
