@@ -4,6 +4,8 @@ set -euo pipefail
 
 input=$(cat)
 command_text=$(printf '%s' "$input" | jq -r '.tool_input.command // .tool_input.cmd // ""' 2>/dev/null || true)
+event_cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null || true)
+git_cwd="${event_cwd:-$PWD}"
 [[ -n "$command_text" ]] || exit 0
 
 deny() {
@@ -33,9 +35,9 @@ fi
 
 branch=""
 main_branch="main"
-if git rev-parse --git-dir >/dev/null 2>&1; then
-  branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)
-  remote_head=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null || true)
+if git -C "$git_cwd" rev-parse --git-dir >/dev/null 2>&1; then
+  branch=$(git -C "$git_cwd" rev-parse --abbrev-ref HEAD 2>/dev/null || true)
+  remote_head=$(git -C "$git_cwd" symbolic-ref refs/remotes/origin/HEAD 2>/dev/null || true)
   main_branch="${remote_head#refs/remotes/origin/}"
   main_branch="${main_branch:-main}"
 fi
@@ -79,7 +81,7 @@ if [[ "$command_text" =~ git[[:space:]]+push ]]; then
   fi
 
   if [[ "$block_push" != "true" && "$branch" != "$main_branch" ]]; then
-    upstream_ref=$(git rev-parse --abbrev-ref "${branch}@{upstream}" 2>/dev/null || true)
+    upstream_ref=$(git -C "$git_cwd" rev-parse --abbrev-ref "${branch}@{upstream}" 2>/dev/null || true)
     if [[ "$upstream_ref" == "origin/${main_branch}" ]]; then
       if [[ "$command_text" =~ git[[:space:]]+push([[:space:]]+-[^[:space:]]+)*[[:space:]]+origin[[:space:]]+([^[:space:]]+:[^[:space:]]+) ]]; then
         dest_refspec="${BASH_REMATCH[2]}"
@@ -99,8 +101,8 @@ if [[ "$command_text" =~ git[[:space:]]+push ]]; then
   fi
 fi
 
-if [[ "$command_text" =~ git[[:space:]]+commit ]] && git rev-parse --git-dir >/dev/null 2>&1; then
-  staged=$(git diff --cached --name-only 2>/dev/null || true)
+if [[ "$command_text" =~ git[[:space:]]+commit ]] && git -C "$git_cwd" rev-parse --git-dir >/dev/null 2>&1; then
+  staged=$(git -C "$git_cwd" diff --cached --name-only 2>/dev/null || true)
   if [[ -n "$staged" ]]; then
     file_count=$(printf '%s\n' "$staged" | wc -l | tr -d ' ')
     dirs=$(printf '%s\n' "$staged" | awk -F/ 'NF > 1 { seen[$1]=1 } END { for (d in seen) printf "%s%s", sep, d; sep=", " }')

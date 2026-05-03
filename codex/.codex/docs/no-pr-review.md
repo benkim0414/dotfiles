@@ -32,3 +32,4 @@ After any fix commit, return to step 1 and review the new full branch diff again
 ## 4. Merge
 
 When no genuine findings remain, merge back to main with a merge commit, then push with `git push origin HEAD:main`. Do not squash or rebase.
+Run the merge command from the main worktree via the tool `workdir`; avoid `git -C ... merge`.
