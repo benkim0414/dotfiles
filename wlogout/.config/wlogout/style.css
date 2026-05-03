@@ -1,0 +1,18 @@
+window {
+  background-color: rgba(20, 20, 20, 0.92);
+  font-family: "Noto Sans", sans-serif;
+}
+
+button {
+  color: #f0f0f0;
+  background-color: #303030;
+  border: 2px solid #5c5c5c;
+  border-radius: 4px;
+  margin: 12px;
+  padding: 18px;
+}
+
+button:focus,
+button:hover {
+  background-color: #454545;
+}
