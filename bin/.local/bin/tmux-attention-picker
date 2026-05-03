@@ -182,6 +182,7 @@ for entry in "${ai_panes[@]}"; do
     _read_marker "$marker"
     _resolve_status "$marker"
   else
+    _marker_fields=()
     _status_color=""; _status_icon=""
   fi
 

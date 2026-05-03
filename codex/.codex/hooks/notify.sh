@@ -11,11 +11,12 @@ set -euo pipefail
 INPUT=$(cat)
 
 # Extract fields from Codex notification payload.
-IFS=$'\t' read -r MESSAGE SESSION_ID CWD <<< "$(
+IFS=$'\t' read -r MESSAGE SESSION_ID CWD NTYPE <<< "$(
   printf '%s' "$INPUT" | jq -r '[
     (.message // ""),
     (.session_id // ""),
-    (.cwd // "")
+    (.cwd // ""),
+    (.notification_type // .type // "idle_prompt")
   ] | @tsv'
 )"
 
@@ -48,6 +49,8 @@ if [[ -n "${TMUX_PANE:-}" ]]; then
     printf '%s\n' \
       "pane_id=${TMUX_PANE}" \
       "pane_label=${PANE_LABEL}" \
+      "tool=codex" \
+      "notification_type=${NTYPE}" \
       "project=${PROJECT}" \
       "cwd=${CWD}" \
       "timestamp=${EPOCHSECONDS}" \
