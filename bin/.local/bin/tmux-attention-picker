@@ -103,7 +103,7 @@ _resolve_status() {
       _status_color="$FLAMINGO"; _status_icon="󰘥" ;;
     plan_approval)
       _status_color="$TEAL"; _status_icon="󰝖" ;;
-    idle_prompt)
+    idle_prompt|"")
       _status_color="$LAVENDER"; _status_icon="󰏤" ;;
     *)
       _status_color="$MAROON"; _status_icon="󰀦" ;;
