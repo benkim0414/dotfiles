@@ -1,0 +1,10 @@
+configuration {
+  modi: "drun,run,window";
+  show-icons: true;
+  terminal: "ghostty";
+  drun-display-format: "{name}";
+}
+
+* {
+  font: "Noto Sans 12";
+}
