@@ -107,6 +107,28 @@ NEVER run password manager commands:
 - `bw get`, `bw list`, `bw unlock`
 - `op read`, `op item get`
 
+## Codex Memory
+
+Codex native memories are enabled for short-horizon personal preferences and
+workflow facts. Treat them as convenience context, not durable documentation.
+Durable project learnings belong in the wiki capture and ingest flow so future
+agents can retrieve them through qmd.
+
+When a session produces durable knowledge, prefer a small raw capture plus a
+curated wiki page over storing large implementation detail in native memory.
+Native memory generation is disabled for sessions that use external context,
+which keeps qmd/web/MCP-derived facts out of personal memory unless curated.
+
+## Review Agents
+
+Use custom Codex agents when explicitly useful and available:
+- `pr_explorer` for read-only codebase reconnaissance.
+- `reviewer` for independent no-PR review passes.
+- `docs_researcher` for current docs, API versions, and primary-source checks.
+
+Do not delegate just to create parallelism; delegate bounded work that can run
+independently and report evidence.
+
 ## Session Start
 
 - At the beginning of every session, run `git status` and `git branch` to
