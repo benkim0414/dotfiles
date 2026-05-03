@@ -141,6 +141,7 @@ _normalize_codex_title() {
   elif [[ "$title" == \[*\]\ * ]]; then
     title="${title#*] }"
   fi
+  [[ "$title" == [![:alnum:]]" "* ]] && title="${title#? }"
 
   _normalized_title="$title"
 }
