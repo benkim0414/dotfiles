@@ -22,8 +22,8 @@ printf '%s\n' \
   '    fi' \
   '    ;;' \
   '  list-panes)' \
-  '    printf "%%1\tsession\t1\t1\t100\t%s\tCodex One\n" "$TMUX_TEST_PATH_ONE"' \
-  '    printf "%%2\tsession\t1\t2\t200\t%s\tCodex Two\n" "$TMUX_TEST_PATH_TWO"' \
+  '    printf "%%1\tsession\t1\t1\t100\t%s\t%s\n" "$TMUX_TEST_PATH_ONE" "${TMUX_TEST_TITLE_ONE:-Codex One}"' \
+  '    printf "%%2\tsession\t1\t2\t200\t%s\t%s\n" "$TMUX_TEST_PATH_TWO" "${TMUX_TEST_TITLE_TWO:-Codex Two}"' \
   '    ;;' \
   '  capture-pane)' \
   '    printf "preview\n"' \
@@ -61,8 +61,11 @@ printf '%s\n' \
   '#!/usr/bin/env bash' \
   'set -euo pipefail' \
   'printf "%s\n" "$@" > "$FZF_ARGS_FILE"' \
-  'first=""' \
-  'IFS= read -r first || true' \
+  'input=$(cat)' \
+  'if [[ -n "${FZF_INPUT_FILE:-}" ]]; then' \
+  '  printf "%s\n" "$input" > "$FZF_INPUT_FILE"' \
+  'fi' \
+  'first="${input%%$'\''\n'\''*}"' \
   'printf "%s\n" "$first"' \
   > "$stub_bin/fzf"
 chmod +x "$stub_bin/fzf"
@@ -96,7 +99,48 @@ assert_layout() {
   printf 'ok - %s\n' "$name"
 }
 
+assert_codex_action_required_title() {
+  local name="codex action-required title maps to status icon"
+  local run_dir args_file input_file
+
+  run_dir="$TMPDIR_ROOT/codex-action-required-title"
+  args_file="$run_dir/fzf-args"
+  input_file="$run_dir/fzf-input"
+  mkdir -p "$run_dir/dotfiles" "$run_dir/other"
+
+  env \
+    PATH="$stub_bin:$PATH" \
+    XDG_CACHE_HOME="$run_dir/cache" \
+    FZF_ARGS_FILE="$args_file" \
+    FZF_INPUT_FILE="$input_file" \
+    TMUX_TEST_SIZE="120 40" \
+    TMUX_TEST_PATH_ONE="$run_dir/dotfiles" \
+    TMUX_TEST_PATH_TWO="$run_dir/other" \
+    TMUX_TEST_TITLE_ONE="[!] Action Required | dotfiles" \
+    TMUX_TEST_TITLE_TWO="Codex Two" \
+    bash "$REPO_ROOT/bin/.local/bin/tmux-attention-picker"
+
+  if ! grep -qF "󰂞" "$input_file"; then
+    printf 'not ok - %s\nmissing action-required status icon\n' "$name" >&2
+    cat "$input_file" >&2
+    return 1
+  fi
+  if grep -qF "Action Required |" "$input_file"; then
+    printf 'not ok - %s\nstatus title leaked into picker label\n' "$name" >&2
+    cat "$input_file" >&2
+    return 1
+  fi
+  if ! grep -qF "dotfiles" "$input_file"; then
+    printf 'not ok - %s\nmissing normalized project label\n' "$name" >&2
+    cat "$input_file" >&2
+    return 1
+  fi
+
+  printf 'ok - %s\n' "$name"
+}
+
 assert_layout "narrow tall uses vertical preview" "119 40" "down,50%,border-top,wrap,follow"
 assert_layout "flip column boundary stays horizontal" "120 40" "right,50%,border-left,wrap,follow"
 assert_layout "narrow short stays horizontal" "119 39" "right,50%,border-left,wrap,follow"
 assert_layout "bad tmux size falls back horizontal" "not-a-size" "right,50%,border-left,wrap,follow"
+assert_codex_action_required_title
