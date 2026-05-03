@@ -1,0 +1,40 @@
+* {
+  border: none;
+  border-radius: 0;
+  font-family: "Noto Sans", "Font Awesome 6 Free", sans-serif;
+  font-size: 13px;
+  min-height: 0;
+}
+
+window#waybar {
+  background: #202020;
+  color: #f0f0f0;
+}
+
+#workspaces button {
+  color: #b8b8b8;
+  padding: 0 8px;
+}
+
+#workspaces button.active {
+  color: #ffffff;
+  background: #3a3a3a;
+}
+
+#window,
+#tray,
+#network,
+#bluetooth,
+#pulseaudio,
+#battery,
+#clock {
+  padding: 0 10px;
+}
+
+#battery.warning {
+  color: #ffd166;
+}
+
+#battery.critical {
+  color: #ef476f;
+}
