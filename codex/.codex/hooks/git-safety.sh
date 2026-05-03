@@ -39,12 +39,20 @@ if git rev-parse --git-dir >/dev/null 2>&1; then
   main_branch="${remote_head#refs/remotes/origin/}"
   main_branch="${main_branch:-main}"
 fi
+workflow="${CODEX_GIT_WORKFLOW:-}"
+if [[ -z "$workflow" ]]; then
+  config_path="${CODEX_HOME:-$HOME/.codex}/config.toml"
+  if [[ -r "$config_path" ]] && grep -Fq 'CODEX_GIT_WORKFLOW = "no-pr"' "$config_path"; then
+    workflow="no-pr"
+  fi
+fi
+
 
 if [[ "$command_text" =~ git[[:space:]]+commit && "$branch" == "$main_branch" ]]; then
   deny "BLOCKED: Cannot commit directly on ${main_branch}. Create and enter an isolated worktree first."
 fi
 
-if [[ "${CODEX_GIT_WORKFLOW:-}" != "no-pr" && "$command_text" =~ git[[:space:]]+(merge|rebase|cherry-pick) && "$branch" == "$main_branch" ]]; then
+if [[ "$workflow" != "no-pr" && "$command_text" =~ git[[:space:]]+(merge|rebase|cherry-pick) && "$branch" == "$main_branch" ]]; then
   deny "BLOCKED: Cannot merge/rebase/cherry-pick directly on ${main_branch}. Push a feature branch and use the PR workflow."
 fi
 
@@ -57,7 +65,7 @@ if [[ "$command_text" =~ git[[:space:]]+push ]]; then
     [[ "$delete_target" != "$main_branch" ]] && exit 0
   fi
 
-  if [[ "$branch" == "$main_branch" && "${CODEX_GIT_WORKFLOW:-}" != "no-pr" ]]; then
+  if [[ "$branch" == "$main_branch" && "$workflow" != "no-pr" ]]; then
     if [[ "$command_text" =~ git[[:space:]]+push([[:space:]]+-[^[:space:]]+)*[[:space:]]+origin[[:space:]]+([^[:space:]]+) ]]; then
       dest="${BASH_REMATCH[2]}"
       [[ "$dest" == "$main_branch" || "$dest" =~ :${main_branch}$ ]] && block_push=true
@@ -67,7 +75,7 @@ if [[ "$command_text" =~ git[[:space:]]+push ]]; then
   fi
 
   if [[ "$block_push" != "true" && "$command_text" =~ git[[:space:]]+push([[:space:]]+-[^[:space:]]+)*[[:space:]]+origin[[:space:]]+([^[:space:]]+:)?(${main_branch})([[:space:]]|$) ]]; then
-    [[ "${CODEX_GIT_WORKFLOW:-}" != "no-pr" || "$branch" != "$main_branch" ]] && block_push=true
+    [[ "$workflow" != "no-pr" || "$branch" != "$main_branch" ]] && block_push=true
   fi
 
   if [[ "$block_push" != "true" && "$branch" != "$main_branch" ]]; then
