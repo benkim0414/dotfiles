@@ -40,6 +40,11 @@ zstyle ':completion:*' list-prompt ''
 zstyle ':completion:*' select-prompt ''
 
 source ~/.antidote/antidote.zsh
+
+_antidote_static="${ZDOTDIR:-$HOME}/.zsh_plugins.zsh"
+[[ -e "$_antidote_static" && ! -s "$_antidote_static" ]] && rm -f "$_antidote_static"
+unset _antidote_static
+
 antidote load
 
 _eval_cache() {
