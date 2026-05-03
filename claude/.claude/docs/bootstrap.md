@@ -10,6 +10,7 @@ stow -t ~ bin                         # stow bin first (includes claude-sync)
 mkdir -p ~/.claude/plugins            # prevent tree-folding (see stow gotchas)
 claude-sync                           # merge base + work overlay, stow claude
 mkdir -p ~/.codex
+codex-sync                            # generate ignored Codex config
 stow -t ~ codex                       # stow codex config
 stow -t ~ bat eza ghostty git lazygit mise nvim ssh starship tmux yazi zsh
 mise install                          # provision node, nvim, lazygit, codex CLI per ~/.config/mise/config.toml
@@ -34,6 +35,7 @@ stow -t ~ bin                         # stow bin first (includes claude-sync)
 mkdir -p ~/.claude/plugins            # prevent tree-folding (see stow gotchas)
 claude-sync                           # merge base + work overlay, stow claude
 mkdir -p ~/.codex
+codex-sync                            # generate ignored Codex config
 stow -t ~ codex                       # stow codex config
 stow -t ~ bat eza ghostty git lazygit mise nvim ssh starship tmux yazi zsh
 mise install                          # provision node, nvim, lazygit, codex CLI per ~/.config/mise/config.toml
