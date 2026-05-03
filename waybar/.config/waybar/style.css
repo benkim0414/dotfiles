@@ -1,3 +1,5 @@
+@import "mocha.css";
+
 * {
   border: none;
   border-radius: 0;
@@ -7,18 +9,18 @@
 }
 
 window#waybar {
-  background: #202020;
-  color: #f0f0f0;
+  background: @base;
+  color: @text;
 }
 
 #workspaces button {
-  color: #b8b8b8;
+  color: @subtext0;
   padding: 0 8px;
 }
 
 #workspaces button.active {
-  color: #ffffff;
-  background: #3a3a3a;
+  color: @base;
+  background: @mauve;
 }
 
 #window,
@@ -32,9 +34,9 @@ window#waybar {
 }
 
 #battery.warning {
-  color: #ffd166;
+  color: @yellow;
 }
 
 #battery.critical {
-  color: #ef476f;
+  color: @red;
 }
