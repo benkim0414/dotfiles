@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tmux-attention: jump to tmux pane(s) needing Claude Code user attention.
+# tmux-attention: jump to tmux pane(s) needing Claude Code or Codex user attention.
 # Invoked via tmux keybinding (Prefix+a).
 # Usage:
 #   tmux-attention                -- dispatch: 0 msg, 1 direct, N cycle to most urgent
@@ -7,42 +7,46 @@
 #   tmux-attention --clear-focused -- auto-dismiss: clear marker for focused pane
 set -euo pipefail
 
-ATTN_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/claude/attention"
+ATTN_DIR_CLAUDE="${XDG_CACHE_HOME:-$HOME/.cache}/claude/attention"
+ATTN_DIR_CODEX="${XDG_CACHE_HOME:-$HOME/.cache}/codex/attention"
+ATTN_DIRS=("$ATTN_DIR_CLAUDE" "$ATTN_DIR_CODEX")
 TTL=300 # 5 minutes
 
 # --- Helpers ---
 
 # Read a single field from a marker file.
 read_field() {
-  grep "^${1}=" "$2" 2>/dev/null | cut -d= -f2-
+  grep "^${1}=" "$2" 2>/dev/null | cut -d= -f2- || true
 }
 
 # Collect valid (non-stale, pane-alive) marker paths, one per line.
 collect_markers() {
-  [[ -d "$ATTN_DIR" ]] || return 0
-
-  local now marker ts pane_id
+  local now marker ts pane_id attn_dir
   now=$(date +%s)
 
-  for marker in "$ATTN_DIR"/%*; do
-    [[ -f "$marker" ]] || continue
+  for attn_dir in "${ATTN_DIRS[@]}"; do
+    [[ -d "$attn_dir" ]] || continue
 
-    ts=$(read_field timestamp "$marker")
-    pane_id=$(read_field pane_id "$marker")
+    for marker in "$attn_dir"/%*; do
+      [[ -f "$marker" ]] || continue
 
-    # Stale marker -- remove.
-    if [[ -n "$ts" ]] && (( now - ts > TTL )); then
-      rm -f "$marker"
-      continue
-    fi
+      ts=$(read_field timestamp "$marker")
+      pane_id=$(read_field pane_id "$marker")
 
-    # Pane no longer exists -- remove.
-    if [[ -z "$pane_id" ]] || ! tmux display-message -t "$pane_id" -p '' >/dev/null 2>&1; then
-      rm -f "$marker"
-      continue
-    fi
+      # Stale marker -- remove.
+      if [[ -n "$ts" ]] && (( now - ts > TTL )); then
+        rm -f "$marker"
+        continue
+      fi
 
-    printf '%s\n' "$marker"
+      # Pane no longer exists -- remove.
+      if [[ -z "$pane_id" ]] || ! tmux display-message -t "$pane_id" -p '' >/dev/null 2>&1; then
+        rm -f "$marker"
+        continue
+      fi
+
+      printf '%s\n' "$marker"
+    done
   done
 }
 
@@ -68,8 +72,23 @@ ntype_priority() {
     plan_approval)      echo 2 ;;
     ask_user_question)  echo 3 ;;
     elicitation_dialog) echo 4 ;;
-    idle_prompt)        echo 5 ;;
+    idle_prompt|"")     echo 5 ;;
     *)                  echo 9 ;;
+  esac
+}
+
+marker_tool() {
+  local marker="$1" tool
+  tool=$(read_field tool "$marker")
+  if [[ -n "$tool" ]]; then
+    printf '%s\n' "$tool"
+    return
+  fi
+
+  case "$marker" in
+    "$ATTN_DIR_CODEX"/*)  printf 'codex\n' ;;
+    "$ATTN_DIR_CLAUDE"/*) printf 'claude\n' ;;
+    *)                   printf 'agent\n' ;;
   esac
 }
 
@@ -92,30 +111,39 @@ sort_markers() {
 # Format a marker for fzf display. Output: "display_text\tpane_id\tmarker_path"
 format_marker() {
   local marker="$1"
-  local pane_label ntype project pane_id label
+  local pane_label ntype project pane_id label tool tool_label
 
   pane_label=$(read_field pane_label "$marker")
   ntype=$(read_field notification_type "$marker")
   project=$(read_field project "$marker")
   pane_id=$(read_field pane_id "$marker")
+  tool=$(marker_tool "$marker")
 
   case "$ntype" in
     permission_prompt)  label="Approval" ;;
-    idle_prompt)        label="Complete" ;;
+    idle_prompt|"")     label="Complete" ;;
     elicitation_dialog) label="Input" ;;
     ask_user_question)  label="Question" ;;
     plan_approval)      label="Plan" ;;
     *)                  label="$ntype" ;;
   esac
+  case "$tool" in
+    codex)  tool_label="Codex" ;;
+    claude) tool_label="Claude" ;;
+    *)      tool_label="$tool" ;;
+  esac
 
-  printf '[%s] %s (%s)\t%s\t%s\n' "$label" "$project" "$pane_label" "$pane_id" "$marker"
+  printf '[%s %s] %s (%s)\t%s\t%s\n' "$tool_label" "$label" "$project" "$pane_label" "$pane_id" "$marker"
 }
 
 # === CLEAR-FOCUSED MODE (called from pane-focus-in hook) ===
 if [[ "${1:-}" == "--clear-focused" ]]; then
-  [[ -d "$ATTN_DIR" ]] || exit 0
   pane_id=$(tmux display-message -p '#{pane_id}' 2>/dev/null || true)
-  [[ -n "$pane_id" ]] && rm -f "${ATTN_DIR}/${pane_id}"
+  if [[ -n "$pane_id" ]]; then
+    for attn_dir in "${ATTN_DIRS[@]}"; do
+      rm -f "${attn_dir}/${pane_id}" 2>/dev/null || true
+    done
+  fi
   exit 0
 fi
 
