@@ -103,6 +103,7 @@ _build_ai_pids
 # Sets _status_color and _status_icon to avoid subshell forks.
 _status_color=""
 _status_icon=""
+_normalized_title=""
 _resolve_status() {
   local marker="$1"
   local ts="${_marker_fields[timestamp]:-}"
@@ -126,6 +127,22 @@ _resolve_status() {
     *)
       _status_color="$MAROON"; _status_icon="󰀦" ;;
   esac
+}
+
+_normalize_codex_title() {
+  local title="$1"
+
+  if [[ "$title" == "[!] Action Required | "* ]]; then
+    [[ -z "$_status_icon" ]] && { _status_color="$MAROON"; _status_icon="󰂞"; }
+    title="${title#"[!] Action Required | "}"
+  elif [[ "$title" == \[*\]\ *\|\ * ]]; then
+    title="${title#*] }"
+    title="${title#*| }"
+  elif [[ "$title" == \[*\]\ * ]]; then
+    title="${title#*] }"
+  fi
+
+  _normalized_title="$title"
 }
 
 # Switch to a pane (works across tmux sessions).
@@ -210,7 +227,12 @@ for entry in "${ai_panes[@]}"; do
   if [[ -n "$pane_title" ]]; then
     # Strip leading non-alphanumeric status icon + space (e.g., "✳ ", "⠂ ").
     local_title="$pane_title"
-    [[ "$pane_title" == [![:alnum:]]" "* ]] && local_title="${pane_title#? }"
+    if [[ "$tool" == "codex" ]]; then
+      _normalize_codex_title "$local_title"
+      local_title="$_normalized_title"
+    elif [[ "$pane_title" == [![:alnum:]]" "* ]]; then
+      local_title="${pane_title#? }"
+    fi
     # Skip hostname or generic "Claude Code" — not useful as a project name.
     case "$local_title" in
       *.local|"Claude Code"|"Codex") ;;
