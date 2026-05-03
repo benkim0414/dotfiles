@@ -5,6 +5,8 @@
 set -euo pipefail
 
 MAX_SESSIONS=50
+FLEX_FLIP_COLUMNS=120
+FLEX_FLIP_LINES=40
 
 ATTN_DIR_CLAUDE="${XDG_CACHE_HOME:-$HOME/.cache}/claude/attention"
 ATTN_DIR_CODEX="${XDG_CACHE_HOME:-$HOME/.cache}/codex/attention"
@@ -37,6 +39,22 @@ _read_marker() {
   while IFS='=' read -r key val; do
     [[ -n "$key" ]] && _marker_fields[$key]="$val"
   done < "$1"
+}
+
+_preview_window_layout() {
+  local size width height _
+  size=$(tmux display-message -p '#{window_width} #{window_height}' 2>/dev/null || true)
+  read -r width height _ <<< "$size"
+
+  # Match Telescope's flex strategy: vertical only for narrow windows that
+  # still have enough lines; otherwise keep the horizontal layout.
+  if [[ "$width" =~ ^[0-9]+$ && "$height" =~ ^[0-9]+$ ]] \
+    && (( width < FLEX_FLIP_COLUMNS && height >= FLEX_FLIP_LINES )); then
+    printf '%s\n' 'down,50%,border-top,wrap,follow'
+    return
+  fi
+
+  printf '%s\n' 'right,50%,border-left,wrap,follow'
 }
 
 # --- Batch AI process detection (Claude Code + Codex) ---
@@ -253,6 +271,8 @@ if [[ ${#blocks[@]} -eq 1 ]]; then
   exit 0
 fi
 
+preview_window=$(_preview_window_layout)
+
 # Feed single-line entries to fzf (pane_id\tdisplay, hidden via --with-nth).
 selected=$(for i in "${sorted_indices[@]}"; do printf '%s\n' "${blocks[$i]}"; done | fzf \
   --ansi \
@@ -265,7 +285,7 @@ selected=$(for i in "${sorted_indices[@]}"; do printf '%s\n' "${blocks[$i]}"; do
   --no-scrollbar \
   --info=hidden \
   --preview='tmux capture-pane -t {1} -p -e -S -200 2>/dev/null || echo "(pane unavailable)"' \
-  --preview-window='right,50%,border-left,wrap,follow' \
+  --preview-window="$preview_window" \
   --preview-label=' Preview ' \
   --preview-label-pos=2) || exit 0
 
