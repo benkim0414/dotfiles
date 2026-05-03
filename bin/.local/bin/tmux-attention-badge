@@ -1,15 +1,41 @@
 #!/usr/bin/env bash
 # tmux-attention-badge: output attention count for the tmux status bar.
-# Returns " [N waiting]" when markers exist, empty string otherwise.
+# Returns " [N waiting]" when valid markers exist, empty string otherwise.
 # Called by tmux via #() in status-right on every status-interval.
 set -euo pipefail
 
-ATTN_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/claude/attention"
-[[ -d "$ATTN_DIR" ]] || exit 0
+ATTN_DIRS=(
+  "${XDG_CACHE_HOME:-$HOME/.cache}/claude/attention"
+  "${XDG_CACHE_HOME:-$HOME/.cache}/codex/attention"
+)
+TTL=300 # 5 minutes
+
+read_field() {
+  grep "^${1}=" "$2" 2>/dev/null | cut -d= -f2- || true
+}
 
 count=0
-for f in "$ATTN_DIR"/%*; do
-  [[ -f "$f" ]] && { (( count++ )) || true; }
+now=$(date +%s)
+for attn_dir in "${ATTN_DIRS[@]}"; do
+  [[ -d "$attn_dir" ]] || continue
+
+  for f in "$attn_dir"/%*; do
+    [[ -f "$f" ]] || continue
+
+    ts=$(read_field timestamp "$f")
+    if [[ -n "$ts" ]] && (( now - ts > TTL )); then
+      rm -f "$f"
+      continue
+    fi
+
+    pane_id=$(read_field pane_id "$f")
+    if [[ -z "$pane_id" ]] || ! tmux display-message -t "$pane_id" -p '' >/dev/null 2>&1; then
+      rm -f "$f"
+      continue
+    fi
+
+    (( count++ )) || true
+  done
 done
 
 if (( count > 0 )); then
