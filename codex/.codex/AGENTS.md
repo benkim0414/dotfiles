@@ -120,13 +120,16 @@ NEVER run password manager commands:
 
 ## Wiki Capture
 
-Codex writes lightweight session capture stubs to
-`${WIKI_VAULT}/raw/captures/` from the `Stop` hook when a session has enough
-activity to be worth curating. Claude has richer `PreCompact` and `SessionEnd`
-hook points; Codex currently uses `Stop`, so capture timing is best-effort.
+Codex writes structured session capture stubs to `${WIKI_VAULT}/raw/captures/`
+from the `Stop` hook when a session has enough activity to be worth curating.
+The hook parses Codex JSONL transcripts to capture first/last real user prompts,
+the last assistant message, tool and command summaries, files touched by patches,
+and the transcript path. Claude has richer `PreCompact` and `SessionEnd` hook
+points; Codex currently uses `Stop`, so capture timing is best-effort.
 
-The capture is a stub, not a finished wiki page. Curate durable learnings
-manually from the referenced transcript.
+The capture is a raw source, not a finished wiki page. Curate durable learnings
+with the wiki ingest workflow or manually promote them from the referenced
+transcript.
 
 ## Domain: Dockerfiles
 
