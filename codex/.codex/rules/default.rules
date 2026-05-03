@@ -2,6 +2,10 @@
 #
 # Starlark prefix_rule() format. Precedence: forbidden > prompt > allow.
 # Test with: codex execpolicy check --pretty --rules <file> -- <command>
+#
+# Prefix rules are token-prefix guardrails. Context-sensitive checks such as
+# git -C, branch state, explicit main refspecs, and absolute sensitive paths
+# are enforced by hooks/git-safety.sh.
 
 # ============================================================
 # FORBIDDEN -- commands that must never execute
@@ -198,7 +202,7 @@ prefix_rule(pattern=["git", "commit"], decision="allow",
 prefix_rule(pattern=["git", "merge"], decision="allow",
             justification="Local merge allowed; git-safety hook enforces workflow context")
 prefix_rule(pattern=["git", "push", "origin"], decision="allow",
-            justification="Push to explicit remote allowed (bare git push blocked by approval_policy)")
+            justification="Push with explicit remote allowed; git-safety enforces branch and refspec context")
 prefix_rule(pattern=["git", "worktree"], decision="allow",
             justification="Worktree operations are part of the workflow")
 prefix_rule(pattern=["git", "checkout"], decision="allow",
@@ -242,7 +246,7 @@ prefix_rule(pattern=["head"], decision="allow",
 prefix_rule(pattern=["tail"], decision="allow",
             justification="File preview is safe")
 prefix_rule(pattern=["cat"], decision="allow",
-            justification="File read (sensitive paths already forbidden)")
+            justification="File read allowed; git-safety blocks sensitive absolute and home paths")
 prefix_rule(pattern=["echo"], decision="allow",
             justification="Echo is safe")
 prefix_rule(pattern=["printf"], decision="allow",

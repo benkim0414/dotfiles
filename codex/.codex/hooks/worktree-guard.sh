@@ -83,7 +83,7 @@ mapfile -t targets < <(
   printf '%s' "$input" | jq -r '
     def patch_text:
       if (.tool_input | type) == "string" then .tool_input
-      else (.tool_input.patch? // .tool_input.input? // "")
+      else (.tool_input.patch? // .tool_input.input? // .tool_input.command? // .tool_input.cmd? // "")
       end;
 
     .tool_input as $tool_input |
