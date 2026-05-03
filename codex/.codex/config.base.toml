@@ -45,9 +45,6 @@ writable_roots = []
 notifications = true
 theme = "catppuccin-mocha"
 
-[tui.model_availability_nux]
-"gpt-5.5" = 2
-
 [history]
 persistence = "save-all"
 
@@ -120,33 +117,3 @@ environment = "dev"
 exporter = "none"
 trace_exporter = "none"
 log_user_prompt = false
-
-[projects."/Users/ben/workspace/ops"]
-trust_level = "trusted"
-
-[projects."/Users/ben/workspace/web-api-gateway"]
-trust_level = "trusted"
-
-[projects."/Users/ben/workspace/geo-server"]
-trust_level = "trusted"
-
-[projects."/Users/ben/workspace/rec-registry-creation-service"]
-trust_level = "trusted"
-
-[projects."/Users/ben/workspace/dotfiles"]
-trust_level = "trusted"
-
-[projects."/Users/ben/workspace/envoy"]
-trust_level = "trusted"
-
-[projects."/Users/ben/workspace/mgob"]
-trust_level = "trusted"
-
-[projects."/home/benkim0414/workspace/hermes"]
-trust_level = "trusted"
-
-[projects."/home/benkim0414"]
-trust_level = "trusted"
-
-[projects."/home/benkim0414/workspace/dotfiles"]
-trust_level = "trusted"
