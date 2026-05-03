@@ -26,6 +26,39 @@ GUI apps in `Brewfile` (`bitwarden`, `google-chrome`, `ghostty`, `raycast`,
 `docker-desktop`, `claude`, `codex`) are macOS-only -- install on Fedora via
 Flatpak, vendor RPMs, or copr. Not managed by this repo.
 
+### Hyprland desktop (Fedora)
+
+Hyprland is intentionally compositor-focused, so the desktop is assembled from
+explicit utilities. Prefer Hyprland ecosystem components where Fedora packaging
+is available, then popular Wayland tools for the roles Hyprland does not cover.
+
+Dry-run package availability before enabling/installing:
+
+```sh
+dnf repoquery hyprland hyprland-uwsm xdg-desktop-portal-hyprland hyprlock hypridle hyprpaper hyprpolkitagent
+dnf repoquery waybar rofi mako wl-clipboard cliphist grim slurp swappy brightnessctl playerctl pavucontrol network-manager-applet blueman wlogout udiskie qt5-qtwayland qt6-qtwayland google-noto-sans-fonts fontawesome-fonts-all xdg-desktop-portal-gtk pipewire wireplumber
+```
+
+Enable the selected release COPR for Hyprland packages that are not in Fedora's
+enabled repositories, then install:
+
+```sh
+sudo dnf copr enable lionheartp/Hyprland
+sudo dnf install -y hyprland hyprland-uwsm xdg-desktop-portal-hyprland hyprlock hypridle hyprpaper hyprpolkitagent
+sudo dnf install -y waybar rofi mako wl-clipboard cliphist grim slurp swappy brightnessctl playerctl pavucontrol network-manager-applet blueman wlogout udiskie qt5-qtwayland qt6-qtwayland google-noto-sans-fonts fontawesome-fonts-all xdg-desktop-portal-gtk pipewire wireplumber
+```
+
+Stow the desktop config after packages are installed:
+
+```sh
+stow -t ~ hypr hypridle hyprlock hyprpaper waybar rofi mako wlogout xdg-desktop-portal zsh
+systemctl --user enable --now hyprpolkitagent.service
+```
+
+The `zsh` package starts Hyprland automatically on tty1 through `uwsm`.
+Applications launched from Hyprland use `uwsm app --` where practical so they
+belong to the managed user session.
+
 ## Bootstrap (macOS)
 
 ```sh
