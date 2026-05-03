@@ -57,6 +57,7 @@ hook does not fire.
 ### Commit discipline
 
 - Commit each self-contained logical change atomically.
+- Run commit commands from the worktree via the tool `workdir`; avoid `git -C ... commit`.
 - Use conventional commits: `type(scope): description`
   - Types: feat, fix, docs, chore, refactor, test, ci, perf
 - Stage files selectively by name. NEVER use `git add -A`, `git add .`,
@@ -79,6 +80,7 @@ When implementation is complete:
 2. Run the review loop in `~/.codex/docs/no-pr-review.md` until clean.
 3. Return to the main worktree.
 4. Merge the feature branch into main with a merge commit.
+   Run the merge from the main worktree via the tool `workdir`; avoid `git -C ... merge`.
 5. Push main with `git push origin HEAD:main`.
 
 No-PR mode allows the final local merge after the review loop. It does not

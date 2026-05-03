@@ -107,8 +107,6 @@ prefix_rule(pattern=["git", "clean", "-f"], decision="prompt",
             justification="Git clean requires approval")
 prefix_rule(pattern=["git", "branch", "-D"], decision="prompt",
             justification="Force branch deletion requires approval")
-prefix_rule(pattern=["git", "merge"], decision="prompt",
-            justification="Local merge requires confirmation; only use after the no-PR review loop is clean")
 
 # GitHub CLI destructive operations
 prefix_rule(pattern=["gh", "repo", "delete"], decision="prompt",
@@ -197,6 +195,8 @@ prefix_rule(pattern=["git", "add"], decision="allow",
             justification="Selective staging allowed")
 prefix_rule(pattern=["git", "commit"], decision="allow",
             justification="Commits allowed")
+prefix_rule(pattern=["git", "merge"], decision="allow",
+            justification="Local merge allowed; git-safety hook enforces workflow context")
 prefix_rule(pattern=["git", "push", "origin"], decision="allow",
             justification="Push to explicit remote allowed (bare git push blocked by approval_policy)")
 prefix_rule(pattern=["git", "worktree"], decision="allow",
