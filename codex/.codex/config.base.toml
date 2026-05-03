@@ -1,3 +1,4 @@
+#:schema https://developers.openai.com/codex/config-schema.json
 # Codex CLI global configuration
 #
 # Mirrors Claude Code settings.base.json using Codex-native mechanisms:
@@ -6,6 +7,7 @@
 #   AGENTS.md                       -> behavioral instructions + domain rules
 
 model = "gpt-5.5"
+review_model = "gpt-5.4"
 model_auto_compact_token_limit = 160000
 
 # workspace-write: file edits auto-approved within project dir;
@@ -28,6 +30,34 @@ unified_exec = true
 multi_agent = true
 shell_tool = true
 codex_hooks = true
+memories = true
+
+
+[agents]
+max_threads = 6
+max_depth = 1
+
+[agents.pr_explorer]
+description = "Read-only codebase explorer for gathering evidence before review or changes."
+config_file = "agents/pr-explorer.toml"
+nickname_candidates = ["Scout", "Index", "Atlas"]
+
+[agents.reviewer]
+description = "Independent reviewer focused on correctness, security, and maintainability findings with file-backed evidence."
+config_file = "agents/reviewer.toml"
+nickname_candidates = ["Review", "Audit", "Check"]
+
+[agents.docs_researcher]
+description = "Documentation researcher for current API, package, and platform guidance from primary sources."
+config_file = "agents/docs-researcher.toml"
+nickname_candidates = ["Docs", "Source", "Spec"]
+
+[memories]
+generate_memories = true
+use_memories = true
+disable_on_external_context = true
+max_rollouts_per_startup = 16
+max_raw_memories_for_consolidation = 256
 
 [shell_environment_policy]
 inherit = "all"
@@ -106,11 +136,15 @@ enabled_tools = ["sequentialthinking"]
 command = "qmd"
 args = ["mcp"]
 enabled_tools = ["query", "get", "multi_get", "status"]
+startup_timeout_sec = 20
+tool_timeout_sec = 60
 
 [mcp_servers.openaiDeveloperDocs]
 url = "https://developers.openai.com/mcp"
+startup_timeout_sec = 20
+tool_timeout_sec = 60
 
-# --- Telemetry (replaces audit-log hook) ---
+# --- Telemetry (local audit-log hook remains enabled) ---
 
 [otel]
 environment = "dev"
