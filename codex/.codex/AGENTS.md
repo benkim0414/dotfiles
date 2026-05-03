@@ -79,7 +79,7 @@ When implementation is complete:
 2. Run the review loop in `~/.codex/docs/no-pr-review.md` until clean.
 3. Return to the main worktree.
 4. Merge the feature branch into main with a merge commit.
-5. Push main.
+5. Push main with `git push origin HEAD:main`.
 
 No-PR mode allows the final local merge after the review loop. It does not
 relax selective staging, conventional commits, or the ban on rebase/squash.
