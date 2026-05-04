@@ -1,5 +1,3 @@
-@import "catppuccin-mocha.rasi"
-
 configuration {
   modi: "drun,run,window";
   show-icons: true;
@@ -7,59 +5,8 @@ configuration {
   drun-display-format: "{name}";
 }
 
+@theme "catppuccin-default"
+
 * {
   font: "Noto Sans 12";
-  background-color: @base;
-  text-color: @text;
-}
-
-window {
-  background-color: @base;
-  border: 2px;
-  border-color: @mauve;
-  border-radius: 4px;
-  padding: 12px;
-}
-
-mainbox {
-  background-color: transparent;
-  spacing: 8px;
-}
-
-inputbar {
-  background-color: @surface0;
-  border-radius: 4px;
-  padding: 8px;
-}
-
-prompt,
-entry {
-  background-color: transparent;
-  text-color: @text;
-}
-
-listview {
-  background-color: transparent;
-  lines: 8;
-}
-
-element {
-  background-color: transparent;
-  border-radius: 4px;
-  padding: 6px;
-}
-
-element-text,
-element-icon {
-  background-color: transparent;
-  text-color: @text;
-}
-
-element selected {
-  background-color: @mauve;
-}
-
-element selected element-text,
-element selected element-icon {
-  text-color: @base;
 }
