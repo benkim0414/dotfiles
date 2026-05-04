@@ -38,6 +38,7 @@ ExitWorktree → merge → push
 | `writing-plans` | Have a spec/requirements for multi-step work |
 | `test-driven-development` | About to implement a feature or bugfix |
 | `executing-plans` | Have a written plan to execute |
+| `systematic-debugging` | Investigating a bug, test failure, or unexpected behavior |
 | `verification-before-completion` | About to claim something is done/fixed |
 
 ---
