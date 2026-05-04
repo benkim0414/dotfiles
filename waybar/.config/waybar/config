@@ -20,30 +20,36 @@
     "spacing": 8
   },
   "network": {
-    "format-wifi": "{essid} {signalStrength}%",
-    "format-ethernet": "wired",
-    "format-disconnected": "offline",
+    "format-wifi": " {signalStrength}%",
+    "format-ethernet": " wired",
+    "format-disconnected": " offline",
     "tooltip-format": "{ifname}"
   },
   "bluetooth": {
-    "format": "bt",
+    "format": "",
     "format-disabled": "",
-    "format-connected": "bt {num_connections}"
+    "format-connected": " {num_connections}"
   },
   "pulseaudio": {
-    "format": "{volume}%",
-    "format-muted": "muted",
+    "format": "{icon} {volume}%",
+    "format-muted": " muted",
+    "format-icons": {
+      "default": ["", "", ""]
+    },
     "on-click": "pavucontrol"
   },
   "battery": {
-    "format": "{capacity}%",
-    "format-charging": "{capacity}% charging",
+    "format": "{icon} {capacity}%",
+    "format-charging": " {capacity}%",
+    "format-plugged": " {capacity}%",
+    "format-icons": ["", "", "", "", ""],
     "states": {
       "warning": 30,
       "critical": 15
     }
   },
   "clock": {
-    "format": "{:%a %d %b %H:%M}"
+    "format": " {:%H:%M}",
+    "format-alt": " {:%a %d %b}"
   }
 }
