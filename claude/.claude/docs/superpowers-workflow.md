@@ -87,5 +87,6 @@ Skip `brainstorming` and `writing-plans` for single-file or trivial fixes.
   skip checkpoints to speed up — they are the safety valve.
 - `verification-before-completion` is a pre-report gate, not a post-merge check.
   Run it before saying "done" or "fixed", not after.
-- Skills share context with plan mode: `writing-plans` produces a plan you can
-  also feed into plan mode for approval before `executing-plans` begins.
+- Plan mode and `writing-plans` are different granularities: plan mode approves
+  the high-level approach before the worktree opens; `writing-plans` produces
+  the step-by-step breakdown inside the worktree.
