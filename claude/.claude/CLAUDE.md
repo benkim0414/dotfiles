@@ -84,3 +84,4 @@ Do NOT use superpowers for these -- existing workflow takes precedence:
 - Parallel agents: use `caveman:cavecrew` for compressed delegation, not
   `superpowers:dispatching-parallel-agents`.
 - Skill authoring: use `skill-creator` plugin, not `superpowers:writing-skills`.
+- Plugin meta-guidance: existing CLAUDE.md is sufficient; skip `superpowers:using-superpowers`.
