@@ -85,3 +85,5 @@ Do NOT use superpowers for these -- existing workflow takes precedence:
   `superpowers:dispatching-parallel-agents`.
 - Skill authoring: use `skill-creator` plugin, not `superpowers:writing-skills`.
 - Plugin meta-guidance: existing CLAUDE.md is sufficient; skip `superpowers:using-superpowers`.
+
+Workflow integration reference: `~/.claude/docs/superpowers-workflow.md`
