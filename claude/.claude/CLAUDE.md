@@ -62,3 +62,26 @@ injection at session start.
 - After ExitWorktree: wait for the user to merge. Do NOT run `gh pr merge` proactively.
 - After merge: `/pr:merge` handles finalization.
 - YOU MUST use merge commits (`gh pr merge --merge`), never squash or rebase.
+
+## Superpowers integration
+
+`superpowers@superpowers-marketplace` is enabled. Use it for:
+- TDD discipline (`superpowers:test-driven-development`)
+- Root-cause debugging (`superpowers:systematic-debugging`)
+- Pre-completion verification (`superpowers:verification-before-completion`)
+- Socratic design refinement (`superpowers:brainstorming`)
+- Implementation breakdowns (`superpowers:writing-plans`, `superpowers:executing-plans`)
+
+Do NOT use superpowers for these -- existing workflow takes precedence:
+- Worktree management: hooks (`worktree-guard.sh`) enforce isolation; use
+  `EnterWorktree`/`ExitWorktree` tools, not `superpowers:using-git-worktrees`.
+- Finishing branches: use `pr:create`/`pr:merge` (PR mode) or
+  `no-pr-review.md` + ExitWorktree+merge (no-pr mode), not
+  `superpowers:finishing-a-development-branch`.
+- Code review: use `pr:review`, `pr:address`, or `no-pr-review.md`, not
+  `superpowers:requesting-code-review` / `superpowers:receiving-code-review` /
+  `superpowers:subagent-driven-development`.
+- Parallel agents: use `caveman:cavecrew` for compressed delegation, not
+  `superpowers:dispatching-parallel-agents`.
+- Skill authoring: use `skill-creator` plugin, not `superpowers:writing-skills`.
+- Plugin meta-guidance: existing CLAUDE.md is sufficient; skip `superpowers:using-superpowers`.

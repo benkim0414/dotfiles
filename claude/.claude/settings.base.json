@@ -301,6 +301,7 @@
     "feature-dev@claude-plugins-official": true,
     "ralph-loop@claude-plugins-official": true,
     "remember@claude-plugins-official": false,
-    "caveman@caveman": true
+    "caveman@caveman": true,
+    "superpowers@superpowers-marketplace": true
   }
 }
