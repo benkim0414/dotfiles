@@ -4,7 +4,8 @@
   border: none;
   border-radius: 0;
   font-family: "Noto Sans", "JetBrainsMonoNL Nerd Font", "Font Awesome 6 Free", "Font Awesome 6 Brands", sans-serif;
-  font-size: 14px;
+  font-size: 15px;
+  font-weight: 700;
   min-height: 0;
 }
 
@@ -13,81 +14,75 @@ window#waybar {
   color: @text;
 }
 
-#workspaces {
+.modules-center {
   background-color: @surface0;
-  border-radius: 16px;
-  margin: 5px 0 5px 16px;
+  border: 1px solid @surface1;
+  border-radius: 999px;
+  box-shadow: 0 2px 10px alpha(@crust, 0.45);
+  margin-top: 6px;
+  padding: 0 14px;
+}
+
+#workspaces {
+  background-color: transparent;
+  margin: 0 10px;
 }
 
 #workspaces button {
-  border-radius: 16px;
-  color: @lavender;
-  padding: 0 10px;
+  background-color: transparent;
+  border-radius: 999px;
+  color: @overlay1;
+  margin: 5px 2px;
+  min-width: 34px;
+  padding: 0 4px;
 }
 
 #workspaces button.active {
-  color: @sky;
+  background-color: @pink;
+  color: @base;
 }
 
 #workspaces button:hover {
   background: @surface1;
-  color: @sapphire;
+  color: @text;
 }
 
-#window,
-#tray,
 #network,
-#bluetooth,
 #pulseaudio,
-#battery,
+#mpris,
 #clock {
-  background-color: @surface0;
-  margin: 5px 0;
-  padding: 0 14px;
+  background-color: transparent;
+  margin: 0;
+  padding: 0 8px;
 }
 
-#window {
-  border-radius: 16px;
-  color: @mauve;
+#clock {
+  color: @text;
+  padding-left: 10px;
 }
 
-#tray {
-  border-radius: 16px;
-  margin-right: 16px;
+#mpris {
+  color: @sky;
 }
 
-#network {
-  border-radius: 16px 0 0 16px;
-  color: @yellow;
-  margin-left: 16px;
+#mpris.playing,
+#mpris.paused {
+  min-width: 180px;
 }
 
-#bluetooth {
-  color: @sapphire;
+#mpris.paused {
+  color: @overlay2;
 }
 
 #pulseaudio {
-  color: @maroon;
+  color: @yellow;
 }
 
-#battery {
-  color: @green;
+#pulseaudio.muted {
+  color: @overlay2;
 }
 
-#battery.charging {
-  color: @green;
-}
-
-#battery.warning {
-  color: @peach;
-}
-
-#battery.critical {
-  color: @red;
-}
-
-#clock {
-  border-radius: 0 16px 16px 0;
-  color: @blue;
-  margin-right: 16px;
+#network {
+  color: @mauve;
+  padding-right: 10px;
 }
