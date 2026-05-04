@@ -4,23 +4,34 @@
   border: none;
   border-radius: 0;
   font-family: "Noto Sans", "Font Awesome 6 Free", sans-serif;
-  font-size: 13px;
+  font-size: 14px;
   min-height: 0;
 }
 
 window#waybar {
-  background: @base;
+  background: transparent;
   color: @text;
 }
 
+#workspaces {
+  background-color: @surface0;
+  border-radius: 16px;
+  margin: 5px 0 5px 16px;
+}
+
 #workspaces button {
-  color: @subtext0;
-  padding: 0 8px;
+  border-radius: 16px;
+  color: @lavender;
+  padding: 0 10px;
 }
 
 #workspaces button.active {
-  color: @base;
-  background: @mauve;
+  color: @sky;
+}
+
+#workspaces button:hover {
+  background: @surface1;
+  color: @sapphire;
 }
 
 #window,
@@ -30,13 +41,53 @@ window#waybar {
 #pulseaudio,
 #battery,
 #clock {
-  padding: 0 10px;
+  background-color: @surface0;
+  margin: 5px 0;
+  padding: 0 14px;
+}
+
+#window {
+  border-radius: 16px;
+  color: @mauve;
+}
+
+#tray {
+  border-radius: 16px;
+  margin-right: 16px;
+}
+
+#network {
+  border-radius: 16px 0 0 16px;
+  color: @yellow;
+  margin-left: 16px;
+}
+
+#bluetooth {
+  color: @sapphire;
+}
+
+#pulseaudio {
+  color: @maroon;
+}
+
+#battery {
+  color: @green;
+}
+
+#battery.charging {
+  color: @green;
 }
 
 #battery.warning {
-  color: @yellow;
+  color: @peach;
 }
 
 #battery.critical {
   color: @red;
+}
+
+#clock {
+  border-radius: 0 16px 16px 0;
+  color: @blue;
+  margin-right: 16px;
 }
