@@ -21,6 +21,7 @@ codex/.codex/installation_id
 codex/.codex/log/
 codex/.codex/logs*.sqlite*
 codex/.codex/memories/
+codex/.codex/memories-*/
 codex/.codex/models_cache.json
 codex/.codex/sessions/
 codex/.codex/shell_snapshots/
