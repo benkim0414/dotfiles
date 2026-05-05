@@ -10,12 +10,15 @@ model = "gpt-5.5"
 review_model = "gpt-5.4"
 model_auto_compact_token_limit = 160000
 
-# workspace-write: file edits auto-approved within project dir;
-# .git/, .codex/, .agents/ always read-only (built-in protection).
+# workspace-write: auto-approve routine reads, edits, and commands inside the
+# active workspace plus configured writable roots. Protected paths such as
+# .git/, .codex/, and .agents/ stay read-only inside writable roots.
+# Do not use danger-full-access here; it removes the filesystem boundary.
 sandbox_mode = "workspace-write"
 
-# on-request: auto-approves workspace reads/edits, prompts for shell commands.
-# Combined with Starlark allow rules for safe commands (git status, ls, grep).
+# on-request: keep approval prompts available for outside-sandbox and
+# destructive operations. Do not use never here; destructive prompts would be
+# disabled. Rules/hooks decide which commands are allowed, prompted, or blocked.
 approval_policy = "on-request"
 
 file_opener = "none"
@@ -68,8 +71,10 @@ CODEX_GIT_WORKFLOW = "no-pr"
 WIKI_VAULT = "/home/benkim0414/workspace/wiki"
 
 [sandbox_workspace_write]
+# This controls network for sandboxed shell commands only. Built-in Codex web
+# search remains controlled separately by web_search above.
 network_access = false
-writable_roots = []
+writable_roots = ["/home/benkim0414/workspace"]
 
 [tui]
 notifications = true
