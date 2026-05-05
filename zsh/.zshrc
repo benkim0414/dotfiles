@@ -68,6 +68,10 @@ eval "$(mise activate zsh)"
 # Per-machine env (gitignored on each machine, sourced if present)
 [ -r ~/.openclaw/.env ] && set -a && . ~/.openclaw/.env && set +a
 
+# Hermes runtime home is the versioned workspace checkout; this lets the
+# `hermes` command see the repo-managed config, skills, cron jobs, and state.
+export HERMES_HOME="$HOME/workspace/hermes"
+
 alias vi="nvim"
 alias vim="nvim"
 
