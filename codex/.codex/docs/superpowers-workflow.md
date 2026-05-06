@@ -19,17 +19,28 @@ Superpowers improves the work inside those boundaries.
 
 Use these skills directly by name when they fit the task:
 
-| Skill | Use it when |
+| Skill | Use it when | Default action |
 | --- | --- |
-| `superpowers:brainstorming` | The request is creative, ambiguous, or needs product/design refinement before code. |
-| `superpowers:writing-plans` | Requirements are clear enough to turn into an implementation plan. |
-| `superpowers:test-driven-development` | Implementing a feature or bugfix where a focused test can lead the change. |
-| `superpowers:systematic-debugging` | A bug, test failure, warning, or unexpected behavior needs root-cause work. |
-| `superpowers:executing-plans` | A written plan exists and checkpointed batch execution is useful. |
-| `superpowers:verification-before-completion` | You are about to say the work is done, fixed, passing, or ready to merge. |
+| `superpowers:brainstorming` | The request is creative, ambiguous, or needs product/design refinement before code. | Use before opening a worktree when intent is still fluid. |
+| `superpowers:writing-plans` | Requirements are clear enough to turn into an implementation plan. | Use for non-trivial changes that need a handoff-quality plan. |
+| `superpowers:test-driven-development` | Implementing a feature or bugfix where a focused test can lead the change. | Use when the repo has a practical test seam for the behavior. |
+| `superpowers:systematic-debugging` | A bug, test failure, warning, or unexpected behavior needs root-cause work. | Use before editing so the fix follows evidence, not symptoms. |
+| `superpowers:executing-plans` | A written plan exists and checkpointed batch execution is useful. | Use as a checklist, but keep Codex worktree and review policy in charge. |
+| `superpowers:requesting-code-review` | A major task, plan checkpoint, or pre-merge review needs fresh eyes. | Borrow its reviewer prompt shape inside `docs/no-pr-review.md`. |
+| `superpowers:receiving-code-review` | Review feedback must be triaged before fixes. | Verify each finding against the codebase before changing code. |
+| `superpowers:verification-before-completion` | You are about to say the work is done, fixed, passing, or ready to merge. | Run fresh checks, read the output, then make only evidence-backed claims. |
 
 Skip Superpowers for trivial read-only questions, tiny mechanical edits, or
 tasks where the next correct step is already obvious from repo instructions.
+
+Borrow concepts only from these skills unless the user explicitly asks for the
+Superpowers flow:
+
+| Skill | Why it is not the source of truth |
+| --- | --- |
+| `superpowers:using-git-worktrees` | `AGENTS.md` defines this repo's worktree layout and branch creation command. |
+| `superpowers:finishing-a-development-branch` | This repo defaults to no-PR merge after the local review loop, not an open-ended finish menu. |
+| `superpowers:subagent-driven-development` | Codex delegation is controlled by active instructions and should stay bounded and explicit. |
 
 ## Do not delegate these decisions to Superpowers
 
@@ -38,10 +49,12 @@ tasks where the next correct step is already obvious from repo instructions.
   use `superpowers:using-git-worktrees` as the source of truth.
 - **Branch finishing:** use the local no-PR flow: commit in the worktree, run
   `~/.codex/docs/no-pr-review.md`, merge from the main worktree, then push.
-  Do not replace this with `superpowers:finishing-a-development-branch`.
+  Do not replace this with `superpowers:finishing-a-development-branch`; only
+  borrow its safety checks for pre-merge verification, post-merge verification,
+  and cleanup after success.
 - **Code review:** prefer Codex `reviewer` agents and the no-PR review loop.
-  Do not use Superpowers review skills when they conflict with local review
-  policy.
+  Use Superpowers review skills as prompt/checklist material only when they fit
+  `docs/no-pr-review.md`.
 - **Skill authoring:** use Codex `skill-creator`, not
   `superpowers:writing-skills`, unless the task is specifically about
   Superpowers skill style.
@@ -125,6 +138,18 @@ Superpowers skills may mention Claude tool names. Use Codex equivalents:
 
 Only spawn agents when the active Codex instructions allow delegation. Keep
 local workflow policy in the main rollout.
+
+## Codex adaptation rules
+
+- Local repo policy wins over skill text, especially for git, staging, branch
+  cleanup, and review gates.
+- When a Superpowers skill says to dispatch review, use Codex `reviewer` agents
+  only if delegation is allowed and the prompt is bounded to the branch diff.
+- When a Superpowers skill says to finish a branch, continue with
+  `docs/no-pr-review.md` instead of presenting merge/PR/keep/discard choices.
+- When Superpowers guidance conflicts with a user preference, active developer
+  instruction, or hook policy, follow the stricter local rule and note the
+  adaptation in the final response.
 
 ## Verification gate
 
