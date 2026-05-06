@@ -16,10 +16,10 @@ model_auto_compact_token_limit = 160000
 # Do not use danger-full-access here; it removes the filesystem boundary.
 sandbox_mode = "workspace-write"
 
-# on-request: keep approval prompts available for outside-sandbox and
-# destructive operations. Do not use never here; destructive prompts would be
-# disabled. Rules/hooks decide which commands are allowed, prompted, or blocked.
-approval_policy = "on-request"
+# Keep sandbox, execpolicy, MCP, and skill approvals interactive, but do not
+# prompt for Codex's own edit-permission requests. Git workflow hooks still
+# enforce branch isolation and protected operations.
+approval_policy = { granular = { sandbox_approval = true, rules = true, mcp_elicitations = true, request_permissions = false, skill_approval = true } }
 
 file_opener = "none"
 web_search = "live"
