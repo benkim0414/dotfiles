@@ -133,6 +133,8 @@ NEVER run password manager commands:
   that could not be verified.
 - Superpowers is available for planning, TDD, debugging, and verification. For
   how it fits this workflow, read `docs/superpowers-workflow.md`.
+- Adapt Superpowers review and branch-finishing guidance through the local
+  no-PR workflow; do not follow those skills verbatim when they conflict.
 
 ## Review Agents
 
