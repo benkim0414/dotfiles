@@ -131,6 +131,8 @@ NEVER run password manager commands:
   workflow violations.
 - Before the final response, summarize changed files, checks run, and anything
   that could not be verified.
+- Superpowers is available for planning, TDD, debugging, and verification. For
+  how it fits this workflow, read `docs/superpowers-workflow.md`.
 
 ## Review Agents
 
