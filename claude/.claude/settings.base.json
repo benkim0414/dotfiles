@@ -2,10 +2,9 @@
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "env": {
     "DISABLE_COST_WARNINGS": "1",
-    "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "160000",
     "WIKI_VAULT": "/home/benkim0414/workspace/wiki"
   },
-  "model": "opusplan",
+  "model": "opus[1m]",
   "effortLevel": "auto",
   "defaultMode": "acceptEdits",
   "permissions": {
