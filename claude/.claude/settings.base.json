@@ -5,6 +5,7 @@
     "WIKI_VAULT": "/home/benkim0414/workspace/wiki"
   },
   "model": "opus[1m]",
+  "theme": "custom:catppuccin",
   "effortLevel": "auto",
   "defaultMode": "acceptEdits",
   "permissions": {
