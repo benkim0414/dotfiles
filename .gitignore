@@ -19,6 +19,7 @@ codex/.codex/config.toml.bak*
 codex/.codex/history.jsonl
 codex/.codex/installation_id
 codex/.codex/log/
+codex/.codex/logs/
 codex/.codex/logs*.sqlite*
 codex/.codex/memories/
 codex/.codex/memories-*/
