@@ -61,6 +61,7 @@ expected allow, got: %s
 assert_denied "blanket staging" "$repo" "git add ."
 assert_denied "blanket staging with git -C" "$TMPDIR_ROOT" "git -C '$repo' add ."
 assert_denied "direct commit on main" "$repo" "git commit -m test"
+assert_allowed "quoted pipe in search pattern is not a git command" "$repo" "rg -n 'foo|git commit' codex/.codex"
 assert_denied "rebase blocked" "$repo" "git rebase main"
 assert_denied "compound git write blocked" "$repo" "git status && git commit -m test"
 git -C "$repo" checkout -q feature
@@ -193,6 +194,7 @@ expected no decision, got: %s
 }
 
 assert_approval_denied "approval-sensitive command blocked on main" PreToolUse "$repo" "rm -rf ./build"
+assert_approval_no_decision "quoted pipe in search pattern is not approval-sensitive" PreToolUse "$repo" "rg -n 'foo|rm -rf' codex/.codex"
 assert_approval_denied "chained approval-sensitive command blocked on main" PreToolUse "$repo" "git status && rm -rf ./build"
 assert_approval_no_decision "approval-sensitive command allowed in worktree pretool" PreToolUse "$linked" "rm -rf ./build"
 assert_approval_allowed "approval-sensitive request auto-approved in worktree" "$linked" "rm -rf ./build"

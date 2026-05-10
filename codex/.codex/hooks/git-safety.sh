@@ -76,7 +76,7 @@ git_cwd_from_command() {
 
 git_subcommand_pattern() {
   local subcmd="$1"
-  printf '(^|[[:space:];|&])git([[:space:]]+-C[[:space:]]+[^[:space:]]+)?[[:space:]]+%s([[:space:]]|$)' "$subcmd"
+  printf '(^|[[:space:];&])git([[:space:]]+-C[[:space:]]+[^[:space:]]+)?[[:space:]]+%s([[:space:]]|$)' "$subcmd"
 }
 
 has_git_subcommand() {
@@ -91,9 +91,9 @@ if [[ "$command_text" =~ (^|[[:space:]])codex[[:space:]]+execpolicy[[:space:]]+c
   exit 0
 fi
 
-[[ "$command_text" =~ (^|[[:space:];|&])git([[:space:]]+-C[[:space:]]+[^[:space:]]+)?[[:space:]] ]] || exit 0
+[[ "$command_text" =~ (^|[[:space:];&])git([[:space:]]+-C[[:space:]]+[^[:space:]]+)?[[:space:]] ]] || exit 0
 
-git_invocation_count=$(grep -Eo '(^|[[:space:];|&])git([[:space:]]+-C[[:space:]]+[^[:space:]]+)?[[:space:]]+' <<<"$command_text" | wc -l | tr -d ' ')
+git_invocation_count=$(grep -Eo '(^|[[:space:];&])git([[:space:]]+-C[[:space:]]+[^[:space:]]+)?[[:space:]]+' <<<"$command_text" | wc -l | tr -d ' ')
 if (( git_invocation_count > 1 )) && {
   has_git_subcommand "add" ||
   has_git_subcommand "commit" ||
