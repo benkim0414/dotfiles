@@ -1,0 +1,68 @@
+#!/bin/sh
+
+wifi_icon=""
+ethernet_icon=""
+disconnected_icon=""
+
+json_output() {
+  jq -nc \
+    --arg text "$1" \
+    --arg tooltip "$2" \
+    --arg class "$3" \
+    '{text: $text, tooltip: $tooltip, class: $class}'
+}
+
+wifi_device=$(
+  nmcli -t -f DEVICE,TYPE,STATE dev status |
+    awk -F: '$2 == "wifi" && $3 == "connected" { print $1; exit }'
+)
+
+if [ -n "$wifi_device" ]; then
+  ssid=$(iw dev "$wifi_device" link | awk -F': ' '/^[[:space:]]*SSID:/ { print $2; exit }')
+  signal_dbm=$(iw dev "$wifi_device" link | awk '/signal:/ { print int($2); exit }')
+  signal_percent=$(
+    nmcli -t -f SSID,SIGNAL dev wifi list ifname "$wifi_device" --rescan no |
+      awk -F: -v ssid="$ssid" '$1 == ssid { print $2; exit }'
+  )
+
+  if [ -n "$signal_percent" ]; then
+    if [ "$signal_percent" -ge 70 ]; then
+      signal_class="good"
+    elif [ "$signal_percent" -ge 40 ]; then
+      signal_class="warning"
+    else
+      signal_class="critical"
+    fi
+
+    tooltip="$wifi_device $ssid ${signal_percent}%"
+    [ -n "$signal_dbm" ] && tooltip="$tooltip (${signal_dbm} dBm)"
+  elif [ -n "$signal_dbm" ]; then
+    if [ "$signal_dbm" -ge -60 ]; then
+      signal_class="good"
+    elif [ "$signal_dbm" -ge -70 ]; then
+      signal_class="warning"
+    else
+      signal_class="critical"
+    fi
+
+    tooltip="$wifi_device $ssid ${signal_dbm} dBm"
+  else
+    signal_class="critical"
+    tooltip="$wifi_device $ssid signal unavailable"
+  fi
+
+  json_output "$wifi_icon" "$tooltip" "$signal_class"
+  exit 0
+fi
+
+ethernet_device=$(
+  nmcli -t -f DEVICE,TYPE,STATE dev status |
+    awk -F: '$2 == "ethernet" && $3 ~ /^connected/ { print $1; exit }'
+)
+
+if [ -n "$ethernet_device" ]; then
+  json_output "$ethernet_icon" "$ethernet_device" "ethernet"
+  exit 0
+fi
+
+json_output "$disconnected_icon" "Disconnected" "critical"

@@ -47,7 +47,7 @@ window#waybar {
   color: @text;
 }
 
-#network,
+#custom-network,
 #pulseaudio,
 #mpris,
 #clock {
@@ -82,7 +82,19 @@ window#waybar {
   color: @overlay2;
 }
 
-#network {
-  color: @mauve;
+#custom-network {
+  color: @green;
   padding-right: 10px;
+}
+
+#custom-network.warning {
+  color: @yellow;
+}
+
+#custom-network.critical {
+  color: @red;
+}
+
+#custom-network.ethernet {
+  color: @mauve;
 }
