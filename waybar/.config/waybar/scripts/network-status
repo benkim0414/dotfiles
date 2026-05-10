@@ -1,8 +1,7 @@
 #!/bin/sh
 
-wifi_icon=""
-ethernet_icon=""
-disconnected_icon=""
+ethernet_icon="󰈀"
+disconnected_icon="󰤭"
 
 json_output() {
   jq -nc \
@@ -10,6 +9,18 @@ json_output() {
     --arg tooltip "$2" \
     --arg class "$3" \
     '{text: $text, tooltip: $tooltip, class: $class}'
+}
+
+wifi_icon_for_signal() {
+  if [ "$1" -ge 80 ]; then
+    printf '%s\n' "󰤨"
+  elif [ "$1" -ge 60 ]; then
+    printf '%s\n' "󰤥"
+  elif [ "$1" -ge 40 ]; then
+    printf '%s\n' "󰤢"
+  else
+    printf '%s\n' "󰤟"
+  fi
 }
 
 wifi_device=$(
@@ -26,6 +37,8 @@ if [ -n "$wifi_device" ]; then
   )
 
   if [ -n "$signal_percent" ]; then
+    wifi_icon=$(wifi_icon_for_signal "$signal_percent")
+
     if [ "$signal_percent" -ge 70 ]; then
       signal_class="good"
     elif [ "$signal_percent" -ge 40 ]; then
@@ -38,15 +51,19 @@ if [ -n "$wifi_device" ]; then
     [ -n "$signal_dbm" ] && tooltip="$tooltip (${signal_dbm} dBm)"
   elif [ -n "$signal_dbm" ]; then
     if [ "$signal_dbm" -ge -60 ]; then
+      wifi_icon="󰤨"
       signal_class="good"
     elif [ "$signal_dbm" -ge -70 ]; then
+      wifi_icon="󰤥"
       signal_class="warning"
     else
+      wifi_icon="󰤟"
       signal_class="critical"
     fi
 
     tooltip="$wifi_device $ssid ${signal_dbm} dBm"
   else
+    wifi_icon="$disconnected_icon"
     signal_class="critical"
     tooltip="$wifi_device $ssid signal unavailable"
   fi
