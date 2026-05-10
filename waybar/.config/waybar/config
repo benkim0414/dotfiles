@@ -3,7 +3,7 @@
   "position": "top",
   "reload_style_on_change": true,
   "modules-left": [],
-  "modules-center": ["clock", "tray", "mpris", "hyprland/workspaces", "pulseaudio", "network"],
+  "modules-center": ["clock", "tray", "mpris", "hyprland/workspaces", "pulseaudio", "custom/network"],
   "modules-right": [],
   "hyprland/workspaces": {
     "format": "{name}",
@@ -11,13 +11,11 @@
       "*": 5
     }
   },
-  "network": {
-    "format-wifi": "",
-    "format-ethernet": "",
-    "format-disconnected": "",
-    "tooltip-format-wifi": "{ifname} {essid} {signalStrength}%",
-    "tooltip-format-ethernet": "{ifname}",
-    "tooltip-format-disconnected": "Disconnected"
+  "custom/network": {
+    "exec": "sh $HOME/.config/waybar/scripts/network-status",
+    "interval": 10,
+    "return-type": "json",
+    "tooltip": true
   },
   "pulseaudio": {
     "format": "{icon}",
