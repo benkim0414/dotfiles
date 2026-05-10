@@ -50,9 +50,9 @@
     "artist-len": 18,
     "album-len": 0,
     "status-icons": {
-      "playing": "",
-      "paused": "",
-      "stopped": ""
+      "playing": "󰐊",
+      "paused": "󰏤",
+      "stopped": "󰓛"
     },
     "tooltip-format": "{player}: {dynamic}"
   },
