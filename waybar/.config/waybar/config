@@ -3,7 +3,7 @@
   "position": "top",
   "reload_style_on_change": true,
   "modules-left": [],
-  "modules-center": ["clock", "mpris", "hyprland/workspaces", "pulseaudio", "network"],
+  "modules-center": ["clock", "tray", "mpris", "hyprland/workspaces", "pulseaudio", "network"],
   "modules-right": [],
   "hyprland/workspaces": {
     "format": "{name}",
@@ -47,5 +47,9 @@
   "clock": {
     "format": "{:%H:%M}",
     "format-alt": "{:%a %d %b %H:%M}"
+  },
+  "tray": {
+    "icon-size": 16,
+    "spacing": 8
   }
 }
