@@ -32,7 +32,7 @@ model_reasoning_effort = "medium"
 unified_exec = true
 multi_agent = true
 shell_tool = true
-codex_hooks = true
+hooks = true
 memories = true
 goals = true
 
