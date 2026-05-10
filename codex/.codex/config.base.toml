@@ -110,6 +110,15 @@ timeout = 10
 statusMessage = "Checking git command safety"
 
 [[hooks.PreToolUse]]
+matcher = "^Bash$"
+
+[[hooks.PreToolUse.hooks]]
+type = "command"
+command = 'bash "$HOME/.codex/hooks/approval-safety.sh"'
+timeout = 10
+statusMessage = "Checking worktree approval scope"
+
+[[hooks.PreToolUse]]
 matcher = "Edit|Write|^apply_patch$"
 
 [[hooks.PreToolUse.hooks]]
@@ -117,6 +126,14 @@ type = "command"
 command = 'bash "$HOME/.codex/hooks/worktree-guard.sh"'
 timeout = 10
 statusMessage = "Checking worktree isolation"
+
+[[hooks.PermissionRequest]]
+matcher = "^Bash$"
+
+[[hooks.PermissionRequest.hooks]]
+type = "command"
+command = 'bash "$HOME/.codex/hooks/approval-safety.sh"'
+timeout = 10
 
 [[hooks.PostToolUse]]
 matcher = "Bash|Edit|Write|^apply_patch$|mcp__.*"

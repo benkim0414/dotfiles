@@ -92,85 +92,13 @@ prefix_rule(pattern=["op", "item", "get"], decision="forbidden",
 # PROMPT -- require user approval
 # ============================================================
 
-# Destructive filesystem operations
-prefix_rule(pattern=["rm", "-rf"], decision="prompt",
-            justification="Recursive deletion requires approval")
-prefix_rule(pattern=["sudo"], decision="prompt",
-            justification="Elevated privileges require approval")
-
-# Destructive git operations
-prefix_rule(pattern=["git", "reset", "--hard"], decision="prompt",
-            justification="Hard reset requires approval")
-prefix_rule(pattern=["git", "push", "--force"], decision="prompt",
-            justification="Force push requires approval")
-prefix_rule(pattern=["git", "push", "-f"], decision="prompt",
-            justification="Force push requires approval")
-prefix_rule(pattern=["git", "push", "--force-with-lease"], decision="prompt",
-            justification="Force-with-lease push requires approval")
-prefix_rule(pattern=["git", "clean", "-f"], decision="prompt",
-            justification="Git clean requires approval")
-prefix_rule(pattern=["git", "branch", "-D"], decision="prompt",
-            justification="Force branch deletion requires approval")
-
-# GitHub CLI destructive operations
-prefix_rule(pattern=["gh", "repo", "delete"], decision="prompt",
-            justification="Repo deletion requires approval")
-prefix_rule(pattern=["gh", "repo", "archive"], decision="prompt",
-            justification="Repo archive requires approval")
-prefix_rule(pattern=["gh", "release", "delete"], decision="prompt",
-            justification="Release deletion requires approval")
+# The final no-PR merge into main is the only routine approval boundary.
+# approval-safety.sh auto-allows this prompt from linked worktrees and lets the
+# main-worktree merge prompt surface to the user.
+prefix_rule(pattern=["git", "merge"], decision="prompt",
+            justification="Merging into main requires approval")
 prefix_rule(pattern=["gh", "pr", "merge"], decision="prompt",
-            justification="PR merge requires approval")
-prefix_rule(pattern=["gh", "issue", "close"], decision="prompt",
-            justification="Issue close requires approval")
-prefix_rule(pattern=["gh", "issue", "lock"], decision="prompt",
-            justification="Issue lock requires approval")
-prefix_rule(pattern=["gh", "issue", "delete"], decision="prompt",
-            justification="Issue deletion requires approval")
-prefix_rule(pattern=["gh", "run", "cancel"], decision="prompt",
-            justification="Workflow run cancellation requires approval")
-prefix_rule(pattern=["gh", "workflow", "disable"], decision="prompt",
-            justification="Workflow disable requires approval")
-prefix_rule(pattern=["gh", "cache", "delete"], decision="prompt",
-            justification="GitHub cache deletion requires approval")
-prefix_rule(pattern=["gh", "secret", "delete"], decision="prompt",
-            justification="GitHub secret deletion requires approval")
-prefix_rule(pattern=["gh", "variable", "delete"], decision="prompt",
-            justification="GitHub variable deletion requires approval")
-prefix_rule(pattern=["gh", "label", "delete"], decision="prompt",
-            justification="GitHub label deletion requires approval")
-prefix_rule(pattern=["gh", "api", "--method", "DELETE"], decision="prompt",
-            justification="GitHub API deletion requires approval")
-prefix_rule(pattern=["gh", "api", "-X", "DELETE"], decision="prompt",
-            justification="GitHub API deletion requires approval")
-
-# Infrastructure destructive operations
-prefix_rule(pattern=["kubectl", "delete"], decision="prompt",
-            justification="Kubernetes deletion requires approval")
-prefix_rule(pattern=["terraform", "destroy"], decision="prompt",
-            justification="Terraform destroy requires approval")
-prefix_rule(pattern=["helm", "uninstall"], decision="prompt",
-            justification="Helm uninstall requires approval")
-prefix_rule(pattern=["docker", "rm"], decision="prompt",
-            justification="Container removal requires approval")
-prefix_rule(pattern=["docker", "rmi"], decision="prompt",
-            justification="Image removal requires approval")
-prefix_rule(pattern=["docker", "system", "prune"], decision="prompt",
-            justification="Docker prune requires approval")
-prefix_rule(pattern=["docker", "volume", "rm"], decision="prompt",
-            justification="Docker volume removal requires approval")
-prefix_rule(pattern=["docker", "network", "rm"], decision="prompt",
-            justification="Docker network removal requires approval")
-
-# Global package installs
-prefix_rule(pattern=["pip", "install"], decision="prompt",
-            justification="Package installation requires approval")
-prefix_rule(pattern=["npm", "install", "-g"], decision="prompt",
-            justification="Global npm install requires approval")
-prefix_rule(pattern=["cargo", "install"], decision="prompt",
-            justification="Cargo install requires approval")
-prefix_rule(pattern=["go", "install"], decision="prompt",
-            justification="Go install requires approval")
+            justification="Merging a PR requires approval")
 
 # ============================================================
 # ALLOW -- safe operations that should not prompt
@@ -199,8 +127,6 @@ prefix_rule(pattern=["git", "add"], decision="allow",
             justification="Selective staging allowed")
 prefix_rule(pattern=["git", "commit"], decision="allow",
             justification="Commits allowed")
-prefix_rule(pattern=["git", "merge"], decision="allow",
-            justification="Local merge allowed; git-safety hook enforces workflow context")
 prefix_rule(pattern=["git", "push", "origin"], decision="allow",
             justification="Push with explicit remote allowed; git-safety enforces branch and refspec context")
 prefix_rule(pattern=["git", "worktree"], decision="allow",
@@ -209,6 +135,77 @@ prefix_rule(pattern=["git", "checkout"], decision="allow",
             justification="Branch switching is safe")
 prefix_rule(pattern=["git", "switch"], decision="allow",
             justification="Branch switching is safe")
+
+# Approval-sensitive operations are allowed statically to avoid prompts inside
+# isolated worktrees. approval-safety.sh denies these outside linked worktrees.
+prefix_rule(pattern=["rm", "-rf"], decision="allow",
+            justification="Allowed only from linked worktrees by approval-safety hook")
+prefix_rule(pattern=["sudo"], decision="allow",
+            justification="Allowed only from linked worktrees by approval-safety hook")
+prefix_rule(pattern=["git", "reset", "--hard"], decision="allow",
+            justification="Allowed only from linked worktrees by approval-safety hook")
+prefix_rule(pattern=["git", "push", "--force"], decision="allow",
+            justification="Allowed only from linked worktrees by approval-safety hook")
+prefix_rule(pattern=["git", "push", "-f"], decision="allow",
+            justification="Allowed only from linked worktrees by approval-safety hook")
+prefix_rule(pattern=["git", "push", "--force-with-lease"], decision="allow",
+            justification="Allowed only from linked worktrees by approval-safety hook")
+prefix_rule(pattern=["git", "clean", "-f"], decision="allow",
+            justification="Allowed only from linked worktrees by approval-safety hook")
+prefix_rule(pattern=["git", "branch", "-D"], decision="allow",
+            justification="Allowed only from linked worktrees by approval-safety hook")
+prefix_rule(pattern=["gh", "repo", "delete"], decision="allow",
+            justification="Allowed only from linked worktrees by approval-safety hook")
+prefix_rule(pattern=["gh", "repo", "archive"], decision="allow",
+            justification="Allowed only from linked worktrees by approval-safety hook")
+prefix_rule(pattern=["gh", "release", "delete"], decision="allow",
+            justification="Allowed only from linked worktrees by approval-safety hook")
+prefix_rule(pattern=["gh", "issue", "close"], decision="allow",
+            justification="Allowed only from linked worktrees by approval-safety hook")
+prefix_rule(pattern=["gh", "issue", "lock"], decision="allow",
+            justification="Allowed only from linked worktrees by approval-safety hook")
+prefix_rule(pattern=["gh", "issue", "delete"], decision="allow",
+            justification="Allowed only from linked worktrees by approval-safety hook")
+prefix_rule(pattern=["gh", "run", "cancel"], decision="allow",
+            justification="Allowed only from linked worktrees by approval-safety hook")
+prefix_rule(pattern=["gh", "workflow", "disable"], decision="allow",
+            justification="Allowed only from linked worktrees by approval-safety hook")
+prefix_rule(pattern=["gh", "cache", "delete"], decision="allow",
+            justification="Allowed only from linked worktrees by approval-safety hook")
+prefix_rule(pattern=["gh", "secret", "delete"], decision="allow",
+            justification="Allowed only from linked worktrees by approval-safety hook")
+prefix_rule(pattern=["gh", "variable", "delete"], decision="allow",
+            justification="Allowed only from linked worktrees by approval-safety hook")
+prefix_rule(pattern=["gh", "label", "delete"], decision="allow",
+            justification="Allowed only from linked worktrees by approval-safety hook")
+prefix_rule(pattern=["gh", "api", "--method", "DELETE"], decision="allow",
+            justification="Allowed only from linked worktrees by approval-safety hook")
+prefix_rule(pattern=["gh", "api", "-X", "DELETE"], decision="allow",
+            justification="Allowed only from linked worktrees by approval-safety hook")
+prefix_rule(pattern=["kubectl", "delete"], decision="allow",
+            justification="Allowed only from linked worktrees by approval-safety hook")
+prefix_rule(pattern=["terraform", "destroy"], decision="allow",
+            justification="Allowed only from linked worktrees by approval-safety hook")
+prefix_rule(pattern=["helm", "uninstall"], decision="allow",
+            justification="Allowed only from linked worktrees by approval-safety hook")
+prefix_rule(pattern=["docker", "rm"], decision="allow",
+            justification="Allowed only from linked worktrees by approval-safety hook")
+prefix_rule(pattern=["docker", "rmi"], decision="allow",
+            justification="Allowed only from linked worktrees by approval-safety hook")
+prefix_rule(pattern=["docker", "system", "prune"], decision="allow",
+            justification="Allowed only from linked worktrees by approval-safety hook")
+prefix_rule(pattern=["docker", "volume", "rm"], decision="allow",
+            justification="Allowed only from linked worktrees by approval-safety hook")
+prefix_rule(pattern=["docker", "network", "rm"], decision="allow",
+            justification="Allowed only from linked worktrees by approval-safety hook")
+prefix_rule(pattern=["pip", "install"], decision="allow",
+            justification="Allowed only from linked worktrees by approval-safety hook")
+prefix_rule(pattern=["npm", "install", "-g"], decision="allow",
+            justification="Allowed only from linked worktrees by approval-safety hook")
+prefix_rule(pattern=["cargo", "install"], decision="allow",
+            justification="Allowed only from linked worktrees by approval-safety hook")
+prefix_rule(pattern=["go", "install"], decision="allow",
+            justification="Allowed only from linked worktrees by approval-safety hook")
 
 # GitHub CLI read operations
 prefix_rule(pattern=["gh", "pr", "view"], decision="allow",
