@@ -36,7 +36,7 @@ Dry-run package availability before enabling/installing:
 
 ```sh
 dnf repoquery hyprland hyprland-uwsm xdg-desktop-portal-hyprland hyprlock hypridle hyprpaper hyprpolkitagent
-dnf repoquery waybar rofi mako wl-clipboard cliphist grim slurp swappy hyprshot brightnessctl playerctl pavucontrol network-manager-applet blueman wlogout udiskie qt5-qtwayland qt6-qtwayland google-noto-sans-fonts fontawesome-fonts-all xdg-desktop-portal-gtk pipewire wireplumber
+dnf repoquery waybar rofi mako wl-clipboard cliphist grim slurp hyprshot brightnessctl playerctl pavucontrol network-manager-applet blueman wlogout udiskie qt5-qtwayland qt6-qtwayland google-noto-sans-fonts fontawesome-fonts-all xdg-desktop-portal-gtk pipewire wireplumber
 ```
 
 Enable the selected release COPR for Hyprland packages that are not in Fedora's
@@ -45,7 +45,7 @@ enabled repositories, then install:
 ```sh
 sudo dnf copr enable lionheartp/Hyprland
 sudo dnf install -y hyprland hyprland-uwsm xdg-desktop-portal-hyprland hyprlock hypridle hyprpaper hyprpolkitagent
-sudo dnf install -y waybar rofi mako wl-clipboard cliphist grim slurp swappy hyprshot brightnessctl playerctl pavucontrol network-manager-applet blueman wlogout udiskie qt5-qtwayland qt6-qtwayland google-noto-sans-fonts fontawesome-fonts-all xdg-desktop-portal-gtk pipewire wireplumber
+sudo dnf install -y waybar rofi mako wl-clipboard cliphist grim slurp hyprshot brightnessctl playerctl pavucontrol network-manager-applet blueman wlogout udiskie qt5-qtwayland qt6-qtwayland google-noto-sans-fonts fontawesome-fonts-all xdg-desktop-portal-gtk pipewire wireplumber
 ```
 
 Stow the desktop config after packages are installed:
