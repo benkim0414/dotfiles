@@ -18,7 +18,6 @@ window#waybar {
 
 .modules-center {
   background-color: @surface0;
-  border: 1px solid @surface1;
   border-radius: 28px;
   box-shadow: 0 4px 12px alpha(@crust, 0.30);
   margin-top: 6px;
