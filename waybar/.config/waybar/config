@@ -28,11 +28,11 @@
     "on-click": "pavucontrol"
   },
   "bluetooth": {
-    "format": " {status}",
-    "format-disabled": " disabled",
-    "format-off": " off",
+    "format": "",
+    "format-disabled": "",
+    "format-off": "",
     "format-on": "",
-    "format-connected": " {device_alias}",
+    "format-connected": "",
     "format-no-controller": "",
     "max-length": 18,
     "on-click": "blueman-manager",
