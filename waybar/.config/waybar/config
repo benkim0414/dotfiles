@@ -14,7 +14,7 @@
   "custom/network": {
     "exec": "sh $HOME/.config/waybar/scripts/network-status",
     "interval": 10,
-    "on-click": "gnome-control-center wifi",
+    "on-click": "env XDG_CURRENT_DESKTOP=GNOME XDG_SESSION_DESKTOP=gnome gnome-control-center wifi",
     "return-type": "json",
     "tooltip": true
   },
