@@ -4,6 +4,7 @@ set -euo pipefail
 HOOK_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/hooks"
 GIT_SAFETY_HOOK="$HOOK_ROOT/git-safety.sh"
 WORKTREE_GUARD_HOOK="$HOOK_ROOT/worktree-guard.sh"
+APPROVAL_SAFETY_HOOK="$HOOK_ROOT/approval-safety.sh"
 TMPDIR_ROOT=$(mktemp -d)
 trap 'rm -rf "$TMPDIR_ROOT"' EXIT
 
@@ -124,3 +125,77 @@ linked_patch="*** Begin Patch
 
 assert_guard_denied "worktree guard blocks main cwd fallback" "$repo" "$main_patch"
 assert_guard_allowed "worktree guard allows absolute linked worktree patch" "$repo" "$linked_patch" command
+
+run_approval_hook() {
+  local event="$1"
+  local cwd="$2"
+  local cmd="$3"
+  jq -cn --arg event "$event" --arg cwd "$cwd" --arg cmd "$cmd" \
+    '{hook_event_name: $event, tool_name: "Bash", cwd: $cwd, tool_input: {command: $cmd}}' |
+    bash "$APPROVAL_SAFETY_HOOK"
+}
+
+assert_approval_denied() {
+  local name="$1"
+  local event="$2"
+  local cwd="$3"
+  local cmd="$4"
+  local output
+  output=$(run_approval_hook "$event" "$cwd" "$cmd")
+  if [[ "$event" == "PermissionRequest" ]]; then
+    if ! jq -e '.hookSpecificOutput.decision.behavior == "deny"' >/dev/null <<<"$output"; then
+      printf 'not ok - %s
+expected approval deny, got: %s
+' "$name" "$output" >&2
+      return 1
+    fi
+  elif ! jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null <<<"$output"; then
+    printf 'not ok - %s
+expected pretool deny, got: %s
+' "$name" "$output" >&2
+    return 1
+  fi
+  printf 'ok - %s
+' "$name"
+}
+
+assert_approval_allowed() {
+  local name="$1"
+  local cwd="$2"
+  local cmd="$3"
+  local output
+  output=$(run_approval_hook PermissionRequest "$cwd" "$cmd")
+  if ! jq -e '.hookSpecificOutput.decision.behavior == "allow"' >/dev/null <<<"$output"; then
+    printf 'not ok - %s
+expected approval allow, got: %s
+' "$name" "$output" >&2
+    return 1
+  fi
+  printf 'ok - %s
+' "$name"
+}
+
+assert_approval_no_decision() {
+  local name="$1"
+  local event="$2"
+  local cwd="$3"
+  local cmd="$4"
+  local output
+  output=$(run_approval_hook "$event" "$cwd" "$cmd")
+  if [[ -n "$output" ]]; then
+    printf 'not ok - %s
+expected no decision, got: %s
+' "$name" "$output" >&2
+    return 1
+  fi
+  printf 'ok - %s
+' "$name"
+}
+
+assert_approval_denied "approval-sensitive command blocked on main" PreToolUse "$repo" "rm -rf ./build"
+assert_approval_denied "chained approval-sensitive command blocked on main" PreToolUse "$repo" "git status && rm -rf ./build"
+assert_approval_no_decision "approval-sensitive command allowed in worktree pretool" PreToolUse "$linked" "rm -rf ./build"
+assert_approval_allowed "approval-sensitive request auto-approved in worktree" "$linked" "rm -rf ./build"
+assert_approval_no_decision "main merge remains approval prompt" PermissionRequest "$repo" "git merge --no-ff feature-worktree -m merge"
+assert_approval_allowed "worktree merge approval auto-approved" "$linked" "git merge --no-ff feature -m merge"
+assert_approval_denied "sensitive path denied by approval hook" PermissionRequest "$linked" "cat $HOME/.ssh/id_ed25519"
