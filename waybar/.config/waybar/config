@@ -3,7 +3,7 @@
   "position": "top",
   "reload_style_on_change": true,
   "modules-left": [],
-  "modules-center": ["clock", "tray", "mpris", "hyprland/workspaces", "pulseaudio", "custom/network"],
+  "modules-center": ["clock", "tray", "mpris", "hyprland/workspaces", "pulseaudio", "bluetooth", "custom/network"],
   "modules-right": [],
   "hyprland/workspaces": {
     "format": "{name}",
@@ -26,6 +26,19 @@
     },
     "tooltip-format": "{volume}%",
     "on-click": "pavucontrol"
+  },
+  "bluetooth": {
+    "format": " {status}",
+    "format-disabled": " disabled",
+    "format-off": " off",
+    "format-on": "",
+    "format-connected": " {device_alias}",
+    "format-no-controller": "",
+    "max-length": 18,
+    "on-click": "blueman-manager",
+    "tooltip-format": "{controller_alias}\t{controller_address}",
+    "tooltip-format-connected": "{controller_alias}\t{controller_address}\n\n{num_connections} connected\n\n{device_enumerate}",
+    "tooltip-format-enumerate-connected": "{device_alias}\t{device_address}"
   },
   "mpris": {
     "format": "{status_icon} {dynamic}",
