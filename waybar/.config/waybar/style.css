@@ -38,7 +38,7 @@ window#waybar {
 }
 
 #workspaces button.active {
-  background-color: @pink;
+  background-color: @mauve;
   color: @base;
 }
 
