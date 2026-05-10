@@ -54,6 +54,7 @@ window#waybar {
 }
 
 #custom-network,
+#bluetooth,
 #tray,
 #pulseaudio,
 #mpris,
@@ -87,6 +88,10 @@ window#waybar {
 
 #pulseaudio.muted {
   color: @overlay2;
+}
+
+#bluetooth {
+  color: @blue;
 }
 
 #custom-network {
