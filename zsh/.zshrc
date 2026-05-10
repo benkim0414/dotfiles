@@ -2,6 +2,17 @@ HISTFILE="${XDG_STATE_HOME:-$HOME/.local/state}/zsh/history"
 HISTSIZE=50000
 SAVEHIST=50000
 
+if [[ -n ${TMUX-} && ( -z ${WAYLAND_DISPLAY-} || ${XDG_SESSION_TYPE-} == tty ) ]] \
+    && command -v systemctl &>/dev/null; then
+    while IFS='=' read -r name value; do
+        case "$name" in
+            XDG_RUNTIME_DIR|WAYLAND_DISPLAY|DISPLAY|XDG_SESSION_TYPE|XDG_CURRENT_DESKTOP|XDG_SESSION_DESKTOP|HYPRLAND_INSTANCE_SIGNATURE)
+                export "$name=$value"
+                ;;
+        esac
+    done < <(systemctl --user show-environment 2>/dev/null)
+fi
+
 setopt EXTENDED_HISTORY          # Record timestamp and duration
 setopt HIST_IGNORE_ALL_DUPS      # Remove older duplicate entries
 setopt HIST_IGNORE_SPACE         # Don't record entries starting with space
