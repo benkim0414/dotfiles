@@ -107,7 +107,7 @@ git_cwd_from_command() {
 
 git_subcommand_pattern() {
   local subcmd="$1"
-  printf '(^|[[:space:];|&])git([[:space:]]+-C[[:space:]]+[^[:space:]]+)?[[:space:]]+%s([[:space:]]|$)' "$subcmd"
+  printf '(^|[[:space:];&])git([[:space:]]+-C[[:space:]]+[^[:space:]]+)?[[:space:]]+%s([[:space:]]|$)' "$subcmd"
 }
 
 has_git_subcommand() {
@@ -141,30 +141,30 @@ main_branch_for() {
 }
 
 matches_worktree_allowed_command() {
-  [[ "$command_text" =~ (^|[[:space:];|&])rm[[:space:]]+-rf([[:space:]]|$) ]] && return 0
-  [[ "$command_text" =~ (^|[[:space:];|&])sudo([[:space:]]|$) ]] && return 0
-  [[ "$command_text" =~ (^|[[:space:];|&])kubectl[[:space:]]+delete([[:space:]]|$) ]] && return 0
-  [[ "$command_text" =~ (^|[[:space:];|&])terraform[[:space:]]+destroy([[:space:]]|$) ]] && return 0
-  [[ "$command_text" =~ (^|[[:space:];|&])helm[[:space:]]+uninstall([[:space:]]|$) ]] && return 0
-  [[ "$command_text" =~ (^|[[:space:];|&])docker[[:space:]]+(rm|rmi)([[:space:]]|$) ]] && return 0
-  [[ "$command_text" =~ (^|[[:space:];|&])docker[[:space:]]+system[[:space:]]+prune([[:space:]]|$) ]] && return 0
-  [[ "$command_text" =~ (^|[[:space:];|&])docker[[:space:]]+volume[[:space:]]+rm([[:space:]]|$) ]] && return 0
-  [[ "$command_text" =~ (^|[[:space:];|&])docker[[:space:]]+network[[:space:]]+rm([[:space:]]|$) ]] && return 0
-  [[ "$command_text" =~ (^|[[:space:];|&])pip[[:space:]]+install([[:space:]]|$) ]] && return 0
-  [[ "$command_text" =~ (^|[[:space:];|&])npm[[:space:]]+install[[:space:]]+-g([[:space:]]|$) ]] && return 0
-  [[ "$command_text" =~ (^|[[:space:];|&])cargo[[:space:]]+install([[:space:]]|$) ]] && return 0
-  [[ "$command_text" =~ (^|[[:space:];|&])go[[:space:]]+install([[:space:]]|$) ]] && return 0
-  [[ "$command_text" =~ (^|[[:space:];|&])gh[[:space:]]+repo[[:space:]]+(delete|archive)([[:space:]]|$) ]] && return 0
-  [[ "$command_text" =~ (^|[[:space:];|&])gh[[:space:]]+release[[:space:]]+delete([[:space:]]|$) ]] && return 0
-  [[ "$command_text" =~ (^|[[:space:];|&])gh[[:space:]]+issue[[:space:]]+(close|lock|delete)([[:space:]]|$) ]] && return 0
-  [[ "$command_text" =~ (^|[[:space:];|&])gh[[:space:]]+run[[:space:]]+cancel([[:space:]]|$) ]] && return 0
-  [[ "$command_text" =~ (^|[[:space:];|&])gh[[:space:]]+workflow[[:space:]]+disable([[:space:]]|$) ]] && return 0
-  [[ "$command_text" =~ (^|[[:space:];|&])gh[[:space:]]+cache[[:space:]]+delete([[:space:]]|$) ]] && return 0
-  [[ "$command_text" =~ (^|[[:space:];|&])gh[[:space:]]+secret[[:space:]]+delete([[:space:]]|$) ]] && return 0
-  [[ "$command_text" =~ (^|[[:space:];|&])gh[[:space:]]+variable[[:space:]]+delete([[:space:]]|$) ]] && return 0
-  [[ "$command_text" =~ (^|[[:space:];|&])gh[[:space:]]+label[[:space:]]+delete([[:space:]]|$) ]] && return 0
-  [[ "$command_text" =~ (^|[[:space:];|&])gh[[:space:]]+api[[:space:]]+--method[[:space:]]+DELETE([[:space:]]|$) ]] && return 0
-  [[ "$command_text" =~ (^|[[:space:];|&])gh[[:space:]]+api[[:space:]]+-X[[:space:]]+DELETE([[:space:]]|$) ]] && return 0
+  [[ "$command_text" =~ (^|[[:space:];&])rm[[:space:]]+-rf([[:space:]]|$) ]] && return 0
+  [[ "$command_text" =~ (^|[[:space:];&])sudo([[:space:]]|$) ]] && return 0
+  [[ "$command_text" =~ (^|[[:space:];&])kubectl[[:space:]]+delete([[:space:]]|$) ]] && return 0
+  [[ "$command_text" =~ (^|[[:space:];&])terraform[[:space:]]+destroy([[:space:]]|$) ]] && return 0
+  [[ "$command_text" =~ (^|[[:space:];&])helm[[:space:]]+uninstall([[:space:]]|$) ]] && return 0
+  [[ "$command_text" =~ (^|[[:space:];&])docker[[:space:]]+(rm|rmi)([[:space:]]|$) ]] && return 0
+  [[ "$command_text" =~ (^|[[:space:];&])docker[[:space:]]+system[[:space:]]+prune([[:space:]]|$) ]] && return 0
+  [[ "$command_text" =~ (^|[[:space:];&])docker[[:space:]]+volume[[:space:]]+rm([[:space:]]|$) ]] && return 0
+  [[ "$command_text" =~ (^|[[:space:];&])docker[[:space:]]+network[[:space:]]+rm([[:space:]]|$) ]] && return 0
+  [[ "$command_text" =~ (^|[[:space:];&])pip[[:space:]]+install([[:space:]]|$) ]] && return 0
+  [[ "$command_text" =~ (^|[[:space:];&])npm[[:space:]]+install[[:space:]]+-g([[:space:]]|$) ]] && return 0
+  [[ "$command_text" =~ (^|[[:space:];&])cargo[[:space:]]+install([[:space:]]|$) ]] && return 0
+  [[ "$command_text" =~ (^|[[:space:];&])go[[:space:]]+install([[:space:]]|$) ]] && return 0
+  [[ "$command_text" =~ (^|[[:space:];&])gh[[:space:]]+repo[[:space:]]+(delete|archive)([[:space:]]|$) ]] && return 0
+  [[ "$command_text" =~ (^|[[:space:];&])gh[[:space:]]+release[[:space:]]+delete([[:space:]]|$) ]] && return 0
+  [[ "$command_text" =~ (^|[[:space:];&])gh[[:space:]]+issue[[:space:]]+(close|lock|delete)([[:space:]]|$) ]] && return 0
+  [[ "$command_text" =~ (^|[[:space:];&])gh[[:space:]]+run[[:space:]]+cancel([[:space:]]|$) ]] && return 0
+  [[ "$command_text" =~ (^|[[:space:];&])gh[[:space:]]+workflow[[:space:]]+disable([[:space:]]|$) ]] && return 0
+  [[ "$command_text" =~ (^|[[:space:];&])gh[[:space:]]+cache[[:space:]]+delete([[:space:]]|$) ]] && return 0
+  [[ "$command_text" =~ (^|[[:space:];&])gh[[:space:]]+secret[[:space:]]+delete([[:space:]]|$) ]] && return 0
+  [[ "$command_text" =~ (^|[[:space:];&])gh[[:space:]]+variable[[:space:]]+delete([[:space:]]|$) ]] && return 0
+  [[ "$command_text" =~ (^|[[:space:];&])gh[[:space:]]+label[[:space:]]+delete([[:space:]]|$) ]] && return 0
+  [[ "$command_text" =~ (^|[[:space:];&])gh[[:space:]]+api[[:space:]]+--method[[:space:]]+DELETE([[:space:]]|$) ]] && return 0
+  [[ "$command_text" =~ (^|[[:space:];&])gh[[:space:]]+api[[:space:]]+-X[[:space:]]+DELETE([[:space:]]|$) ]] && return 0
 
   has_git_subcommand "reset" && [[ "$command_text" =~ git([[:space:]]+-C[[:space:]]+[^[:space:]]+)?[[:space:]]+reset[[:space:]]+--hard ]] && return 0
   has_git_subcommand "clean" && [[ "$command_text" =~ git([[:space:]]+-C[[:space:]]+[^[:space:]]+)?[[:space:]]+clean[[:space:]]+-f ]] && return 0
