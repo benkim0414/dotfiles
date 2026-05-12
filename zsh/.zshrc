@@ -2,6 +2,10 @@ HISTFILE="${XDG_STATE_HOME:-$HOME/.local/state}/zsh/history"
 HISTSIZE=50000
 SAVEHIST=50000
 
+if command -v keychain &>/dev/null && [[ -t 0 && ( -z ${SSH_AUTH_SOCK-} || ! -S ${SSH_AUTH_SOCK} ) ]]; then
+    eval "$(keychain --eval --quiet ~/.ssh/id_ed25519)"
+fi
+
 if [[ -n ${TMUX-} && ( -z ${WAYLAND_DISPLAY-} || ${XDG_SESSION_TYPE-} == tty ) ]] \
     && command -v systemctl &>/dev/null; then
     while IFS='=' read -r name value; do
