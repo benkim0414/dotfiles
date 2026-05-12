@@ -39,6 +39,9 @@ export BAT_THEME="Catppuccin Mocha"
 # keychain writes the agent socket path here on login; all shells source it
 # so tmux panes and non-login shells find the same agent without re-prompting.
 [[ -f "$HOME/.keychain/$HOST-sh" ]] && source "$HOME/.keychain/$HOST-sh"
+if [[ -n ${SSH_AUTH_SOCK-} && ! -S ${SSH_AUTH_SOCK} ]]; then
+    unset SSH_AUTH_SOCK SSH_AGENT_PID
+fi
 
 # Suppress zoxide's doctor diagnostic in non-interactive shells (e.g. Claude
 # Code's Bash tool) where chpwd_functions is not restored from the snapshot.
