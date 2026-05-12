@@ -39,7 +39,7 @@ layout {
 prefer-no-csd
 screenshot-path "~/Pictures/Screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png"
 
-spawn-at-startup "qs" "-c" "noctalia-shell"
+spawn-sh-at-startup "NIRI_SOCKET=${NIRI_SOCKET:-$(find \"${XDG_RUNTIME_DIR}\" -maxdepth 1 -type s -name \"niri.${WAYLAND_DISPLAY}.*.sock\" -print -quit)} exec qs -c noctalia-shell"
 spawn-sh-at-startup "systemctl --user start plasma-polkit-agent.service || /usr/libexec/kf6/polkit-kde-authentication-agent-1"
 spawn-at-startup "udiskie" "--tray"
 spawn-at-startup "wl-paste" "--type" "text" "--watch" "cliphist" "store"
