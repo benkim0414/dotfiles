@@ -26,38 +26,47 @@ GUI apps in `Brewfile` (`bitwarden`, `google-chrome`, `ghostty`, `raycast`,
 `docker-desktop`, `claude`, `codex`) are macOS-only -- install on Fedora via
 Flatpak, vendor RPMs, or copr. Not managed by this repo.
 
-### Hyprland desktop (Fedora)
+### Niri desktop with Noctalia (Fedora)
 
-Hyprland is intentionally compositor-focused, so the desktop is assembled from
-explicit utilities. Prefer Hyprland ecosystem components where Fedora packaging
-is available, then popular Wayland tools for the roles Hyprland does not cover.
+Niri is intentionally compositor-focused, so the desktop shell is supplied by
+Noctalia and the rest of the session is assembled from explicit Wayland
+utilities. `niri-session` is used for tty1 login so portals and systemd user
+services get the session environment they expect.
 
-Dry-run package availability before enabling/installing:
+Dry-run Fedora package availability before enabling/installing:
 
 ```sh
-dnf repoquery hyprland hyprland-uwsm xdg-desktop-portal-hyprland hyprlock hypridle hyprpaper hyprpolkitagent
-dnf repoquery waybar rofi mako wl-clipboard cliphist grim slurp hyprshot brightnessctl playerctl pavucontrol gnome-control-center blueman wlogout udiskie qt5-qtwayland qt6-qtwayland google-noto-sans-fonts fontawesome-fonts-all xdg-desktop-portal-gtk pipewire wireplumber
+dnf repoquery niri xwayland-satellite xdg-desktop-portal-gnome xdg-desktop-portal-gtk gnome-keyring polkit-kde
+dnf repoquery wl-clipboard cliphist brightnessctl playerctl pavucontrol gnome-control-center blueman udiskie google-noto-sans-fonts fontawesome-fonts-all pipewire wireplumber
 ```
 
-Enable the selected release COPR for Hyprland packages that are not in Fedora's
-enabled repositories, then install:
+Noctalia is packaged through Terra. Install the repository first, then install
+the compositor, shell, portals, and utility packages:
 
 ```sh
-sudo dnf copr enable lionheartp/Hyprland
-sudo dnf install -y hyprland hyprland-uwsm xdg-desktop-portal-hyprland hyprlock hypridle hyprpaper hyprpolkitagent
-sudo dnf install -y waybar rofi mako wl-clipboard cliphist grim slurp hyprshot brightnessctl playerctl pavucontrol gnome-control-center blueman wlogout udiskie qt5-qtwayland qt6-qtwayland google-noto-sans-fonts fontawesome-fonts-all xdg-desktop-portal-gtk pipewire wireplumber
+sudo dnf install -y --nogpgcheck --repofrompath 'terra,https://repos.fyralabs.com/terra$releasever' terra-release
+sudo dnf install -y niri xwayland-satellite xdg-desktop-portal-gnome xdg-desktop-portal-gtk gnome-keyring polkit-kde noctalia-shell
+sudo dnf install -y wl-clipboard cliphist brightnessctl playerctl pavucontrol gnome-control-center blueman udiskie google-noto-sans-fonts fontawesome-fonts-all pipewire wireplumber
 ```
 
 Stow the desktop config after packages are installed:
 
 ```sh
-stow -t ~ hypr hypridle hyprlock hyprpaper waybar rofi mako wlogout xdg-desktop-portal zsh
-systemctl --user enable --now hyprpolkitagent.service
+stow -t ~ niri xdg-desktop-portal zsh
 ```
 
-The `zsh` package starts Hyprland automatically on tty1 through `uwsm`.
-Applications launched from Hyprland use `uwsm app --` where practical so they
-belong to the managed user session.
+The `zsh` package starts Niri automatically on tty1 through `niri-session`.
+Noctalia is launched from `~/.config/niri/config.kdl` with `qs -c
+noctalia-shell`; its GUI-managed settings live under `~/.config/noctalia/` and
+are intentionally not stowed yet. Install `xwayland-satellite` but do not start
+it manually; current Niri starts it on demand for X11 clients.
+
+After the Niri session validates, remove the old Hyprland packages if they are
+still installed:
+
+```sh
+sudo dnf remove hyprland hyprland-uwsm xdg-desktop-portal-hyprland hyprlock hypridle hyprpaper hyprpolkitagent waybar rofi mako wlogout hyprshot
+```
 
 ## Bootstrap (macOS)
 
