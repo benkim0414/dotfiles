@@ -5,11 +5,10 @@ if command -v keychain &>/dev/null && [[ -o interactive && -t 0 ]]; then
     eval "$(keychain --eval --quiet ~/.ssh/id_ed25519)"
 fi
 
-# Start Hyprland on the first TTY as a systemd-managed Wayland session.
-# `uwsm check may-start` keeps this from firing inside nested terminals,
-# SSH sessions, or an already-running graphical session.
-if command -v uwsm &>/dev/null \
-    && [[ -z ${DISPLAY-} && -z ${WAYLAND_DISPLAY-} && "$(tty)" == /dev/tty1 ]] \
-    && uwsm check may-start &>/dev/null; then
-    exec uwsm start hyprland.desktop
+# Start Niri on the first TTY as a systemd-managed Wayland session.
+# The display checks keep this from firing inside nested terminals, SSH
+# sessions, or an already-running graphical session.
+if command -v niri-session &>/dev/null \
+    && [[ -z ${DISPLAY-} && -z ${WAYLAND_DISPLAY-} && "$(tty)" == /dev/tty1 ]]; then
+    exec niri-session
 fi
