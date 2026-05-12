@@ -20,6 +20,7 @@ input {
 layout {
     gaps 8
     center-focused-column "never"
+    background-color "transparent"
 
     default-column-width {
         proportion 0.5
