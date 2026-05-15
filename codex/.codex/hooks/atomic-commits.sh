@@ -56,33 +56,50 @@ find_git_subcommand_index() {
 
 inspect_git_words() {
   local -n words_ref=$1
+  local git_index=-1
+  local i
   local subcommand_index
   local subcommand
   local arg
   local skip_next_commit_value=0
 
-  if ((${#words_ref[@]} == 0)) || [[ "${words_ref[0]}" != "git" ]]; then
+  for ((i = 0; i < ${#words_ref[@]}; i++)); do
+    if [[ "${words_ref[i]}" != "git" ]]; then
+      continue
+    fi
+
+    case "${words_ref[*]:0:i}" in
+      ""|"("|"{"|"then"|"do"|"else"|"command"|"time"|"command "*"("|"time "*"(")
+        git_index="$i"
+        break
+        ;;
+    esac
+  done
+
+  if ((git_index < 0)); then
     return
   fi
 
-  find_git_subcommand_index words_ref
+  local -a git_words=("${words_ref[@]:git_index}")
+
+  find_git_subcommand_index git_words
   subcommand_index="$GIT_SUBCOMMAND_INDEX"
 
-  subcommand="${words_ref[subcommand_index]-}"
+  subcommand="${git_words[subcommand_index]-}"
   case "$subcommand" in
     add)
-      for arg in "${words_ref[@]:subcommand_index + 1}"; do
+      for arg in "${git_words[@]:subcommand_index + 1}"; do
         if [[ "$arg" == "--all" || "$arg" == "--update" || "$arg" =~ ^-[^-[:space:]]*[Au][^[:space:]]*$ ]]; then
-          deny "Broad git add flags and dot pathspecs are disallowed; stage explicit files instead."
+          deny "Broad git add flags and pathspecs are disallowed; stage explicit files instead."
         fi
 
-        if [[ "$arg" == "." || "$arg" == "./" ]]; then
-          deny "Broad git add flags and dot pathspecs are disallowed; stage explicit files instead."
+        if [[ "$arg" == "." || "$arg" == "./" || "$arg" == ":/" || "$arg" == ":" || "$arg" == ":(top)" || "$arg" == *"*"* || "$arg" == *"?"* || "$arg" == *"["* ]]; then
+          deny "Broad git add flags and pathspecs are disallowed; stage explicit files instead."
         fi
       done
       ;;
     commit)
-      for arg in "${words_ref[@]:subcommand_index + 1}"; do
+      for arg in "${git_words[@]:subcommand_index + 1}"; do
         if ((skip_next_commit_value)); then
           skip_next_commit_value=0
           continue
@@ -274,6 +291,9 @@ scan_shell_commands() {
           word+="$next"
           ((i++))
         fi
+        ;;
+      '('|')'|'{'|'}')
+        finish_command
         ;;
       $'\n'|';')
         finish_command
