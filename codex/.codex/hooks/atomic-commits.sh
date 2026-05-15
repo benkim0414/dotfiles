@@ -275,17 +275,20 @@ scan_shell_commands() {
           ((i++))
         fi
         ;;
-      $'\n'|';'|'|')
+      $'\n'|';')
         finish_command
+        ;;
+      '|')
+        finish_command
+        if [[ "$next" == "&" ]]; then
+          ((i++))
+        fi
         ;;
       '&')
         if [[ "$next" == "&" ]]; then
-          finish_command
           ((i++))
-        else
-          word+="$ch"
-          in_word=1
         fi
+        finish_command
         ;;
       '$')
         if [[ "$next" == "(" ]]; then

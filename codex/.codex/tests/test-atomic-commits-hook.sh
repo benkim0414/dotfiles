@@ -69,6 +69,10 @@ assert_denied "true && git add ."
 assert_denied "true; git commit -am 'fix(test): change'"
 assert_denied "printf ok | git add ."
 assert_denied "printf ok | git commit -am fix"
+assert_denied "printf ok |& git add ."
+assert_denied "printf ok |& git commit -am fix"
+assert_denied "sleep 1 & git add ."
+assert_denied "sleep 1 & git commit -am fix"
 assert_denied $'echo ok\ngit add .'
 assert_denied $'echo ok\ngit commit -am fix'
 assert_denied "echo \"\$(git add .)\""
