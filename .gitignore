@@ -10,6 +10,7 @@ tmux/.config/tmux/plugins
 .claude/.credentials.json
 .claude/credentials
 .claude/worktrees/
+.worktrees/
 .remember/
 # Codex runtime artifacts (keep config.base.toml)
 codex/.codex/.personality_migration
