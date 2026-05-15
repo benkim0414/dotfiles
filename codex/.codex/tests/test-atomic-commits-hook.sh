@@ -47,6 +47,8 @@ assert_denied "git add --verbose ."
 assert_denied "git add -N ."
 assert_denied "git add -p ."
 assert_denied "git add -A src/app.ts"
+assert_denied "git add -Av src/app.ts"
+assert_denied "git add -uN src/app.ts"
 assert_denied "git -C /tmp/example add ."
 assert_denied "git commit -a -m 'fix(test): change'"
 assert_denied "git commit -am 'fix(test): change'"
@@ -55,6 +57,9 @@ assert_denied "git commit -aS -m 'fix(test): change'"
 assert_denied "git commit -S -a -m 'fix(test): change'"
 assert_denied "true && git add ."
 assert_denied "true; git commit -am 'fix(test): change'"
+assert_denied $'echo ok\ngit add .'
+assert_denied $'echo ok\ngit commit -am fix'
+assert_denied "echo \"\$(git add .)\""
 
 assert_allowed "git add src/app.ts tests/app.test.ts"
 assert_allowed "git add --verbose src/app.ts"

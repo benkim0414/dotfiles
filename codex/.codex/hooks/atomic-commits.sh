@@ -13,13 +13,41 @@ mask_quoted_content() {
   local text="$1"
   local result=""
   local quote=""
+  local substitution_depth=0
   local ch
+  local next
   local i
 
   for ((i = 0; i < ${#text}; i++)); do
     ch="${text:i:1}"
+    next="${text:i+1:1}"
+
+    if ((substitution_depth > 0)); then
+      if [[ "$ch" == "$" && "$next" == "(" ]]; then
+        result+="; "
+        ((substitution_depth++))
+        ((i++))
+        continue
+      fi
+
+      if [[ "$ch" == ")" ]]; then
+        ((substitution_depth--))
+        result+=";"
+        continue
+      fi
+
+      result+="$ch"
+      continue
+    fi
 
     if [[ -n "$quote" ]]; then
+      if [[ "$quote" == '"' && "$ch" == "$" && "$next" == "(" ]]; then
+        result+="; "
+        substitution_depth=1
+        ((i++))
+        continue
+      fi
+
       if [[ "$ch" == "$quote" ]]; then
         quote=""
       fi
@@ -30,6 +58,13 @@ mask_quoted_content() {
     if [[ "$ch" == "'" || "$ch" == '"' ]]; then
       quote="$ch"
       result+=" "
+      continue
+    fi
+
+    if [[ "$ch" == "$" && "$next" == "(" ]]; then
+      result+="; "
+      substitution_depth=1
+      ((i++))
       continue
     fi
 
@@ -53,9 +88,10 @@ deny() {
 }
 
 command_for_detection="$(mask_quoted_content "$command_text")"
+command_for_detection="${command_for_detection//$'\n'/;}"
 git_prefix='(^|[[:space:]]*(;|&&|\|\|)[[:space:]]*)git([[:space:]]+-C[[:space:]]+[^[:space:]]+)?[[:space:]]+'
 
-if [[ "$command_for_detection" =~ ${git_prefix}add([[:space:]]+[^[:space:];&|]+)*[[:space:]]+(-A|--all|--update|-u)([[:space:]]|$|[;&|]) ]]; then
+if [[ "$command_for_detection" =~ ${git_prefix}add([[:space:]]+[^[:space:];&|]+)*[[:space:]]+(--all|--update|-[^-[:space:];&|]*[Au][^[:space:];&|]*)([[:space:]]|$|[;&|]) ]]; then
   deny "Broad git add flags and dot pathspecs are disallowed; stage explicit files instead."
 fi
 
