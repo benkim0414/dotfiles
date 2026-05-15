@@ -15,9 +15,9 @@ should instead use Codex-native instruction discovery, rules, and lightweight
 hooks where they fit.
 
 Official Codex documentation points to `AGENTS.md` as the durable mechanism for
-global and project-specific instructions. It also recommends telling Codex what
-testing, review, and verification mean for a project, using `/review` for local
-code review, and using hooks for controlled command behavior.
+user-level and project-specific instructions. It also recommends telling Codex
+what testing, review, and verification mean for a project, using `/review` for
+local code review, and using hooks for controlled command behavior.
 
 ## Goal
 
@@ -37,18 +37,18 @@ maintenance.
 
 ## Recommended Approach
 
-Use global advisory guidance plus light enforcement.
+Use user-level advisory guidance plus light enforcement.
 
 The durable behavior should live in the stowed Codex package under
-`codex/.codex/`, so it becomes part of the global Codex home after the normal
+`codex/.codex/`, so it becomes part of the user's Codex home after the normal
 dotfiles sync/stow flow. Project repositories can still override or refine the
 guidance with their own `AGENTS.md` files.
 
 ## Components
 
-### Global Codex Instructions
+### User-Level Codex Instructions
 
-Add `codex/.codex/AGENTS.md` with global working agreements:
+Add `codex/.codex/AGENTS.md` with user-level working agreements:
 
 - Commit each self-contained logical change separately.
 - Use conventional commit subjects: `type(scope): description`.
@@ -66,7 +66,7 @@ Add `codex/.codex/AGENTS.md` with global working agreements:
 
 ### Light Enforcement
 
-Add a global Codex `PreToolUse` hook for shell commands that catches the
+Add a user-level Codex `PreToolUse` hook for shell commands that catches the
 highest-risk habits without overfitting to one repository:
 
 - Block blanket staging commands such as `git add -A`, `git add --all`,
@@ -83,17 +83,17 @@ inside the workspace sandbox.
 
 ### Existing Git Hook Compatibility
 
-Keep the existing global Git `commit-msg` hook as the final conventional commit
+Keep the existing user-level Git `commit-msg` hook as the final conventional commit
 validator. It already enforces allowed conventional commit types, subject
 length, and known scopes based on recent history. Codex guidance should teach
 Codex to work with that hook instead of duplicating all validation inside Codex.
 
 ## Data Flow
 
-1. Codex starts in any repository and loads global instructions from
+1. Codex starts in any repository and loads user-level instructions from
    `~/.codex/AGENTS.md`.
 2. Codex then loads any project-level `AGENTS.md` guidance for the current repo.
-3. During work, Codex follows the global atomic commit workflow unless the
+3. During work, Codex follows the atomic commit workflow unless the
    project provides stricter local rules.
 4. If Codex attempts broad staging or commit-all commands, the Codex hook layer
    blocks the command with a corrective message.
@@ -115,7 +115,7 @@ Codex to work with that hook instead of duplicating all validation inside Codex.
 
 Verification should cover both static configuration and behavior:
 
-- Confirm `codex/.codex/AGENTS.md` exists and contains the global workflow.
+- Confirm `codex/.codex/AGENTS.md` exists and contains the user-level workflow.
 - Confirm the generated or stowed Codex home will expose that file as
   `~/.codex/AGENTS.md`.
 - Test the hook directly with allowed and blocked git command payloads.
@@ -125,6 +125,6 @@ Verification should cover both static configuration and behavior:
 ## Implementation Notes
 
 - Prefer a small Codex-native implementation over copying Claude hook scripts.
-- Keep enforcement global and generic.
+- Keep enforcement generic enough to work across projects.
 - Document the setup in the dotfiles README or `CLAUDE.md` package conventions
   only if the existing sync/stow flow needs clarification.
