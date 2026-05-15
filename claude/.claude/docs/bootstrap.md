@@ -16,6 +16,17 @@ stow -t ~ bat eza ghostty git lazygit mise nvim ssh starship tmux yazi zsh
 mise install                          # provision node, nvim, lazygit, codex CLI per ~/.config/mise/config.toml
 ```
 
+After Codex is installed, enable the global Codex plugins:
+
+```sh
+codex plugin marketplace add EveryInc/compound-engineering-plugin
+bunx @every-env/compound-plugin install compound-engineering --to codex
+```
+
+Then launch `codex`, run `/plugins`, install `Superpowers`, install
+`compound-engineering` from the Compound Engineering marketplace, and restart
+Codex.
+
 mise installs each tool under `~/.local/share/mise/installs/<tool>/<ver>/bin/`
 and prepends those paths in `mise activate zsh`. The zsh config also leaves
 `AUTO_CD` disabled so a missing command like `nvim`, `lazygit`, or `codex`
@@ -82,6 +93,17 @@ stow -t ~ codex                       # stow codex config
 stow -t ~ bat eza ghostty git lazygit mise nvim ssh starship tmux yazi zsh
 mise install                          # provision node, nvim, lazygit, codex CLI per ~/.config/mise/config.toml
 ```
+
+After Codex is installed, enable the global Codex plugins:
+
+```sh
+codex plugin marketplace add EveryInc/compound-engineering-plugin
+bunx @every-env/compound-plugin install compound-engineering --to codex
+```
+
+Then launch `codex`, run `/plugins`, install `Superpowers`, install
+`compound-engineering` from the Compound Engineering marketplace, and restart
+Codex.
 
 After stowing, register MCP servers globally so they are available in all
 Claude Code projects (not just this repo). Use `mcp-add` (from the bin package)
