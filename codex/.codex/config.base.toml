@@ -3,8 +3,10 @@
 model = "gpt-5.5"
 # Use a smaller strong model for review-oriented subagents and review tasks.
 review_model = "gpt-5.4"
-# Compact long sessions automatically before the context window is exhausted.
-model_auto_compact_token_limit = 160000
+# Codex has no schema default for this knob; a clean config reports `null`.
+# Keep the threshold below the local model catalog context budget so compaction
+# can run while there is still room for tool output and the compaction request.
+model_auto_compact_token_limit = 200000
 # Keep reasoning balanced for day-to-day coding latency and depth.
 model_reasoning_effort = "medium"
 
