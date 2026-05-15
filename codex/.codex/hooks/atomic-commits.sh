@@ -22,12 +22,12 @@ deny() {
   exit 0
 }
 
-git_prefix='(^|[[:space:];&])git([[:space:]]+-C[[:space:]]+[^[:space:]]+)?[[:space:]]+'
+git_prefix='(^|[[:space:]]*(;|&&|\|\|)[[:space:]]*)git([[:space:]]+-C[[:space:]]+[^[:space:]]+)?[[:space:]]+'
 
 if [[ "$command_text" =~ ${git_prefix}add[[:space:]]+(-A|--all|--update|-u|--[[:space:]]+\.|\.)([[:space:]]|$|[;&]) ]]; then
   deny "Use explicit pathspecs with git add so commits stay focused."
 fi
 
-if [[ "$command_text" =~ ${git_prefix}commit([[:space:]]+[^[:space:];&]+)*[[:space:]]+(-a|-am[^[:space:];&]*|--all)([[:space:]]|$|[;&]) ]]; then
+if [[ "$command_text" =~ ${git_prefix}commit([[:space:]]+[^[:space:];&|]+)*[[:space:]]+(--all|-[^-[:space:];&|]*a[^[:space:];&|]*)([[:space:]]|$|[;&|]) ]]; then
   deny "Avoid commit-all flags; stage explicit files before committing."
 fi
