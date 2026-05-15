@@ -9,110 +9,6 @@ if [[ -z "$command_text" ]]; then
   exit 0
 fi
 
-mask_quoted_content() {
-  local text="$1"
-  local result=""
-  local quote=""
-  local substitution_depth=0
-  local backtick_substitution=0
-  local ch
-  local next
-  local i
-
-  for ((i = 0; i < ${#text}; i++)); do
-    ch="${text:i:1}"
-    next="${text:i+1:1}"
-
-    if ((substitution_depth > 0)); then
-      if [[ "$ch" == "$" && "$next" == "(" ]]; then
-        result+="; "
-        ((substitution_depth++))
-        ((i++))
-        continue
-      fi
-
-      if [[ "$ch" == ")" ]]; then
-        ((substitution_depth--))
-        result+=";"
-        continue
-      fi
-
-      result+="$ch"
-      continue
-    fi
-
-    if ((backtick_substitution > 0)); then
-      if [[ "$ch" == "\\" && "$next" == "\`" ]]; then
-        result+="  "
-        ((i++))
-        continue
-      fi
-
-      if [[ "$ch" == "\`" ]]; then
-        backtick_substitution=0
-        result+=";"
-        continue
-      fi
-
-      result+="$ch"
-      continue
-    fi
-
-    if [[ -n "$quote" ]]; then
-      if [[ "$quote" == '"' && "$ch" == "\\" ]]; then
-        result+=" "
-        if [[ -n "$next" ]]; then
-          result+=" "
-          ((i++))
-        fi
-        continue
-      fi
-
-      if [[ "$quote" == '"' && "$ch" == "$" && "$next" == "(" ]]; then
-        result+="; "
-        substitution_depth=1
-        ((i++))
-        continue
-      fi
-
-      if [[ "$quote" == '"' && "$ch" == "\`" ]]; then
-        result+="; "
-        backtick_substitution=1
-        continue
-      fi
-
-      if [[ "$ch" == "$quote" ]]; then
-        quote=""
-      fi
-      result+=" "
-      continue
-    fi
-
-    if [[ "$ch" == "'" || "$ch" == '"' ]]; then
-      quote="$ch"
-      result+=" "
-      continue
-    fi
-
-    if [[ "$ch" == "\`" ]]; then
-      result+="; "
-      backtick_substitution=1
-      continue
-    fi
-
-    if [[ "$ch" == "$" && "$next" == "(" ]]; then
-      result+="; "
-      substitution_depth=1
-      ((i++))
-      continue
-    fi
-
-    result+="$ch"
-  done
-
-  printf '%s' "$result"
-}
-
 deny() {
   local reason="$1"
 
@@ -126,18 +22,253 @@ deny() {
   exit 0
 }
 
-command_for_detection="$(mask_quoted_content "$command_text")"
-command_for_detection="${command_for_detection//$'\n'/;}"
-git_prefix='(^|[[:space:]]*(;|&&|\|\||\|)[[:space:]]*)git([[:space:]]+-C[[:space:]]+[^[:space:]]+)?[[:space:]]+'
+is_space() {
+  [[ "$1" == " " || "$1" == $'\t' || "$1" == $'\r' ]]
+}
 
-if [[ "$command_for_detection" =~ ${git_prefix}add([[:space:]]+[^[:space:];&|]+)*[[:space:]]+(--all|--update|-[^-[:space:];&|]*[Au][^[:space:];&|]*)([[:space:]]|$|[;&|]) ]]; then
-  deny "Broad git add flags and dot pathspecs are disallowed; stage explicit files instead."
-fi
+inspect_git_words() {
+  local -n words_ref=$1
+  local index=0
+  local subcommand
+  local arg
 
-if [[ "$command_for_detection" =~ ${git_prefix}add([[:space:]]+[^[:space:];&|]+)*[[:space:]]+\.(/)?([[:space:]]|$|[;&|]) ]]; then
-  deny "Broad git add flags and dot pathspecs are disallowed; stage explicit files instead."
-fi
+  if ((${#words_ref[@]} == 0)) || [[ "${words_ref[0]}" != "git" ]]; then
+    return
+  fi
 
-if [[ "$command_for_detection" =~ ${git_prefix}commit([[:space:]]+[^[:space:];&|]+)*[[:space:]]+(--all|-[^-[:space:];&|]*a[^[:space:];&|]*)([[:space:]]|$|[;&|]) ]]; then
-  deny "Avoid commit-all flags; stage explicit files before committing."
-fi
+  if [[ "${words_ref[1]-}" == "-C" ]]; then
+    index=2
+  fi
+
+  subcommand="${words_ref[index + 1]-}"
+  case "$subcommand" in
+    add)
+      for arg in "${words_ref[@]:index + 2}"; do
+        if [[ "$arg" == "--all" || "$arg" == "--update" || "$arg" =~ ^-[^-[:space:]]*[Au][^[:space:]]*$ ]]; then
+          deny "Broad git add flags and dot pathspecs are disallowed; stage explicit files instead."
+        fi
+
+        if [[ "$arg" == "." || "$arg" == "./" ]]; then
+          deny "Broad git add flags and dot pathspecs are disallowed; stage explicit files instead."
+        fi
+      done
+      ;;
+    commit)
+      for arg in "${words_ref[@]:index + 2}"; do
+        if [[ "$arg" == "--all" || "$arg" =~ ^-[^-[:space:]]*a[^[:space:]]*$ ]]; then
+          deny "Avoid commit-all flags; stage explicit files before committing."
+        fi
+      done
+      ;;
+  esac
+}
+
+scan_dollar_substitution() {
+  local text="$1"
+  local start="$2"
+  local depth=1
+  local quote=""
+  local ch
+  local next
+  local i
+
+  SCAN_INNER=""
+  SCAN_END=$((start + 1))
+
+  for ((i = start + 2; i < ${#text}; i++)); do
+    ch="${text:i:1}"
+    next="${text:i+1:1}"
+
+    if [[ -n "$quote" ]]; then
+      if [[ "$quote" == '"' && "$ch" == "\\" ]]; then
+        ((i++))
+        continue
+      fi
+
+      if [[ "$ch" == "$quote" ]]; then
+        quote=""
+      fi
+      continue
+    fi
+
+    if [[ "$ch" == "'" || "$ch" == '"' ]]; then
+      quote="$ch"
+      continue
+    fi
+
+    if [[ "$ch" == "$" && "$next" == "(" ]]; then
+      ((depth++))
+      ((i++))
+      continue
+    fi
+
+    if [[ "$ch" == ")" ]]; then
+      ((depth--))
+      if ((depth == 0)); then
+        SCAN_INNER="${text:start + 2:i - start - 2}"
+        SCAN_END="$i"
+        return
+      fi
+    fi
+  done
+
+  SCAN_INNER="${text:start + 2}"
+  SCAN_END=$((${#text} - 1))
+}
+
+scan_backtick_substitution() {
+  local text="$1"
+  local start="$2"
+  local ch
+  local next
+  local i
+
+  SCAN_INNER=""
+  SCAN_END="$start"
+
+  for ((i = start + 1; i < ${#text}; i++)); do
+    ch="${text:i:1}"
+    next="${text:i+1:1}"
+
+    if [[ "$ch" == "\\" && "$next" == "\`" ]]; then
+      ((i++))
+      continue
+    fi
+
+    if [[ "$ch" == "\`" ]]; then
+      SCAN_INNER="${text:start + 1:i - start - 1}"
+      SCAN_END="$i"
+      return
+    fi
+  done
+
+  SCAN_INNER="${text:start + 1}"
+  SCAN_END=$((${#text} - 1))
+}
+
+scan_shell_commands() {
+  local text="$1"
+  local -a words=()
+  local word=""
+  local in_word=0
+  local quote=""
+  local ch
+  local next
+  local i
+
+  finish_word() {
+    if ((in_word)); then
+      words+=("$word")
+      word=""
+      in_word=0
+    fi
+  }
+
+  finish_command() {
+    finish_word
+    inspect_git_words words
+    words=()
+  }
+
+  for ((i = 0; i < ${#text}; i++)); do
+    ch="${text:i:1}"
+    next="${text:i+1:1}"
+
+    if [[ -n "$quote" ]]; then
+      if [[ "$quote" == '"' && "$ch" == "\\" ]]; then
+        in_word=1
+        if [[ -n "$next" ]]; then
+          word+="$next"
+          ((i++))
+        fi
+        continue
+      fi
+
+      if [[ "$quote" == '"' && "$ch" == "$" && "$next" == "(" ]]; then
+        scan_dollar_substitution "$text" "$i"
+        scan_shell_commands "$SCAN_INNER"
+        i="$SCAN_END"
+        in_word=1
+        continue
+      fi
+
+      if [[ "$quote" == '"' && "$ch" == "\`" ]]; then
+        scan_backtick_substitution "$text" "$i"
+        scan_shell_commands "$SCAN_INNER"
+        i="$SCAN_END"
+        in_word=1
+        continue
+      fi
+
+      if [[ "$ch" == "$quote" ]]; then
+        quote=""
+        in_word=1
+        continue
+      fi
+
+      word+="$ch"
+      in_word=1
+      continue
+    fi
+
+    if is_space "$ch"; then
+      finish_word
+      continue
+    fi
+
+    case "$ch" in
+      "'")
+        quote="'"
+        in_word=1
+        ;;
+      '"')
+        quote='"'
+        in_word=1
+        ;;
+      "\\")
+        in_word=1
+        if [[ -n "$next" ]]; then
+          word+="$next"
+          ((i++))
+        fi
+        ;;
+      $'\n'|';'|'|')
+        finish_command
+        ;;
+      '&')
+        if [[ "$next" == "&" ]]; then
+          finish_command
+          ((i++))
+        else
+          word+="$ch"
+          in_word=1
+        fi
+        ;;
+      '$')
+        if [[ "$next" == "(" ]]; then
+          scan_dollar_substitution "$text" "$i"
+          scan_shell_commands "$SCAN_INNER"
+          i="$SCAN_END"
+          in_word=1
+        else
+          word+="$ch"
+          in_word=1
+        fi
+        ;;
+      "\`")
+        scan_backtick_substitution "$text" "$i"
+        scan_shell_commands "$SCAN_INNER"
+        i="$SCAN_END"
+        in_word=1
+        ;;
+      *)
+        word+="$ch"
+        in_word=1
+        ;;
+    esac
+  done
+
+  finish_command
+}
+
+scan_shell_commands "$command_text"

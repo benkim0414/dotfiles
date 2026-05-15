@@ -50,12 +50,17 @@ assert_denied "git add -p ."
 assert_denied "git add -A src/app.ts"
 assert_denied "git add -Av src/app.ts"
 assert_denied "git add -uN src/app.ts"
+assert_denied 'git add "."'
+assert_denied 'git add "./"'
+assert_denied 'git add "--all"'
 assert_denied "git -C /tmp/example add ."
 assert_denied "git commit -a -m 'fix(test): change'"
 assert_denied "git commit -am 'fix(test): change'"
 assert_denied "git commit --all -m 'fix(test): change'"
 assert_denied "git commit -aS -m 'fix(test): change'"
 assert_denied "git commit -S -a -m 'fix(test): change'"
+assert_denied 'git commit "--all" -m fix'
+assert_denied 'git commit "-am" fix'
 assert_denied "true && git add ."
 assert_denied "true; git commit -am 'fix(test): change'"
 assert_denied "printf ok | git add ."
