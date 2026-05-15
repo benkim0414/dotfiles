@@ -20,6 +20,10 @@ file_opener = "none"
 # Enable live web search for current documentation and time-sensitive facts.
 web_search = "live"
 
+[features]
+# Keep command hooks explicit in the checked-in base config.
+hooks = true
+
 [tui]
 # Let Codex surface terminal notifications when attention is needed.
 notifications = true
@@ -29,6 +33,15 @@ theme = "catppuccin-mocha"
 [history]
 # Keep conversation history available across Codex sessions.
 persistence = "save-all"
+
+[[hooks.PreToolUse]]
+matcher = "^Bash$"
+
+[[hooks.PreToolUse.hooks]]
+type = "command"
+command = 'bash "$HOME/.codex/hooks/atomic-commits.sh"'
+timeout = 10
+statusMessage = "Checking atomic commit workflow"
 
 [marketplaces.superpowers-marketplace]
 # Load the Superpowers plugin marketplace from its Git repository.
