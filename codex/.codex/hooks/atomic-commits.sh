@@ -14,6 +14,7 @@ mask_quoted_content() {
   local result=""
   local quote=""
   local substitution_depth=0
+  local backtick_substitution=0
   local ch
   local next
   local i
@@ -40,11 +41,43 @@ mask_quoted_content() {
       continue
     fi
 
+    if ((backtick_substitution > 0)); then
+      if [[ "$ch" == "\\" && "$next" == "\`" ]]; then
+        result+="  "
+        ((i++))
+        continue
+      fi
+
+      if [[ "$ch" == "\`" ]]; then
+        backtick_substitution=0
+        result+=";"
+        continue
+      fi
+
+      result+="$ch"
+      continue
+    fi
+
     if [[ -n "$quote" ]]; then
+      if [[ "$quote" == '"' && "$ch" == "\\" ]]; then
+        result+=" "
+        if [[ -n "$next" ]]; then
+          result+=" "
+          ((i++))
+        fi
+        continue
+      fi
+
       if [[ "$quote" == '"' && "$ch" == "$" && "$next" == "(" ]]; then
         result+="; "
         substitution_depth=1
         ((i++))
+        continue
+      fi
+
+      if [[ "$quote" == '"' && "$ch" == "\`" ]]; then
+        result+="; "
+        backtick_substitution=1
         continue
       fi
 
@@ -58,6 +91,12 @@ mask_quoted_content() {
     if [[ "$ch" == "'" || "$ch" == '"' ]]; then
       quote="$ch"
       result+=" "
+      continue
+    fi
+
+    if [[ "$ch" == "\`" ]]; then
+      result+="; "
+      backtick_substitution=1
       continue
     fi
 
@@ -95,7 +134,7 @@ if [[ "$command_for_detection" =~ ${git_prefix}add([[:space:]]+[^[:space:];&|]+)
   deny "Broad git add flags and dot pathspecs are disallowed; stage explicit files instead."
 fi
 
-if [[ "$command_for_detection" =~ ${git_prefix}add([[:space:]]+[^[:space:];&|]+)*[[:space:]]+\.([[:space:]]|$|[;&|]) ]]; then
+if [[ "$command_for_detection" =~ ${git_prefix}add([[:space:]]+[^[:space:];&|]+)*[[:space:]]+\.(/)?([[:space:]]|$|[;&|]) ]]; then
   deny "Broad git add flags and dot pathspecs are disallowed; stage explicit files instead."
 fi
 

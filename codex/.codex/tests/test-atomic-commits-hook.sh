@@ -43,6 +43,7 @@ assert_denied "git add --all"
 assert_denied "git add --update"
 assert_denied "git add -u"
 assert_denied "git add -- ."
+assert_denied "git add ./"
 assert_denied "git add --verbose ."
 assert_denied "git add -N ."
 assert_denied "git add -p ."
@@ -60,6 +61,8 @@ assert_denied "true; git commit -am 'fix(test): change'"
 assert_denied $'echo ok\ngit add .'
 assert_denied $'echo ok\ngit commit -am fix'
 assert_denied "echo \"\$(git add .)\""
+assert_denied "echo \`git add .\`"
+assert_denied "echo \"\`git add .\`\""
 
 assert_allowed "git add src/app.ts tests/app.test.ts"
 assert_allowed "git add --verbose src/app.ts"
@@ -72,3 +75,4 @@ assert_allowed "printf 'git add .'"
 assert_allowed "echo '; git add . ;'"
 assert_allowed "printf '; git add . ;'"
 assert_allowed 'echo "&& git commit -am fix"'
+assert_allowed 'echo "x\"; git add ."'
