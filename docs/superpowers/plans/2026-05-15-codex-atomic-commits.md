@@ -378,42 +378,39 @@ git commit -m "chore(codex): enable atomic commit hook"
 
 Expected: commit succeeds.
 
-## Task 4: Document the Dotfiles Sync Behavior
+## Task 4: Remove Claude-Facing Documentation Step
 
 **Files:**
-- Modify: `CLAUDE.md`
+- No implementation files.
+- Modify this plan only if it still mentions adding Codex workflow docs to
+  `CLAUDE.md`.
 
-- [ ] **Step 1: Update package conventions**
+- [ ] **Step 1: Keep Codex workflow documentation Codex-only**
 
-Use `apply_patch` to add this paragraph to `CLAUDE.md` in the `Package conventions` section, immediately after the paragraph about the `codex/` package:
+Do not modify `CLAUDE.md` for this workflow. The Codex-facing instructions live
+in `codex/.codex/AGENTS.md`, and the hook is wired from
+`codex/.codex/config.base.toml`.
 
-```markdown
-- Codex user instructions live in `codex/.codex/AGENTS.md`. Codex command hooks
-  live in `codex/.codex/hooks/` and are registered from
-  `codex/.codex/config.base.toml`; run `codex-sync` after editing the base
-  config to regenerate the gitignored `config.toml`.
-```
-
-- [ ] **Step 2: Verify the documentation wording avoids forbidden phrasing**
+- [ ] **Step 2: Verify no Claude doc change remains**
 
 Run:
 
 ```bash
-rg -n "[gG]lobal" CLAUDE.md codex/.codex/AGENTS.md docs/superpowers/specs/2026-05-15-codex-atomic-commits-design.md docs/superpowers/plans/2026-05-15-codex-atomic-commits.md
+git diff -- CLAUDE.md
 ```
 
-Expected: no output for the new Codex workflow wording. Existing unrelated text in `CLAUDE.md` may appear if it predates this task; do not rewrite unrelated Claude wording.
+Expected: no output.
 
-- [ ] **Step 3: Commit Task 4**
+- [ ] **Step 3: Commit this plan correction if needed**
 
 Run:
 
 ```bash
-git add CLAUDE.md
-git commit -m "docs(codex): document commit workflow config"
+git add docs/superpowers/plans/2026-05-15-codex-atomic-commits.md
+git commit -m "docs(codex): keep commit workflow docs codex-only"
 ```
 
-Expected: commit succeeds.
+Expected: commit succeeds only if this plan needed correction.
 
 ## Task 5: Final Verification
 
@@ -422,7 +419,7 @@ Expected: commit succeeds.
 - Verify: `codex/.codex/hooks/atomic-commits.sh`
 - Verify: `codex/.codex/tests/test-atomic-commits-hook.sh`
 - Verify: `codex/.codex/config.base.toml`
-- Verify: `CLAUDE.md`
+- Verify: `CLAUDE.md` has no uncommitted changes.
 
 - [ ] **Step 1: Run all focused tests**
 
@@ -481,7 +478,7 @@ Expected: clean after the previous task commits. If the plan file itself is unco
 
 ```bash
 git add docs/superpowers/plans/2026-05-15-codex-atomic-commits.md
-git commit -m "docs(codex): plan atomic commit workflow"
+git commit -m "docs(codex): keep commit workflow docs codex-only"
 ```
 
 - [ ] **Step 4: Summarize the implementation branch**
@@ -492,4 +489,5 @@ Run:
 git log --oneline main..HEAD
 ```
 
-Expected: atomic commits for instructions, hook/tests, config wiring, documentation, and this plan if it was committed on the implementation branch.
+Expected: atomic commits for instructions, hook/tests, config wiring, and this
+plan if it was corrected on the implementation branch.
