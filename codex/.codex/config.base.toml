@@ -30,6 +30,12 @@ theme = "catppuccin-mocha"
 # Keep conversation history available across Codex sessions.
 persistence = "save-all"
 
+[marketplaces.superpowers-marketplace]
+# Load the Superpowers plugin marketplace from its Git repository.
+source = "https://github.com/obra/superpowers-marketplace.git"
+# Tell Codex to treat the marketplace source as a Git checkout.
+source_type = "git"
+
 [marketplaces.compound-engineering-plugin]
 # Load the Compound Engineering plugin marketplace from its Git repository.
 source = "https://github.com/EveryInc/compound-engineering-plugin.git"
