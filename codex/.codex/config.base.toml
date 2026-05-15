@@ -1,30 +1,39 @@
 #:schema https://developers.openai.com/codex/config-schema.json
-# Minimal global Codex configuration.
-#
-# Auto mode is workspace-write sandboxing plus on-request approvals: Codex can
-# edit and run commands in the active workspace, then asks before leaving that
-# boundary or doing approval-sensitive work.
-
+# Use the default interactive coding model.
 model = "gpt-5.5"
+# Use a smaller strong model for review-oriented subagents and review tasks.
 review_model = "gpt-5.4"
+# Compact long sessions automatically before the context window is exhausted.
 model_auto_compact_token_limit = 160000
+# Keep reasoning balanced for day-to-day coding latency and depth.
 model_reasoning_effort = "medium"
 
+# Allow reads plus writes inside the active workspace by default.
 sandbox_mode = "workspace-write"
+# Ask before leaving the sandbox or doing approval-sensitive work.
 approval_policy = "on-request"
 
+# Avoid launching a GUI editor from Codex.
 file_opener = "none"
+# Enable live web search for current documentation and time-sensitive facts.
 web_search = "live"
 
 [tui]
+# Let Codex surface terminal notifications when attention is needed.
 notifications = true
+# Match the existing terminal color theme.
 theme = "catppuccin-mocha"
 
 [history]
+# Keep conversation history available across Codex sessions.
 persistence = "save-all"
 
 [otel]
+# Label telemetry metadata as local development when telemetry is enabled.
 environment = "dev"
+# Disable OpenTelemetry export by default.
 exporter = "none"
+# Disable trace export separately from the general exporter setting.
 trace_exporter = "none"
+# Prevent user prompts from being included in telemetry payloads.
 log_user_prompt = false
