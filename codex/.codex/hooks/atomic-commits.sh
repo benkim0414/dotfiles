@@ -75,20 +75,32 @@ is_transparent_prefix() {
 
 scan_shell_wrapper_words() {
   local -n wrapper_words_ref=$1
-  local executable="${wrapper_words_ref[0]-}"
+  local executable
   local arg
   local i
+  local shell_index=-1
   local scan_next=0
 
-  case "$executable" in
-    bash|sh|zsh)
-      ;;
-    *)
-      return
-      ;;
-  esac
+  for ((i = 0; i < ${#wrapper_words_ref[@]}; i++)); do
+    executable="${wrapper_words_ref[i]}"
 
-  for ((i = 1; i < ${#wrapper_words_ref[@]}; i++)); do
+    case "$executable" in
+      bash|sh|zsh)
+        shell_index="$i"
+        break
+        ;;
+    esac
+
+    if ! is_transparent_prefix "$executable"; then
+      return
+    fi
+  done
+
+  if ((shell_index < 0)); then
+    return
+  fi
+
+  for ((i = shell_index + 1; i < ${#wrapper_words_ref[@]}; i++)); do
     arg="${wrapper_words_ref[i]}"
 
     if ((scan_next)); then
