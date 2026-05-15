@@ -74,6 +74,10 @@ assert_denied "echo \"\`git add .\`\""
 assert_allowed "git add src/app.ts tests/app.test.ts"
 assert_allowed "git add --verbose src/app.ts"
 assert_allowed "git commit -m 'fix(test): change'"
+assert_allowed 'git commit -m "-am"'
+assert_allowed 'git commit -m "--all"'
+assert_allowed 'git commit --message "-a"'
+assert_allowed 'git commit --message=-a'
 assert_allowed "git status --short"
 assert_allowed "rg -n 'git add .' docs"
 assert_allowed "sed -n '1,20p' README.md"

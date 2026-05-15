@@ -31,6 +31,7 @@ inspect_git_words() {
   local index=0
   local subcommand
   local arg
+  local skip_next_commit_value=0
 
   if ((${#words_ref[@]} == 0)) || [[ "${words_ref[0]}" != "git" ]]; then
     return
@@ -55,6 +56,21 @@ inspect_git_words() {
       ;;
     commit)
       for arg in "${words_ref[@]:index + 2}"; do
+        if ((skip_next_commit_value)); then
+          skip_next_commit_value=0
+          continue
+        fi
+
+        case "$arg" in
+          -m|--message|-F|--file)
+            skip_next_commit_value=1
+            continue
+            ;;
+          --message=*|--file=*)
+            continue
+            ;;
+        esac
+
         if [[ "$arg" == "--all" || "$arg" =~ ^-[^-[:space:]]*a[^[:space:]]*$ ]]; then
           deny "Avoid commit-all flags; stage explicit files before committing."
         fi
