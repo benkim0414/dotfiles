@@ -128,7 +128,7 @@ deny() {
 
 command_for_detection="$(mask_quoted_content "$command_text")"
 command_for_detection="${command_for_detection//$'\n'/;}"
-git_prefix='(^|[[:space:]]*(;|&&|\|\|)[[:space:]]*)git([[:space:]]+-C[[:space:]]+[^[:space:]]+)?[[:space:]]+'
+git_prefix='(^|[[:space:]]*(;|&&|\|\||\|)[[:space:]]*)git([[:space:]]+-C[[:space:]]+[^[:space:]]+)?[[:space:]]+'
 
 if [[ "$command_for_detection" =~ ${git_prefix}add([[:space:]]+[^[:space:];&|]+)*[[:space:]]+(--all|--update|-[^-[:space:];&|]*[Au][^[:space:];&|]*)([[:space:]]|$|[;&|]) ]]; then
   deny "Broad git add flags and dot pathspecs are disallowed; stage explicit files instead."
