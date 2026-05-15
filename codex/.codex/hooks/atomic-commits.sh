@@ -24,8 +24,12 @@ deny() {
 
 git_prefix='(^|[[:space:]]*(;|&&|\|\|)[[:space:]]*)git([[:space:]]+-C[[:space:]]+[^[:space:]]+)?[[:space:]]+'
 
-if [[ "$command_text" =~ ${git_prefix}add[[:space:]]+(-A|--all|--update|-u|--[[:space:]]+\.|\.)([[:space:]]|$|[;&]) ]]; then
-  deny "Use explicit pathspecs with git add so commits stay focused."
+if [[ "$command_text" =~ ${git_prefix}add([[:space:]]+[^[:space:];&|]+)*[[:space:]]+(-A|--all|--update|-u)([[:space:]]|$|[;&|]) ]]; then
+  deny "Broad git add flags and dot pathspecs are disallowed; stage explicit files instead."
+fi
+
+if [[ "$command_text" =~ ${git_prefix}add([[:space:]]+[^[:space:];&|]+)*[[:space:]]+\.([[:space:]]|$|[;&|]) ]]; then
+  deny "Broad git add flags and dot pathspecs are disallowed; stage explicit files instead."
 fi
 
 if [[ "$command_text" =~ ${git_prefix}commit([[:space:]]+[^[:space:];&|]+)*[[:space:]]+(--all|-[^-[:space:];&|]*a[^[:space:];&|]*)([[:space:]]|$|[;&|]) ]]; then
