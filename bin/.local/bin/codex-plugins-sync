@@ -1,0 +1,155 @@
+#!/usr/bin/env node
+"use strict";
+
+const { spawn, spawnSync } = require("node:child_process");
+const readline = require("node:readline");
+
+const desiredPlugins = [
+  { marketplace: "superpowers-marketplace", plugin: "superpowers" },
+  { marketplace: "compound-engineering-plugin", plugin: "compound-engineering" },
+];
+
+const args = new Set(process.argv.slice(2));
+const runCompoundConverter = !args.has("--no-compound-converter");
+
+let nextId = 1;
+const pending = new Map();
+
+// Codex does not currently expose `codex plugin install`.
+// Use the app-server API instead of mutating ~/.codex internal caches directly.
+const server = spawn("codex", ["app-server", "--listen", "stdio://"], {
+  stdio: ["pipe", "pipe", "pipe"],
+  cwd: process.env.HOME || process.cwd(),
+});
+const serverClosed = new Promise((resolve) => server.on("exit", resolve));
+
+server.stderr.on("data", (chunk) => process.stderr.write(chunk));
+
+const rl = readline.createInterface({ input: server.stdout });
+rl.on("line", (line) => {
+  if (!line.trim()) return;
+
+  let message;
+  try {
+    message = JSON.parse(line);
+  } catch (error) {
+    process.stderr.write(`codex-plugins-sync: ignoring non-json app-server output: ${line}\n`);
+    return;
+  }
+
+  if (message.id === undefined) return;
+
+  const request = pending.get(message.id);
+  if (!request) return;
+
+  pending.delete(message.id);
+  if (message.error) {
+    request.reject(new Error(JSON.stringify(message.error)));
+  } else {
+    request.resolve(message.result);
+  }
+});
+
+server.on("exit", (code, signal) => {
+  if (pending.size === 0) return;
+
+  const error = new Error(`codex app-server exited unexpectedly: ${signal || code}`);
+  for (const request of pending.values()) {
+    request.reject(error);
+  }
+  pending.clear();
+});
+
+function request(method, params) {
+  const id = nextId++;
+  const payload = { id, method, params };
+
+  return new Promise((resolve, reject) => {
+    pending.set(id, { resolve, reject });
+    server.stdin.write(`${JSON.stringify(payload)}\n`);
+  });
+}
+
+function notify(method, params) {
+  const payload = params === undefined ? { method } : { method, params };
+  server.stdin.write(`${JSON.stringify(payload)}\n`);
+}
+
+function findPlugin(pluginList, marketplaceName, pluginName) {
+  const marketplace = pluginList.marketplaces.find((entry) => entry.name === marketplaceName);
+  if (!marketplace) {
+    throw new Error(`marketplace not found: ${marketplaceName}`);
+  }
+
+  const plugin = marketplace.plugins.find((entry) => entry.name === pluginName);
+  if (!plugin) {
+    throw new Error(`plugin not found: ${pluginName}@${marketplaceName}`);
+  }
+
+  return { marketplace, plugin };
+}
+
+function commandExists(command) {
+  const result = spawnSync("sh", ["-lc", `command -v ${command}`], {
+    stdio: "ignore",
+  });
+  return result.status === 0;
+}
+
+function runChecked(command, args) {
+  const result = spawnSync(command, args, { stdio: "inherit" });
+  if (result.status !== 0) {
+    throw new Error(`${command} ${args.join(" ")} failed with exit code ${result.status}`);
+  }
+}
+
+async function main() {
+  await request("initialize", {
+    clientInfo: { name: "codex-plugins-sync", version: "1" },
+    capabilities: null,
+  });
+  notify("initialized");
+
+  let pluginList = await request("plugin/list", {});
+
+  for (const desired of desiredPlugins) {
+    const { marketplace, plugin } = findPlugin(pluginList, desired.marketplace, desired.plugin);
+
+    if (plugin.installed) {
+      console.log(`${plugin.id} already installed`);
+      continue;
+    }
+
+    console.log(`Installing ${plugin.name}@${marketplace.name}`);
+    await request("plugin/install", {
+      marketplacePath: marketplace.path,
+      pluginName: plugin.name,
+    });
+
+    pluginList = await request("plugin/list", {});
+  }
+
+  server.stdin.end();
+  await serverClosed;
+
+  if (!runCompoundConverter) return;
+
+  if (!commandExists("bunx")) {
+    console.warn("codex-plugins-sync: bunx not found; skipping Compound Engineering converter");
+    return;
+  }
+
+  runChecked("bunx", [
+    "@every-env/compound-plugin",
+    "install",
+    "compound-engineering",
+    "--to",
+    "codex",
+  ]);
+}
+
+main().catch((error) => {
+  server.kill();
+  console.error(`codex-plugins-sync: ${error.message}`);
+  process.exit(1);
+});
