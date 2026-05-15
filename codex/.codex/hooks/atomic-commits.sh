@@ -54,6 +54,61 @@ find_git_subcommand_index() {
   GIT_SUBCOMMAND_INDEX="$i"
 }
 
+is_transparent_prefix() {
+  local word="$1"
+
+  case "$word" in
+    '('|'{'|then|do|else|command|time|exec|sudo|env)
+      return 0
+      ;;
+    *=*)
+      return 0
+      ;;
+    -*)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+scan_shell_wrapper_words() {
+  local -n wrapper_words_ref=$1
+  local executable="${wrapper_words_ref[0]-}"
+  local arg
+  local i
+  local scan_next=0
+
+  case "$executable" in
+    bash|sh|zsh)
+      ;;
+    *)
+      return
+      ;;
+  esac
+
+  for ((i = 1; i < ${#wrapper_words_ref[@]}; i++)); do
+    arg="${wrapper_words_ref[i]}"
+
+    if ((scan_next)); then
+      scan_shell_commands "$arg"
+      return
+    fi
+
+    case "$arg" in
+      -c)
+        scan_next=1
+        ;;
+      --)
+        ;;
+      -*c*)
+        scan_next=1
+        ;;
+    esac
+  done
+}
+
 inspect_git_words() {
   local -n words_ref=$1
   local git_index=-1
@@ -72,14 +127,10 @@ inspect_git_words() {
 
     prefixes_are_safe=1
     for ((j = 0; j < i; j++)); do
-      case "${words_ref[j]}" in
-        '('|'{'|then|do|else|command|time)
-          ;;
-        *)
-          prefixes_are_safe=0
-          break
-          ;;
-      esac
+      if ! is_transparent_prefix "${words_ref[j]}"; then
+        prefixes_are_safe=0
+        break
+      fi
     done
 
     if ((prefixes_are_safe)); then
@@ -87,6 +138,8 @@ inspect_git_words() {
       break
     fi
   done
+
+  scan_shell_wrapper_words words_ref
 
   if ((git_index < 0)); then
     return
@@ -105,7 +158,7 @@ inspect_git_words() {
           deny "Broad git add flags and pathspecs are disallowed; stage explicit files instead."
         fi
 
-        if [[ "$arg" == "." || "$arg" == "./" || "$arg" == ":/" || "$arg" == ":" || "$arg" == ":(top)" || "$arg" == *"*"* || "$arg" == *"?"* || "$arg" == *"["* ]]; then
+        if [[ "$arg" == "." || "$arg" == "./" || "$arg" == ":/" || "$arg" == ":" || "$arg" == ":(top)" || "$arg" == ":!"* || "$arg" == ":^"* || "$arg" == ":(exclude)"* || "$arg" == ":(exclude,"* || "$arg" == *"*"* || "$arg" == *"?"* || "$arg" == *"["* ]]; then
           deny "Broad git add flags and pathspecs are disallowed; stage explicit files instead."
         fi
       done
