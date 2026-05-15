@@ -1,81 +1,20 @@
 #:schema https://developers.openai.com/codex/config-schema.json
-# Codex CLI global configuration
+# Minimal global Codex configuration.
 #
-# Mirrors Claude Code settings.base.json using Codex-native mechanisms:
-#   sandbox_mode + approval_policy  -> permissions (acceptEdits equivalent)
-#   rules/default.rules             -> deny/ask/allow command gating
-#   AGENTS.md                       -> behavioral instructions + domain rules
+# Auto mode is workspace-write sandboxing plus on-request approvals: Codex can
+# edit and run commands in the active workspace, then asks before leaving that
+# boundary or doing approval-sensitive work.
 
 model = "gpt-5.5"
 review_model = "gpt-5.4"
 model_auto_compact_token_limit = 160000
+model_reasoning_effort = "medium"
 
-# workspace-write: auto-approve routine reads, edits, and commands inside the
-# active workspace plus configured writable roots. Protected paths such as
-# .git/, .codex/, and .agents/ stay read-only inside writable roots.
-# Do not use danger-full-access here; it removes the filesystem boundary.
 sandbox_mode = "workspace-write"
-
-# Keep sandbox, execpolicy, MCP, and skill approvals interactive, but do not
-# prompt for Codex's own edit-permission requests. Git workflow hooks still
-# enforce branch isolation and protected operations.
-approval_policy = { granular = { sandbox_approval = true, rules = true, mcp_elicitations = true, request_permissions = false, skill_approval = true } }
+approval_policy = "on-request"
 
 file_opener = "none"
 web_search = "live"
-
-# Notification: Ghostty OSC 777 + tmux bell.
-notify = ["bash", "$HOME/.codex/hooks/notify.sh"]
-model_reasoning_effort = "medium"
-
-[features]
-unified_exec = true
-multi_agent = true
-shell_tool = true
-hooks = true
-memories = true
-goals = true
-
-
-[agents]
-max_threads = 6
-max_depth = 1
-
-[agents.pr_explorer]
-description = "Read-only codebase explorer for gathering evidence before review or changes."
-config_file = "agents/pr-explorer.toml"
-nickname_candidates = ["Scout", "Index", "Atlas"]
-
-[agents.reviewer]
-description = "Independent reviewer focused on correctness, security, and maintainability findings with file-backed evidence."
-config_file = "agents/reviewer.toml"
-nickname_candidates = ["Review", "Audit", "Check"]
-
-[agents.docs_researcher]
-description = "Documentation researcher for current API, package, and platform guidance from primary sources."
-config_file = "agents/docs-researcher.toml"
-nickname_candidates = ["Docs", "Source", "Spec"]
-
-[memories]
-generate_memories = true
-use_memories = true
-disable_on_external_context = true
-max_rollouts_per_startup = 16
-max_raw_memories_for_consolidation = 256
-
-[shell_environment_policy]
-inherit = "all"
-exclude = ["AWS_SECRET*", "OPENAI_API_KEY", "*_TOKEN", "*_SECRET"]
-
-[shell_environment_policy.set]
-CODEX_GIT_WORKFLOW = "no-pr"
-WIKI_VAULT = "/home/benkim0414/workspace/wiki"
-
-[sandbox_workspace_write]
-# This controls network for sandboxed shell commands only. Built-in Codex web
-# search remains controlled separately by web_search above.
-network_access = false
-writable_roots = ["/home/benkim0414/workspace"]
 
 [tui]
 notifications = true
@@ -83,91 +22,6 @@ theme = "catppuccin-mocha"
 
 [history]
 persistence = "save-all"
-
-[[hooks.SessionStart]]
-matcher = "startup|resume|clear"
-
-[[hooks.SessionStart.hooks]]
-type = "command"
-command = 'bash "$HOME/.codex/hooks/git-session-start.sh"'
-timeout = 10
-statusMessage = "Loading git workflow context"
-
-[[hooks.UserPromptSubmit]]
-
-[[hooks.UserPromptSubmit.hooks]]
-type = "command"
-command = 'bash "$HOME/.codex/hooks/resolve-pr-refs.sh"'
-timeout = 10
-
-[[hooks.PreToolUse]]
-matcher = "^Bash$"
-
-[[hooks.PreToolUse.hooks]]
-type = "command"
-command = 'bash "$HOME/.codex/hooks/git-safety.sh"'
-timeout = 10
-statusMessage = "Checking git command safety"
-
-[[hooks.PreToolUse]]
-matcher = "^Bash$"
-
-[[hooks.PreToolUse.hooks]]
-type = "command"
-command = 'bash "$HOME/.codex/hooks/approval-safety.sh"'
-timeout = 10
-statusMessage = "Checking worktree approval scope"
-
-[[hooks.PreToolUse]]
-matcher = "Edit|Write|^apply_patch$"
-
-[[hooks.PreToolUse.hooks]]
-type = "command"
-command = 'bash "$HOME/.codex/hooks/worktree-guard.sh"'
-timeout = 10
-statusMessage = "Checking worktree isolation"
-
-[[hooks.PermissionRequest]]
-matcher = "^Bash$"
-
-[[hooks.PermissionRequest.hooks]]
-type = "command"
-command = 'bash "$HOME/.codex/hooks/approval-safety.sh"'
-timeout = 10
-
-[[hooks.PostToolUse]]
-matcher = "Bash|Edit|Write|^apply_patch$|mcp__.*"
-
-[[hooks.PostToolUse.hooks]]
-type = "command"
-command = 'bash "$HOME/.codex/hooks/audit-log.sh"'
-timeout = 10
-
-[[hooks.Stop]]
-
-[[hooks.Stop.hooks]]
-type = "command"
-command = 'bash "$HOME/.codex/hooks/capture-session-to-wiki.sh"'
-timeout = 10
-
-[mcp_servers.sequential-thinking]
-command = "npx"
-args = ["-y", "@modelcontextprotocol/server-sequential-thinking"]
-enabled_tools = ["sequentialthinking"]
-
-[mcp_servers.qmd]
-command = "qmd"
-args = ["mcp"]
-enabled_tools = ["query", "get", "multi_get", "status"]
-startup_timeout_sec = 20
-tool_timeout_sec = 60
-
-[mcp_servers.openaiDeveloperDocs]
-url = "https://developers.openai.com/mcp"
-startup_timeout_sec = 20
-tool_timeout_sec = 60
-
-# --- Telemetry (local audit-log hook remains enabled) ---
 
 [otel]
 environment = "dev"

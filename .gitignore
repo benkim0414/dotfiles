@@ -11,7 +11,7 @@ tmux/.config/tmux/plugins
 .claude/credentials
 .claude/worktrees/
 .remember/
-# Codex runtime artifacts (keep config.base.toml, AGENTS.md, hooks/, rules/)
+# Codex runtime artifacts (keep config.base.toml)
 codex/.codex/.personality_migration
 codex/.codex/auth.json
 codex/.codex/cache/
@@ -25,6 +25,7 @@ codex/.codex/logs*.sqlite*
 codex/.codex/memories/
 codex/.codex/memories-*/
 codex/.codex/models_cache.json
+codex/.codex/plugins/
 codex/.codex/sessions/
 codex/.codex/shell_snapshots/
 codex/.codex/skills/
