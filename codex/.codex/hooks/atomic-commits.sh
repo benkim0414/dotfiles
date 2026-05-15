@@ -58,6 +58,8 @@ inspect_git_words() {
   local -n words_ref=$1
   local git_index=-1
   local i
+  local j
+  local prefixes_are_safe
   local subcommand_index
   local subcommand
   local arg
@@ -68,12 +70,22 @@ inspect_git_words() {
       continue
     fi
 
-    case "${words_ref[*]:0:i}" in
-      ""|"("|"{"|"then"|"do"|"else"|"command"|"time"|"command "*"("|"time "*"(")
-        git_index="$i"
-        break
-        ;;
-    esac
+    prefixes_are_safe=1
+    for ((j = 0; j < i; j++)); do
+      case "${words_ref[j]}" in
+        '('|'{'|then|do|else|command|time)
+          ;;
+        *)
+          prefixes_are_safe=0
+          break
+          ;;
+      esac
+    done
+
+    if ((prefixes_are_safe)); then
+      git_index="$i"
+      break
+    fi
   done
 
   if ((git_index < 0)); then
@@ -89,7 +101,7 @@ inspect_git_words() {
   case "$subcommand" in
     add)
       for arg in "${git_words[@]:subcommand_index + 1}"; do
-        if [[ "$arg" == "--all" || "$arg" == "--update" || "$arg" =~ ^-[^-[:space:]]*[Au][^[:space:]]*$ ]]; then
+        if [[ "$arg" == "--all" || "$arg" == "--update" || "$arg" == "--pathspec-from-file" || "$arg" == --pathspec-from-file=* || "$arg" == "--pathspec-file-nul" || "$arg" =~ ^-[^-[:space:]]*[Au][^[:space:]]*$ ]]; then
           deny "Broad git add flags and pathspecs are disallowed; stage explicit files instead."
         fi
 
