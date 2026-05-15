@@ -26,9 +26,37 @@ is_space() {
   [[ "$1" == " " || "$1" == $'\t' || "$1" == $'\r' ]]
 }
 
+find_git_subcommand_index() {
+  local -n git_words_ref=$1
+  local i=1
+  local arg
+
+  while ((i < ${#git_words_ref[@]})); do
+    arg="${git_words_ref[i]}"
+
+    case "$arg" in
+      -C|-c|--git-dir|--work-tree|--namespace|--exec-path|--super-prefix|--config-env)
+        ((i += 2))
+        ;;
+      --git-dir=*|--work-tree=*|--namespace=*|--exec-path=*|--super-prefix=*|--config-env=*)
+        ((i++))
+        ;;
+      --bare|--no-pager|--literal-pathspecs|--no-optional-locks|--no-replace-objects|--paginate)
+        ((i++))
+        ;;
+      *)
+        GIT_SUBCOMMAND_INDEX="$i"
+        return
+        ;;
+    esac
+  done
+
+  GIT_SUBCOMMAND_INDEX="$i"
+}
+
 inspect_git_words() {
   local -n words_ref=$1
-  local index=0
+  local subcommand_index
   local subcommand
   local arg
   local skip_next_commit_value=0
@@ -37,14 +65,13 @@ inspect_git_words() {
     return
   fi
 
-  if [[ "${words_ref[1]-}" == "-C" ]]; then
-    index=2
-  fi
+  find_git_subcommand_index words_ref
+  subcommand_index="$GIT_SUBCOMMAND_INDEX"
 
-  subcommand="${words_ref[index + 1]-}"
+  subcommand="${words_ref[subcommand_index]-}"
   case "$subcommand" in
     add)
-      for arg in "${words_ref[@]:index + 2}"; do
+      for arg in "${words_ref[@]:subcommand_index + 1}"; do
         if [[ "$arg" == "--all" || "$arg" == "--update" || "$arg" =~ ^-[^-[:space:]]*[Au][^[:space:]]*$ ]]; then
           deny "Broad git add flags and dot pathspecs are disallowed; stage explicit files instead."
         fi
@@ -55,7 +82,7 @@ inspect_git_words() {
       done
       ;;
     commit)
-      for arg in "${words_ref[@]:index + 2}"; do
+      for arg in "${words_ref[@]:subcommand_index + 1}"; do
         if ((skip_next_commit_value)); then
           skip_next_commit_value=0
           continue
