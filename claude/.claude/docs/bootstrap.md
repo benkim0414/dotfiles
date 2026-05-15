@@ -16,16 +16,22 @@ stow -t ~ bat eza ghostty git lazygit mise nvim ssh starship tmux yazi zsh
 mise install                          # provision node, nvim, lazygit, codex CLI per ~/.config/mise/config.toml
 ```
 
-After Codex is installed, enable the global Codex plugins:
+After Codex is installed, install the Codex plugins:
 
 ```sh
-codex plugin marketplace add EveryInc/compound-engineering-plugin
-bunx @every-env/compound-plugin install compound-engineering --to codex
+codex-plugins-sync
 ```
 
-Then launch `codex`, run `/plugins`, install `Superpowers`, install
-`compound-engineering` from the Compound Engineering marketplace, and restart
-Codex.
+The Compound Engineering and Superpowers marketplaces are declared in
+`~/.codex/config.toml`. `codex-plugins-sync` installs `Superpowers` and
+`compound-engineering` through Codex's app-server API, then runs the Compound
+Engineering Bun converter when `bunx` is available. Restart Codex after it
+finishes.
+
+Caveat: Codex does not currently expose a public `codex plugin install`
+subcommand, so `codex-plugins-sync` uses the generated app-server protocol. This
+avoids editing internal plugin cache files directly, but should be replaced with
+the public CLI if Codex adds one.
 
 mise installs each tool under `~/.local/share/mise/installs/<tool>/<ver>/bin/`
 and prepends those paths in `mise activate zsh`. The zsh config also leaves
@@ -94,16 +100,22 @@ stow -t ~ bat eza ghostty git lazygit mise nvim ssh starship tmux yazi zsh
 mise install                          # provision node, nvim, lazygit, codex CLI per ~/.config/mise/config.toml
 ```
 
-After Codex is installed, enable the global Codex plugins:
+After Codex is installed, install the Codex plugins:
 
 ```sh
-codex plugin marketplace add EveryInc/compound-engineering-plugin
-bunx @every-env/compound-plugin install compound-engineering --to codex
+codex-plugins-sync
 ```
 
-Then launch `codex`, run `/plugins`, install `Superpowers`, install
-`compound-engineering` from the Compound Engineering marketplace, and restart
-Codex.
+The Compound Engineering and Superpowers marketplaces are declared in
+`~/.codex/config.toml`. `codex-plugins-sync` installs `Superpowers` and
+`compound-engineering` through Codex's app-server API, then runs the Compound
+Engineering Bun converter when `bunx` is available. Restart Codex after it
+finishes.
+
+Caveat: Codex does not currently expose a public `codex plugin install`
+subcommand, so `codex-plugins-sync` uses the generated app-server protocol. This
+avoids editing internal plugin cache files directly, but should be replaced with
+the public CLI if Codex adds one.
 
 After stowing, register MCP servers globally so they are available in all
 Claude Code projects (not just this repo). Use `mcp-add` (from the bin package)
