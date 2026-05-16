@@ -76,18 +76,19 @@ Examples inside a linked worktree:
 - `git add .`: denied by the atomic commit hook.
 - `git commit -am "fix(app): update"`: denied by the atomic commit hook.
 
-## Implementation Constraint
+## Verified Codex Limitation
 
-Before implementation, verify how Codex can grant approval from local policy:
+Codex currently exposes the local policy needed to deny unsafe commands, but this
+setup does not have a verified way to express "allow Git commands without
+approval only when the current checkout is a linked Git worktree." The config
+schema supports broad approval modes and granular approval categories, but no
+verified command-pattern plus worktree-scoped rule. The local hook examples only
+use `permissionDecision = "deny"`.
 
-- If `PreToolUse` hooks support an explicit allow decision that bypasses an
-  approval prompt, add worktree-aware allow output after the atomic commit
-  checks pass.
-- If hooks can only deny, use Codex config rules if they support a worktree-
-  scoped Git allow policy.
-- If neither mechanism can express "allow Git without approval only in linked
-  worktrees," keep atomic enforcement unchanged and document the limitation
-  instead of weakening global approval settings.
+Because the scoped approval bypass cannot be expressed safely, implementation
+must keep `approval_policy = "on-request"` unchanged and preserve the atomic
+commit hook unchanged except for test coverage. Do not replace this with
+`approval_policy = "never"` or a global Git allow rule.
 
 ## Components
 
