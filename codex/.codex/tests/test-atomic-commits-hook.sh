@@ -1,7 +1,33 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-HOOK_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/hooks"; HOOK="$HOOK_ROOT/atomic-commits.sh"
+HOOK_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/hooks"
+HOOK="$HOOK_ROOT/atomic-commits.sh"
+TEST_ROOT=""
+PRIMARY_REPO=""
+LINKED_WORKTREE=""
+
+cleanup() {
+  if [[ -n "$TEST_ROOT" && -d "$TEST_ROOT" ]]; then
+    rm -rf "$TEST_ROOT"
+  fi
+}
+
+trap cleanup EXIT
+
+setup_git_fixture() {
+  TEST_ROOT="$(mktemp -d)"
+  PRIMARY_REPO="$TEST_ROOT/primary"
+  LINKED_WORKTREE="$TEST_ROOT/linked"
+
+  git init "$PRIMARY_REPO" >/dev/null
+  git -C "$PRIMARY_REPO" config user.email "codex@example.test"
+  git -C "$PRIMARY_REPO" config user.name "Codex Test"
+  printf 'fixture\n' >"$PRIMARY_REPO/README.md"
+  git -C "$PRIMARY_REPO" add README.md
+  git -C "$PRIMARY_REPO" commit -m "test: seed fixture" >/dev/null
+  git -C "$PRIMARY_REPO" worktree add "$LINKED_WORKTREE" -b fixture-worktree >/dev/null
+}
 
 run_hook() {
   local cmd="$1"
@@ -13,6 +39,23 @@ run_hook() {
       command: $cmd
     }
   }' | bash "$HOOK"
+}
+
+run_hook_in_dir() {
+  local cwd="$1"
+  local cmd="$2"
+
+  (
+    cd "$cwd"
+    jq -cn --arg cmd "$cmd" --arg cwd "$PWD" '{
+      hook_event_name: "PreToolUse",
+      tool_name: "Bash",
+      cwd: $cwd,
+      tool_input: {
+        command: $cmd
+      }
+    }' | bash "$HOOK"
+  )
 }
 
 assert_denied() {
@@ -35,6 +78,30 @@ assert_allowed() {
     return 1
   fi
   echo "ok allowed: $cmd"
+}
+
+assert_denied_in_dir() {
+  local cwd="$1"
+  local cmd="$2"
+  local output
+
+  output="$(run_hook_in_dir "$cwd" "$cmd")"
+  jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null <<<"$output"
+  echo "ok denied in $cwd: $cmd"
+}
+
+assert_allowed_in_dir() {
+  local cwd="$1"
+  local cmd="$2"
+  local output
+
+  output="$(run_hook_in_dir "$cwd" "$cmd")"
+  if [[ -n "$output" ]] && jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null <<<"$output"; then
+    echo "expected allowed in $cwd but denied: $cmd" >&2
+    echo "$output" >&2
+    return 1
+  fi
+  echo "ok allowed in $cwd: $cmd"
 }
 
 assert_denied "git add ."
@@ -144,3 +211,19 @@ assert_allowed "echo '; git add . ;'"
 assert_allowed "printf '; git add . ;'"
 assert_allowed 'echo "&& git commit -am fix"'
 assert_allowed 'echo "x\"; git add ."'
+
+setup_git_fixture
+
+assert_denied_in_dir "$PRIMARY_REPO" "git add ."
+assert_denied_in_dir "$PRIMARY_REPO" "git add -A"
+assert_denied_in_dir "$PRIMARY_REPO" "git add -u"
+assert_denied_in_dir "$PRIMARY_REPO" "git commit -am 'fix(test): change'"
+assert_allowed_in_dir "$PRIMARY_REPO" "git add README.md"
+assert_allowed_in_dir "$PRIMARY_REPO" "git commit -m 'fix(test): change'"
+
+assert_denied_in_dir "$LINKED_WORKTREE" "git add ."
+assert_denied_in_dir "$LINKED_WORKTREE" "git add -A"
+assert_denied_in_dir "$LINKED_WORKTREE" "git add -u"
+assert_denied_in_dir "$LINKED_WORKTREE" "git commit -am 'fix(test): change'"
+assert_allowed_in_dir "$LINKED_WORKTREE" "git add README.md"
+assert_allowed_in_dir "$LINKED_WORKTREE" "git commit -m 'fix(test): change'"
