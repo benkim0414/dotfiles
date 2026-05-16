@@ -536,7 +536,7 @@ Expected: diffs match the selected implementation path and contain no generated 
 
 Update checkbox statuses in this plan for the tasks executed. Leave tasks from the unselected path unchecked.
 
-- [ ] **Step 2: Commit the plan execution updates**
+- [x] **Step 2: Commit the plan execution updates**
 
 Run:
 
@@ -547,7 +547,7 @@ git commit -m "docs(codex): plan worktree git approval"
 
 Expected: commit succeeds.
 
-- [ ] **Step 3: Report final branch state**
+- [x] **Step 3: Report final branch state**
 
 Run:
 
