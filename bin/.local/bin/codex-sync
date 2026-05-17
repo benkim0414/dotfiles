@@ -5,10 +5,83 @@ dotfiles="${DOTFILES:-$HOME/workspace/dotfiles}"
 codex_dir="$dotfiles/codex/.codex"
 base_config="$codex_dir/config.base.toml"
 generated_config="$codex_dir/config.toml"
+tracked_atomic_hook="$codex_dir/hooks/atomic-commits.sh"
+codex_home="${CODEX_HOME:-$HOME/.codex}"
+live_config="$codex_home/config.toml"
+live_hooks_dir="$codex_home/hooks"
+live_atomic_hook="$live_hooks_dir/atomic-commits.sh"
+legacy_hooks_json="$codex_home/hooks.json"
+tracked_hooks_json="$codex_dir/hooks.json"
 
 if [[ ! -f "$base_config" ]]; then
-  printf 'codex-sync: missing base config: %s\n' "$base_config" >&2
+  printf 'codex-sync: missing required file: %s\n' "$base_config" >&2
+  exit 1
+fi
+
+if [[ ! -f "$tracked_atomic_hook" ]]; then
+  printf 'codex-sync: missing required file: %s\n' "$tracked_atomic_hook" >&2
   exit 1
 fi
 
 install -m 0644 "$base_config" "$generated_config"
+mkdir -p "$live_hooks_dir"
+
+replace_symlink() {
+  local link_path="$1"
+  local target_path="$2"
+
+  if [[ -e "$link_path" || -L "$link_path" ]]; then
+    if [[ ! -L "$link_path" ]]; then
+      printf 'codex-sync: refusing to replace non-symlink: %s\n' "$link_path" >&2
+      exit 1
+    fi
+
+    rm "$link_path"
+  fi
+
+  ln -s "$target_path" "$link_path"
+}
+
+resolved_path() {
+  local path="$1"
+  local dir
+  local base
+
+  dir="$(dirname "$path")"
+  base="$(basename "$path")"
+  printf '%s/%s\n' "$(cd "$dir" && pwd -P)" "$base"
+}
+
+resolved_symlink_target() {
+  local link_path="$1"
+  local target
+
+  target="$(readlink "$link_path")"
+  if [[ "$target" = /* ]]; then
+    resolved_path "$target"
+  else
+    resolved_path "$(dirname "$link_path")/$target"
+  fi
+}
+
+remove_managed_legacy_hooks_json() {
+  if [[ ! -e "$legacy_hooks_json" && ! -L "$legacy_hooks_json" ]]; then
+    return
+  fi
+
+  if [[ ! -L "$legacy_hooks_json" ]]; then
+    printf 'codex-sync: refusing to remove unmanaged hooks.json: %s\n' "$legacy_hooks_json" >&2
+    exit 1
+  fi
+
+  if [[ "$(resolved_symlink_target "$legacy_hooks_json")" != "$(resolved_path "$tracked_hooks_json")" ]]; then
+    printf 'codex-sync: refusing to remove unmanaged hooks.json: %s\n' "$legacy_hooks_json" >&2
+    exit 1
+  fi
+
+  rm "$legacy_hooks_json"
+}
+
+replace_symlink "$live_config" "$generated_config"
+replace_symlink "$live_atomic_hook" "$tracked_atomic_hook"
+remove_managed_legacy_hooks_json
