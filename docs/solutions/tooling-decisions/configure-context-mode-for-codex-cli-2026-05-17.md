@@ -1,6 +1,7 @@
 ---
 title: "Configure context-mode for Codex CLI"
 date: "2026-05-17"
+last_updated: "2026-05-17"
 category: "tooling-decisions"
 module: "dotfiles/codex"
 problem_type: "tooling_decision"
@@ -10,9 +11,11 @@ applies_when:
   - "Codex CLI should use context-mode as an MCP server"
   - "Dotfiles need tracked Codex hook configuration while live ~/.codex files may have stow conflicts"
   - "Ignored generated Codex config must be regenerated from tracked base config"
+  - "Codex plugin enablement must survive new sessions and codex-sync regeneration"
 symptoms:
   - "Codex CLI context-mode integration is not represented in dotfiles"
   - "Stow cannot directly own a new ~/.codex/hooks.json because existing live files are not all symlinks"
+  - "Codex plugins work after running codex-plugins-sync but are missing again in a new session"
 root_cause: "incomplete_setup"
 resolution_type: "tooling_addition"
 related_components:
@@ -23,6 +26,7 @@ tags:
   - "context-mode"
   - "mcp"
   - "hooks"
+  - "plugins"
   - "stow"
 ---
 
@@ -56,6 +60,11 @@ The chosen setup was:
 Session history search found no relevant prior sessions for this specific
 context-mode/Codex setup.
 
+Local session-history fallback found an earlier Codex config split decision:
+`codex/.codex/config.base.toml` is the stable source of truth, while
+`codex/.codex/config.toml` is generated runtime state. The same rule applies to
+Codex plugin enablement.
+
 ## Guidance
 
 Install the package globally:
@@ -71,6 +80,20 @@ to the generated `config.toml`:
 [mcp_servers.context-mode]
 # Launch context-mode as a Codex MCP server.
 command = "context-mode"
+```
+
+Add durable plugin enablement entries to `codex/.codex/config.base.toml` too.
+Marketplace declarations only tell Codex where plugins come from; the
+`[plugins.*]` sections tell Codex which plugins should be enabled. Keeping those
+sections only in generated `config.toml` makes `codex-plugins-sync` a repeated
+startup repair step.
+
+```toml
+[plugins."superpowers@superpowers-marketplace"]
+enabled = true
+
+[plugins."compound-engineering@compound-engineering-plugin"]
+enabled = true
 ```
 
 Create `codex/.codex/hooks.json` with upstream-style Codex hook registrations.
@@ -172,6 +195,13 @@ Keeping the MCP server in `config.base.toml` makes the setup reproducible. The
 generated `config.toml` stays local and ignored, which avoids committing Codex
 runtime state such as plugin notices, trust entries, and local UI state.
 
+Plugin enablement follows the same source-of-truth rule. If the enabled plugin
+sections exist only in `config.toml`, the current session may work, but the next
+`codex-sync` run can drop the entries. Keeping them in `config.base.toml` lets
+new Codex sessions keep Superpowers and Compound Engineering enabled without
+rerunning `codex-plugins-sync`, except when the plugin cache itself is missing
+or stale.
+
 Keeping `context-mode` hooks in `hooks.json` follows upstream Codex guidance
 without disturbing the existing TOML `PreToolUse` atomic-commit hook. This lets
 both hook systems coexist: context-mode handles MCP/session tracking, while the
@@ -200,6 +230,7 @@ the tool requires:
 
 - A Codex MCP server entry.
 - A `$CODEX_HOME/hooks.json` hook file.
+- A Codex `[plugins.*]` enablement entry.
 - Durable settings that must survive `codex-sync`.
 - Preservation of existing Codex hooks, especially the atomic commit
   `PreToolUse` hook.
@@ -225,6 +256,13 @@ Verify generated config contains the MCP server:
 
 ```sh
 rg -n '^\[mcp_servers\.context-mode\]|^command = "context-mode"$' \
+  codex/.codex/config.base.toml codex/.codex/config.toml
+```
+
+Verify generated config contains durable plugin enablement:
+
+```sh
+rg -n '^\[plugins\."(superpowers@superpowers-marketplace|compound-engineering@compound-engineering-plugin)"\]|^enabled = true' \
   codex/.codex/config.base.toml codex/.codex/config.toml
 ```
 
@@ -259,6 +297,8 @@ Final successful diagnostics included:
 
 - [Context-mode Codex design](../../superpowers/specs/2026-05-17-context-mode-codex-design.md)
 - [Context-mode Codex implementation plan](../../superpowers/plans/2026-05-17-context-mode-codex.md)
+- [Codex plugin source-of-truth design](../../superpowers/specs/2026-05-17-codex-plugin-source-of-truth-design.md)
+- [Codex plugin source-of-truth implementation plan](../../superpowers/plans/2026-05-17-codex-plugin-source-of-truth.md)
 - [Codex atomic commits design](../../superpowers/specs/2026-05-15-codex-atomic-commits-design.md)
 - [Codex atomic commits implementation plan](../../superpowers/plans/2026-05-15-codex-atomic-commits.md)
 - [Codex worktree Git approval design](../../superpowers/specs/2026-05-15-codex-worktree-git-approval-design.md)
