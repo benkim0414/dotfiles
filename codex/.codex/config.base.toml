@@ -46,6 +46,8 @@ statusMessage = "Checking atomic commit workflow"
 [mcp_servers.context-mode]
 # Launch context-mode as a Codex MCP server.
 command = "context-mode"
+# Allow all context-mode MCP tools without per-call approval prompts.
+default_tools_approval_mode = "approve"
 
 [marketplaces.superpowers-marketplace]
 # Load the Superpowers plugin marketplace from its Git repository.
