@@ -43,6 +43,55 @@ command = 'bash "$HOME/.codex/hooks/atomic-commits.sh"'
 timeout = 10
 statusMessage = "Checking atomic commit workflow"
 
+[[hooks.PreToolUse]]
+matcher = "local_shell|shell|shell_command|exec_command|Bash|Shell|apply_patch|Edit|Write|grep_files|ctx_execute|ctx_execute_file|ctx_batch_execute|ctx_fetch_and_index|ctx_search|ctx_index|mcp__"
+
+[[hooks.PreToolUse.hooks]]
+type = "command"
+command = 'PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$HOME/.local/share/mise/installs/node/24/bin:/usr/local/bin:/usr/bin:/bin" context-mode hook codex pretooluse'
+timeout = 10
+statusMessage = "Indexing tool call context"
+
+[[hooks.PostToolUse]]
+
+[[hooks.PostToolUse.hooks]]
+type = "command"
+command = 'PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$HOME/.local/share/mise/installs/node/24/bin:/usr/local/bin:/usr/bin:/bin" context-mode hook codex posttooluse'
+timeout = 10
+statusMessage = "Indexing tool result context"
+
+[[hooks.SessionStart]]
+
+[[hooks.SessionStart.hooks]]
+type = "command"
+command = 'PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$HOME/.local/share/mise/installs/node/24/bin:/usr/local/bin:/usr/bin:/bin" context-mode hook codex sessionstart'
+timeout = 10
+statusMessage = "Loading context-mode session context"
+
+[[hooks.PreCompact]]
+
+[[hooks.PreCompact.hooks]]
+type = "command"
+command = 'PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$HOME/.local/share/mise/installs/node/24/bin:/usr/local/bin:/usr/bin:/bin" context-mode hook codex precompact'
+timeout = 10
+statusMessage = "Saving context before compaction"
+
+[[hooks.UserPromptSubmit]]
+
+[[hooks.UserPromptSubmit.hooks]]
+type = "command"
+command = 'PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$HOME/.local/share/mise/installs/node/24/bin:/usr/local/bin:/usr/bin:/bin" context-mode hook codex userpromptsubmit'
+timeout = 10
+statusMessage = "Indexing user prompt context"
+
+[[hooks.Stop]]
+
+[[hooks.Stop.hooks]]
+type = "command"
+command = 'PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$HOME/.local/share/mise/installs/node/24/bin:/usr/local/bin:/usr/bin:/bin" context-mode hook codex stop'
+timeout = 10
+statusMessage = "Saving session context"
+
 [mcp_servers.context-mode]
 # Launch context-mode as a Codex MCP server.
 command = "context-mode"
