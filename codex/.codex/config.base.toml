@@ -43,6 +43,10 @@ command = 'bash "$HOME/.codex/hooks/atomic-commits.sh"'
 timeout = 10
 statusMessage = "Checking atomic commit workflow"
 
+[mcp_servers.context-mode]
+# Launch context-mode as a Codex MCP server.
+command = "context-mode"
+
 [marketplaces.superpowers-marketplace]
 # Load the Superpowers plugin marketplace from its Git repository.
 source = "https://github.com/obra/superpowers-marketplace.git"
