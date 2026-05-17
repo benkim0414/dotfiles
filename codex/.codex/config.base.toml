@@ -59,6 +59,12 @@ source = "https://github.com/EveryInc/compound-engineering-plugin.git"
 # Tell Codex to treat the marketplace source as a Git checkout.
 source_type = "git"
 
+[plugins."superpowers@superpowers-marketplace"]
+enabled = true
+
+[plugins."compound-engineering@compound-engineering-plugin"]
+enabled = true
+
 [otel]
 # Label telemetry metadata as local development when telemetry is enabled.
 environment = "dev"
