@@ -1,15 +1,26 @@
 #!/usr/bin/env bash
 # PreToolUse hook (matchers: Read, NotebookRead, mcp__qmd__get, Bash, Grep):
-# mcp__qmd__multi_get is intentionally NOT matched: its input is a glob
-# `pattern`, not a path; expansion would exceed the 3s budget, and qmd
-# already de-duplicates server-side.
 # Block redundant reads when the same file+range is already in this session's
 # context. Based on the community "read-once" pattern (Boucle, egorfedorov).
 # Extended to catch Bash file-read commands and Grep content-mode on cached files.
 #
+# Matcher carve-outs:
+#   - mcp__qmd__multi_get: input is a glob 'pattern', not a path; expansion
+#     would exceed the 3s budget. qmd already de-duplicates server-side.
+#   - sed -i / --in-place: detected inside the Bash branch and allowed; it is
+#     a write disguised as a Bash command.
+#
 # Cache (JSONL, append-only, last matching line wins per path):
 #   ${XDG_RUNTIME_DIR:-$HOME/.cache}/claude/read-cache-<SESSION_ID>.jsonl
-#   {"path":"/abs","mtime":1713200000,"ranges":[[0,-1]],"ts":1713203600}
+#   {"path":"/abs","mtime":1713200000,"ranges":[[0,-1]],"ts":1713203600,"denies":0}
+#
+#   Each rc_record line is well under PIPE_BUF (4096 bytes), so POSIX '>>'
+#   appends are atomic on every Unix filesystem we care about.
+#
+#   Ranges are NOT coalesced. Each new (offset, limit) is appended to the
+#   ranges array. Coverage is "does any single cached range fully contain the
+#   requested range" — adjacent or overlapping but non-containing ranges
+#   intentionally do not satisfy a query.
 #
 # Escape hatches (any true → allow + record fresh entry):
 #   - mtime changed on disk (external edit invalidated the cached view)
@@ -19,12 +30,34 @@
 #   - READ_ONCE_DISABLE=1 set in the environment
 #   - no session_id / file missing / stat failure / corrupt cache
 #
-# Diff mode (opt-in, READ_ONCE_DIFF=1):
+# Diff mode (READ_ONCE_DIFF=1 by default; set =0 to disable):
 #   On mtime change for a Read call, return only the diff instead of a full
 #   re-read. Falls back to full re-read when diff > READ_ONCE_DIFF_MAX (40)
-#   lines or the snapshot is missing. Snapshots stored under:
+#   lines, the snapshot is missing, the file is binary, or current size is
+#   more than 4× snapshot size. Files larger than READ_ONCE_DIFF_MAX_BYTES
+#   (262144 = 256KB) are never snapshotted. Snapshots stored under:
 #   ${CACHE_DIR}/snapshots-${SESSION_ID}/
 #   Bash and Grep bypass paths do not trigger diff mode.
+#
+# Cache GC:
+#   - Opportunistic in-hook prune once per 24h (sentinel: .last-read-once-prune)
+#     deletes read-cache-*.jsonl older than READ_ONCE_GC_DAYS (default 7).
+#   - SessionEnd hook (read-once-gc.sh) prunes the just-ended session's cache
+#     file and snapshot dir if the parent transcript is also gone or older.
+#   - READ_ONCE_GC_DISABLE=1 disables both tiers.
+#
+# Touch-bypass detection:
+#   'touch <path>' (or touch -m / -t / -d) on a path read in the last 5s and
+#   still cached unchanged is treated as an attempted read-once bypass and
+#   denied. A touch on a cold path is allowed. The deny on a subsequent read
+#   escalates straight to the rank-3 wording.
+#
+# Deny wording escalation ladder (counter is per (session, path), stored in
+# the JSONL 'denies' field; resets on every rc_record call):
+#   0     "in context — use loaded content."
+#   1-2   "STILL in context. Stop re-reading."
+#   3-5   "DENY #N. Re-reads will keep failing. Change approach."
+#   6+    "DENY #N — retry loop. Operator escape: READ_ONCE_DISABLE=1."
 #
 # Silent exit 0 = allow. JSON permissionDecision="deny" = block the tool call.
 # Range semantics match Claude Code's Read tool: offset/limit are line counts;
