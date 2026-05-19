@@ -8,6 +8,13 @@
 - Sensitive operations require direct user approval and must not be approved by auto-review: destructive commands, network access, credential access, writes outside configured workspace roots, and history rewrites.
 - Persistent prefix rules must be narrow and command-specific. Do not persist broad runtime prefixes such as `bash`, `python`, `node`, `ruby`, `perl`, or `sh`.
 
+## Worktree Isolation
+
+- For any change in a Git repository, work from a linked Git worktree rather than the repository's main worktree.
+- Use the repository-local convention `git worktree add .worktrees/<slug> -b <branch>` and continue from `.worktrees/<slug>`.
+- Generated workflow artifacts are part of the feature branch. This includes Superpowers specs in `docs/superpowers/specs/`, Superpowers plans in `docs/superpowers/plans/`, Compound solution docs in `docs/solutions/`, and normal code or config changes.
+- A Codex PreToolUse hook enforces this for repo writes. If it blocks a write, create a linked worktree using the hook's suggested command, or enter the appropriate existing linked worktree.
+
 ## Git Commit Workflow
 
 - Commit each self-contained logical change separately.

@@ -65,6 +65,15 @@ timeout = 10
 statusMessage = "Checking atomic commit workflow"
 
 [[hooks.PreToolUse]]
+matcher = "apply_patch|Edit|Write|MultiEdit|NotebookEdit|local_shell|shell|shell_command|exec_command|Bash|Shell|mcp__"
+
+[[hooks.PreToolUse.hooks]]
+type = "command"
+command = 'bash "$HOME/.codex/hooks/worktree-guard.sh"'
+timeout = 10
+statusMessage = "Checking worktree isolation"
+
+[[hooks.PreToolUse]]
 matcher = "local_shell|shell|shell_command|exec_command|Bash|Shell|apply_patch|Edit|Write|grep_files|ctx_execute|ctx_execute_file|ctx_batch_execute|ctx_fetch_and_index|ctx_search|ctx_index|mcp__"
 
 [[hooks.PreToolUse.hooks]]
