@@ -368,8 +368,11 @@ _check_path() {
         if [[ -n "$slug" ]]; then
           cp -- "$abs" "${snap_dir}/${slug}" 2>/dev/null || true
           # Evict oldest snapshots once the dir exceeds 50 entries.
+          # Use find for the count so filenames containing newlines (rare in
+          # practice — slugs are hex digests — but cheap to be defensive)
+          # don't inflate the count via wc -l.
           local _count
-          _count=$(ls -1 "$snap_dir" 2>/dev/null | wc -l)
+          _count=$(find "$snap_dir" -maxdepth 1 -type f 2>/dev/null | wc -l)
           if (( _count > 50 )); then
             ls -1t "$snap_dir" 2>/dev/null | tail -n +51 | \
               while IFS= read -r _f; do rm -f -- "$snap_dir/$_f"; done

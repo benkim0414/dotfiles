@@ -4,6 +4,9 @@
 # READ_ONCE_GC_DAYS. Also sweeps orphan snapshot dirs.
 #
 # Operator opt-out: READ_ONCE_GC_DISABLE=1.
+#
+# No -e: individual rm/find failures must not abort the GC sweep — the hook
+# is best-effort cleanup, not a transaction.
 set -uo pipefail
 
 [[ "${READ_ONCE_GC_DISABLE:-0}" == "1" ]] && exit 0
