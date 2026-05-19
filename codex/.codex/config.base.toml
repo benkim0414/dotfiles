@@ -14,11 +14,32 @@ model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
 # Ask before leaving the sandbox or doing approval-sensitive work.
 approval_policy = "on-request"
+# Route approval requests through Codex's risk-based reviewer so subagents do
+# not interrupt the user for routine low-risk operations.
+approvals_reviewer = "auto_review"
 
 # Avoid launching a GUI editor from Codex.
 file_opener = "none"
 # Enable live web search for current documentation and time-sensitive facts.
 web_search = "live"
+
+[auto_review]
+# Keep the reviewer narrow: routine repo work can proceed, boundary crossings
+# still require explicit user intent or a durable scoped rule.
+policy = """
+Approve routine sandbox-compatible repository work: read-only commands, status
+inspection, diffs, formatting checks, and test commands that write only inside
+the active workspace or temporary directories.
+
+Deny destructive commands, broad arbitrary shell approvals, network access,
+credential access, writes outside configured workspace roots, and history
+rewrites. These sensitive operations require direct user approval and must not
+be approved by auto-review.
+
+When an approval request includes a persistent prefix rule, approve only narrow
+command-specific prefixes. Do not approve broad runtime prefixes such as bash,
+python, node, ruby, perl, or sh.
+"""
 
 [features]
 # Keep command hooks explicit in the checked-in base config.
