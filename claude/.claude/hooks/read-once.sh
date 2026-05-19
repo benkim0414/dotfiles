@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# PreToolUse hook (matchers: Read, NotebookRead, mcp__qmd__get,
-#   mcp__qmd__multi_get, Bash, Grep):
+# PreToolUse hook (matchers: Read, NotebookRead, mcp__qmd__get, Bash, Grep):
+# mcp__qmd__multi_get is intentionally NOT matched: its input is a glob
+# `pattern`, not a path; expansion would exceed the 3s budget, and qmd
+# already de-duplicates server-side.
 # Block redundant reads when the same file+range is already in this session's
 # context. Based on the community "read-once" pattern (Boucle, egorfedorov).
 # Extended to catch Bash file-read commands and Grep content-mode on cached files.

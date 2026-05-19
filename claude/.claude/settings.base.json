@@ -166,7 +166,7 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Read|NotebookRead|mcp__qmd__get|mcp__qmd__multi_get|Bash|Grep",
+        "matcher": "Read|NotebookRead|mcp__qmd__get|Bash|Grep",
         "hooks": [
           {
             "type": "command",
