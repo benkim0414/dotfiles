@@ -68,6 +68,8 @@ finishing-a-development-branch
 | `ralph-loop@claude-plugins-official`              | **removed**          | Unused                        |
 | local `claude/.claude/plugins/pr/`                | already extracted    | Was moved to `benkim0414/skills` in commit `58762e3`; the external `pr@skills` plugin replaces it and gets implicitly disabled when `enabledPlugins` is rewritten + `claude-sync` runs |
 | stale `plugins/pr/` ref in `dotfiles/CLAUDE.md:48` | **edited**           | Cleanup of stale doc text     |
+| local wiki plugin at `claude/.claude/plugins/wiki/` | **deleted**          | Discovered during Task 1 review: wiki ingest skill referenced removed `feature-dev:code-reviewer` subagent. Since wiki capture hook is also being removed, drop the whole plugin |
+| `claude/.claude/docs/bootstrap.md`                | **deleted**          | Fresh-machine setup doc primarily documented now-removed wiki + pr@skills plugin installs. Stale; remove entirely. Reference in `/Users/ben/workspace/dotfiles/CLAUDE.md:9` also removed |
 
 ## Hooks (after)
 
@@ -177,6 +179,18 @@ self-contained and revertable.
 6. **`docs(claude): rewrite CLAUDE.md for superpowers-first workflow`**
    - Per scope above
 
+7. **`chore(claude): drop wiki plugin and obsolete bootstrap doc`**
+   (added during Task 1 review)
+   - `git rm -r claude/.claude/plugins/wiki/`
+   - `git rm claude/.claude/docs/bootstrap.md`
+   - Edit `/Users/ben/workspace/dotfiles/CLAUDE.md:9` to remove the
+     `Fresh-machine setup: .claude/docs/bootstrap.md` line.
+   - Rationale: the wiki ingest skill references
+     `feature-dev:code-reviewer` (removed in Task 1) at SKILL.md:273.
+     Wiki capture hook is also being dropped (Task 3). bootstrap.md
+     primarily documented now-removed wiki + pr@skills plugin installs;
+     stale, remove entirely.
+
 Spec doc (this file) and the writing-plans output land in a separate
 `docs(spec): superpowers workflow reorg` commit at the start of the
 sequence, or are folded into commit 1 — to be decided in the plan.
@@ -205,9 +219,12 @@ jq '.enabledPlugins | has("pr@skills")' ~/.claude/settings.json   # → false
 # Files deleted
 [ ! -f claude/.claude/hooks/capture-session-to-wiki.sh ] && echo "wiki hook gone"
 [ ! -f claude/.claude/docs/no-pr-review.md ] && echo "no-pr doc gone"
+[ ! -d claude/.claude/plugins/wiki ] && echo "wiki plugin gone"
+[ ! -f claude/.claude/docs/bootstrap.md ] && echo "bootstrap doc gone"
 
-# Stale ref cleaned
-grep -c "plugins/pr/" /Users/ben/workspace/dotfiles/CLAUDE.md   # → 0
+# Stale refs cleaned
+grep -c "plugins/pr/" /Users/ben/workspace/dotfiles/CLAUDE.md             # → 0
+grep -c "bootstrap.md" /Users/ben/workspace/dotfiles/CLAUDE.md            # → 0
 
 # Hook count = 11
 ls claude/.claude/hooks/*.sh | wc -l   # → 11

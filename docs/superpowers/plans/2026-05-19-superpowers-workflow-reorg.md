@@ -761,6 +761,107 @@ finishing-a-development-branch in both modes."
 
 ---
 
+## Task 6.5: Drop wiki plugin + obsolete bootstrap doc
+
+Added during Task 1 code-quality review. The wiki ingest skill at
+`claude/.claude/plugins/wiki/skills/ingest/SKILL.md:273` references
+`feature-dev:code-reviewer` -- a subagent that disappears with the
+plugin removal in Task 1. Since Task 3 also drops the wiki capture
+hook, and `bootstrap.md` primarily documented now-removed wiki +
+pr@skills installs, drop the whole wiki plugin and the bootstrap doc.
+
+**Files:**
+- Delete dir: `claude/.claude/plugins/wiki/`
+- Delete file: `claude/.claude/docs/bootstrap.md`
+- Modify: `/Users/ben/workspace/dotfiles/CLAUDE.md` (line 9 stale ref)
+
+### Steps
+
+- [ ] **Step 1: Inspect what's being removed**
+
+Run:
+```bash
+ls claude/.claude/plugins/wiki/
+wc -l claude/.claude/docs/bootstrap.md
+grep -n "bootstrap.md" /Users/ben/workspace/dotfiles/CLAUDE.md
+```
+
+Expected output:
+```
+.claude-plugin
+skills
+     262 claude/.claude/docs/bootstrap.md
+9:Fresh-machine setup: `.claude/docs/bootstrap.md`
+```
+
+- [ ] **Step 2: Delete + stage with git rm**
+
+```bash
+git rm -r claude/.claude/plugins/wiki/
+git rm claude/.claude/docs/bootstrap.md
+```
+
+- [ ] **Step 3: Edit dotfiles/CLAUDE.md**
+
+Using the `Edit` tool with absolute path
+`/Users/ben/workspace/dotfiles/CLAUDE.md`, remove this exact text
+(including the trailing blank line):
+
+```
+Fresh-machine setup: `.claude/docs/bootstrap.md`
+
+```
+
+with empty string (deletion).
+
+If the surrounding context is also blank, that may produce a double
+blank line. Inspect the result with:
+
+```bash
+sed -n '5,15p' /Users/ben/workspace/dotfiles/CLAUDE.md
+```
+
+Collapse any double blank lines manually if needed (use a second
+`Edit` call).
+
+- [ ] **Step 4: Verify deletions + edits**
+
+```bash
+[ ! -d claude/.claude/plugins/wiki ]         && echo "wiki-plugin: GONE"
+[ ! -f claude/.claude/docs/bootstrap.md ]    && echo "bootstrap-doc: GONE"
+grep -c "bootstrap.md" /Users/ben/workspace/dotfiles/CLAUDE.md
+```
+
+Expected output:
+```
+wiki-plugin: GONE
+bootstrap-doc: GONE
+0
+```
+
+- [ ] **Step 5: Stage the CLAUDE.md edit + commit**
+
+```bash
+git add CLAUDE.md
+git status --short
+```
+
+Expected: deletions under `claude/.claude/plugins/wiki/`, deletion of
+`claude/.claude/docs/bootstrap.md`, and modification of `CLAUDE.md`.
+
+```bash
+git commit -m "chore(claude): drop wiki plugin and obsolete bootstrap doc
+
+The wiki ingest skill at plugins/wiki/skills/ingest/SKILL.md:273
+referenced feature-dev:code-reviewer, which is gone after the plugin
+removal in commit 71db042. Wiki capture hook was also dropped (commit
+in this branch). bootstrap.md primarily documented wiki + pr@skills
+installs that are no longer relevant under the superpowers-first
+workflow."
+```
+
+---
+
 ## Final Verification Pass
 
 After all six commits land, run the full verification suite from the
@@ -822,22 +923,31 @@ Run:
 ```bash
 [ ! -f claude/.claude/hooks/capture-session-to-wiki.sh ]     && echo "wiki-hook: GONE"
 [ ! -f claude/.claude/docs/no-pr-review.md ]                 && echo "no-pr-doc: GONE"
+[ ! -d claude/.claude/plugins/wiki ]                         && echo "wiki-plugin: GONE"
+[ ! -f claude/.claude/docs/bootstrap.md ]                    && echo "bootstrap-doc: GONE"
 ```
 
 Expected output:
 ```
 wiki-hook: GONE
 no-pr-doc: GONE
+wiki-plugin: GONE
+bootstrap-doc: GONE
 ```
 
-- [ ] **Step 4c: Stale ref cleaned**
+- [ ] **Step 4c: Stale refs cleaned**
 
 Run:
 ```bash
 grep -c "plugins/pr/" /Users/ben/workspace/dotfiles/CLAUDE.md
+grep -c "bootstrap.md" /Users/ben/workspace/dotfiles/CLAUDE.md
 ```
 
-Expected output: `0`.
+Expected output:
+```
+0
+0
+```
 
 - [ ] **Step 5: Hook count**
 
@@ -874,8 +984,9 @@ Run:
 git log --oneline main..HEAD
 ```
 
-Expected: 8 commits in this order (newest first):
+Expected: 9 commits in this order (newest first):
 ```
+<sha> chore(claude): drop wiki plugin and obsolete bootstrap doc
 <sha> docs(claude): rewrite CLAUDE.md for superpowers-first workflow
 <sha> docs(claude): rewrite superpowers-workflow.md
 <sha> docs(claude): delete no-pr-review rubric
@@ -886,8 +997,9 @@ Expected: 8 commits in this order (newest first):
 <sha> docs(spec): superpowers workflow reorganization design
 ```
 
-(8 commits = 6 reorg tasks + 1 spec commit + 1 plan commit already in
-place before the reorg tasks start.)
+(9 commits = 7 reorg tasks + 1 spec commit + 1 plan commit. Task 6.5
+was added during Task 1 review when an unrelated reference to
+`feature-dev:code-reviewer` was found in the wiki plugin.)
 
 - [ ] **Step 9: JSON validity**
 
