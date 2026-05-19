@@ -160,8 +160,39 @@ if [[ "$TOOL_NAME" == "Bash" ]]; then
             && mv "${_sidecar}.tmp" "$_sidecar"
         fi
       fi
+
+      # Bypass detection: if any touched path was read in the last 5s and
+      # is still cached with unchanged mtime, deny the touch.
+      CACHE="${CACHE_DIR}/read-cache-${SESSION_ID}.jsonl"
+      if [[ -f "$CACHE" ]]; then
+        for _p in "${_touched_paths[@]}"; do
+          _abs=$(realpath -m "$_p" 2>/dev/null \
+                || grealpath -m "$_p" 2>/dev/null \
+                || readlink -f "$_p" 2>/dev/null || echo "$_p")
+          _row=$(jq -rs --arg p "$_abs" '
+            [.[] | select(.path == $p)] | last
+            | if . == null then "" else "\(.mtime) \(.ts)" end
+          ' "$CACHE" 2>/dev/null) || _row=""
+          [[ -n "$_row" ]] || continue
+          _cached_mtime="${_row% *}"; _cached_ts="${_row#* }"
+          _disk_mtime=$(stat -c %Y "$_p" 2>/dev/null \
+                       || stat -f %m "$_p" 2>/dev/null || echo 0)
+          if [[ "$_cached_mtime" == "$_disk_mtime" ]] \
+             && (( _ts - _cached_ts <= 5 )); then
+            reason="read-once: ${_abs} DENY — touch on recently-read file looks like a read-once bypass. To force re-read: edit content, or set READ_ONCE_DISABLE=1."
+            jq -cn --arg r "$reason" '{
+              hookSpecificOutput:{
+                hookEventName:"PreToolUse",
+                permissionDecision:"deny",
+                permissionDecisionReason:$r
+              }
+            }'
+            exit 0
+          fi
+        done
+      fi
     fi
-    exit 0   # T15 will add the bypass-deny branch here.
+    exit 0
   fi
 
   # Match leading: optional whitespace, optional VAR=value assignments, optional
@@ -413,7 +444,23 @@ ${diff_out}"
   age=$(( NOW - p_ts ))
   local _next_denies=$(( p_denies + 1 ))
   rc_record "$abs" "$current_mtime" "$extended" "$_next_denies"
-  rc_deny "$abs" "$age" "$size" "$p_denies"
+  # Touch-invalidation detection: if the agent recently touched this path
+  # to try to invalidate the cache, replace the normal ladder with a
+  # dedicated wording so the signal is unmistakable.
+  local _touch_ts
+  if _touch_ts=$(rc_recent_touch "$abs"); then
+    local _touch_age=$(( NOW - _touch_ts ))
+    local reason="read-once: ${abs} DENY — touch invalidation detected (touched ${_touch_age}s ago, no real edit). Use content from context OR make real edits. Touch invalidation detected at ${_touch_ts}."
+    jq -cn --arg r "$reason" '{
+      hookSpecificOutput:{
+        hookEventName:"PreToolUse",
+        permissionDecision:"deny",
+        permissionDecisionReason:$r
+      }
+    }'
+  else
+    rc_deny "$abs" "$age" "$size" "$p_denies"
+  fi
   return 1
 }
 

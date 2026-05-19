@@ -73,6 +73,24 @@ rc_deny() {
   }'
 }
 
+# rc_recent_touch ABS [WINDOW_SECONDS]
+# Returns 0 (and prints the touch ts) if abs was touched within WINDOW seconds
+# of NOW; returns 1 otherwise. Default window: 30s.
+rc_recent_touch() {
+  local abs="$1" window="${2:-30}"
+  local sidecar="${CACHE_DIR}/touch-events-${SESSION_ID}.jsonl"
+  [[ -f "$sidecar" ]] || return 1
+  local ts
+  ts=$(jq -rs --arg p "$abs" --argjson now "$NOW" --argjson w "$window" '
+    [.[]? // empty
+     | select(.path == $p and (.ts // 0) >= ($now - $w))
+     | .ts] | last // empty
+  ' "$sidecar" 2>/dev/null)
+  [[ -n "$ts" ]] || return 1
+  printf '%s\n' "$ts"
+  return 0
+}
+
 # Compute a stable filename slug from an absolute path (for snapshot storage).
 # GNU sha1sum → BSD shasum → GNU md5sum → BSD md5, last resort base64 truncated.
 rc_path_slug() {
