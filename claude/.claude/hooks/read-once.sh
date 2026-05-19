@@ -119,9 +119,51 @@ fi
 # Per-tool fast-exits (before sourcing library or touching the cache).
 # ---------------------------------------------------------------------------
 
-# Bash: exit early unless the command is a file-read invocation.
+# Bash: exit early unless the command is a file-read invocation or a touch
+# (touches feed the bypass-detection sidecar in T14).
 FILE_ARGS=()
 if [[ "$TOOL_NAME" == "Bash" ]]; then
+  # Touch detection: capture every touched path into a per-session sidecar.
+  # See T15 for the bypass-deny logic that consumes this sidecar.
+  _touch_re='^[[:space:]]*(sudo[[:space:]]+)?touch([[:space:]]|$)'
+  if [[ "$COMMAND" =~ $_touch_re ]]; then
+    _t_rest="${COMMAND#*touch}"
+    read -ra _t_tokens <<< "$_t_rest" || true
+    _t_skip=0
+    declare -a _touched_paths=()
+    for _t in "${_t_tokens[@]}"; do
+      if (( _t_skip )); then _t_skip=0; continue; fi
+      [[ "$_t" == "--" ]] && continue
+      if [[ "$_t" =~ ^-[tdr]$ ]]; then _t_skip=1; continue; fi
+      [[ "$_t" =~ ^- ]] && continue
+      _t="${_t#[\'\"]}"; _t="${_t%[\'\"]}"
+      [[ -n "$_t" ]] && _touched_paths+=("$_t")
+    done
+
+    if (( ${#_touched_paths[@]} > 0 )); then
+      CACHE_DIR="${XDG_RUNTIME_DIR:-$HOME/.cache}/claude"
+      mkdir -p "$CACHE_DIR" 2>/dev/null || true
+      _sidecar="${CACHE_DIR}/touch-events-${SESSION_ID}.jsonl"
+      _ts="${EPOCHSECONDS:-$(date +%s)}"
+      for _p in "${_touched_paths[@]}"; do
+        _abs=$(realpath -m "$_p" 2>/dev/null \
+              || grealpath -m "$_p" 2>/dev/null \
+              || readlink -f "$_p" 2>/dev/null || echo "$_p")
+        jq -cn --arg path "$_abs" --argjson ts "$_ts" \
+          '{path:$path,ts:$ts,event:"touch_invalidate"}' \
+          >> "$_sidecar" 2>/dev/null || true
+      done
+      if [[ -f "$_sidecar" ]]; then
+        _lines=$(wc -l < "$_sidecar" 2>/dev/null || echo 0)
+        if (( _lines > 100 )); then
+          tail -n 100 "$_sidecar" > "${_sidecar}.tmp" \
+            && mv "${_sidecar}.tmp" "$_sidecar"
+        fi
+      fi
+    fi
+    exit 0   # T15 will add the bypass-deny branch here.
+  fi
+
   # Match leading: optional whitespace, optional VAR=value assignments, optional
   # one of sudo / env [VAR=val ...] / command / builtin, then a read-type tool.
   if ! [[ "$COMMAND" =~ ^[[:space:]]*(([A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*[[:space:]]+)*)(sudo[[:space:]]+|env([[:space:]]+[A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*)*[[:space:]]+|command[[:space:]]+|builtin[[:space:]]+)?(cat|head|tail|bat|view|less|more|sed)[[:space:]] ]]; then
