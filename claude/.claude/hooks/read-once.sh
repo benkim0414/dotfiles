@@ -101,6 +101,19 @@ if [[ "$TOOL_NAME" == "Bash" ]]; then
     exit 0
   fi
 
+  # sed -i / --in-place / -iSUFFIX / --in-place=SUFFIX is a WRITE, not a read.
+  if [[ "$READ_TOOL" == "sed" ]]; then
+    # Walk every whitespace-separated token of the command, looking for an
+    # in-place flag.
+    read -ra _sed_tokens <<< "$COMMAND" || true
+    for _t in "${_sed_tokens[@]}"; do
+      if [[ "$_t" == "-i" || "$_t" == "--in-place" \
+            || "$_t" =~ ^-i.+ || "$_t" =~ ^--in-place= ]]; then
+        exit 0
+      fi
+    done
+  fi
+
   # Extract the portion of the command after the tool name. Anchor with a
   # leading whitespace boundary so a $READ_TOOL substring inside a VAR= prefix
   # (e.g. FOO=catspawn) is not mistakenly stripped.
