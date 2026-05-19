@@ -154,7 +154,7 @@ if [[ -n "$SESSION_ID" ]]; then
   CTX+="Main worktree (branch: ${BRANCH}). Call EnterWorktree() before any edits."
   MSG="[git-workflow] Main worktree (branch: ${BRANCH}). Call EnterWorktree() before any edits."
   if [[ "${CLAUDE_GIT_WORKFLOW:-}" == "no-pr" ]]; then
-    CTX+=" MODE: no-pr -- before merging, run the two-agent review loop per ~/.claude/docs/no-pr-review.md until clean, then ExitWorktree, merge to main, push. No PRs."
+    CTX+=" MODE: no-pr -- canonical flow at ~/.claude/docs/superpowers-workflow.md. After EnterWorktree, run brainstorming -> writing-plans -> subagent-driven-development -> requesting-code-review -> ce-compound -> finishing-a-development-branch option 1 (local merge). No PRs."
     MSG+=" MODE: no-pr"
   fi
 else
