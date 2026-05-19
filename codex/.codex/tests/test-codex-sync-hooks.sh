@@ -16,8 +16,52 @@ assert_file_contains() {
   local file="$1"
   local needle="$2"
 
-  if ! grep -Fq "$needle" "$file"; then
+  if ! grep -Fq -- "$needle" "$file"; then
     printf 'expected %s to contain: %s\n' "$file" "$needle" >&2
+    return 1
+  fi
+}
+
+assert_top_level_contains() {
+  local file="$1"
+  local needle="$2"
+  local first_table_line
+  local end_line
+
+  first_table_line="$(grep -n -- '^\[' "$file" | awk -F: '{ print $1; exit }' || true)"
+  end_line="${first_table_line:-$(($(wc -l <"$file") + 1))}"
+
+  if [[ "$end_line" -le 1 ]] || ! sed -n "1,$((end_line - 1))p" "$file" | grep -Fq -- "$needle"; then
+    printf 'expected %s top-level config to contain: %s\n' "$file" "$needle" >&2
+    return 1
+  fi
+}
+
+assert_table_contains() {
+  local file="$1"
+  local table_header="$2"
+  local needle="$3"
+  local table_line
+  local next_table_line
+  local end_line
+
+  table_line="$(grep -nF -- "$table_header" "$file" | awk -F: -v header="$table_header" '$0 == $1 ":" header { print $1; exit }' || true)"
+
+  if [[ -z "$table_line" ]]; then
+    printf 'expected %s to contain table: %s\n' "$file" "$table_header" >&2
+    return 1
+  fi
+
+  next_table_line="$(awk -v start="$table_line" 'NR > start && /^\[/ { print NR; exit }' "$file")"
+  end_line="${next_table_line:-$(($(wc -l <"$file") + 1))}"
+
+  if [[ $((table_line + 1)) -ge "$end_line" ]]; then
+    printf 'expected %s table %s to contain: %s\n' "$file" "$table_header" "$needle" >&2
+    return 1
+  fi
+
+  if ! sed -n "$((table_line + 1)),$((end_line - 1))p" "$file" | grep -Fq -- "$needle"; then
+    printf 'expected %s table %s to contain: %s\n' "$file" "$table_header" "$needle" >&2
     return 1
   fi
 }
@@ -60,6 +104,10 @@ HOME="$HOME_DIR" DOTFILES="$DOTFILES" CODEX_HOME="$CODEX_HOME" "$DOTFILES/bin/.l
 
 CONFIG="$DOTFILES/codex/.codex/config.toml"
 EXPECTED_HOOK_PATH='PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$HOME/.local/share/mise/installs/node/24/bin:/usr/local/bin:/usr/bin:/bin"'
+assert_top_level_contains "$CONFIG" 'approval_policy = "on-request"'
+assert_top_level_contains "$CONFIG" 'approvals_reviewer = "auto_review"'
+assert_table_contains "$CONFIG" '[auto_review]' 'Approve routine sandbox-compatible repository work'
+assert_table_contains "$CONFIG" '[mcp_servers.context-mode]' 'default_tools_approval_mode = "approve"'
 assert_file_contains "$CONFIG" "command = '$EXPECTED_HOOK_PATH context-mode hook codex pretooluse'"
 assert_file_contains "$CONFIG" "command = '$EXPECTED_HOOK_PATH context-mode hook codex posttooluse'"
 assert_file_contains "$CONFIG" "command = '$EXPECTED_HOOK_PATH context-mode hook codex sessionstart'"
