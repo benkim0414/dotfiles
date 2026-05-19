@@ -21,6 +21,13 @@
   commits by staging only the files for one logical change at a time.
 - Choose commit scopes from recent project history when a clear scope exists.
   A new scope is acceptable when the project genuinely needs one.
+- For generated or planning documentation, choose the scope from the component,
+  product area, or domain described by the staged content. Do not infer scope
+  from the document format, workflow name, generator name, or directory name
+  unless that system is genuinely what the commit changes.
+  Prefer `docs(<affected-component>): describe <change>` over
+  `docs(<artifact-or-generator-name>): describe <change>`. If the change is
+  repo-wide and no component dominates, omit the scope.
 - Keep the commit subject concise. Aim for 72 characters or fewer.
 - Run relevant verification before committing when feasible. If no verification
   command is obvious, say that explicitly.
