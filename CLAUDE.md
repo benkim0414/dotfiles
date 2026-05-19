@@ -34,7 +34,6 @@ Never commit `.env*` or `.mise.local.toml` files -- they are gitignored.
 - **Always pass `-t ~`**. There is no .stowrc; the default target is the parent dir (`~/workspace/`), not `~`.
 - **Before stowing `bin`**: run `mkdir -p ~/.local/bin` first. Otherwise Stow tree-folds and creates a directory symlink, which breaks other tools that install into `~/.local/bin`.
 - **Before stowing `codex`**: run `mkdir -p ~/.codex` first, then `codex-sync`. Same tree-folding issue -- Codex writes runtime state (history, logs) into `~/.codex/`.
-- **Before stowing `claude` on a machine with no existing plugins**: run `mkdir -p ~/.claude/plugins` first. `claude/.claude/plugins/` contains the local `pr` plugin; without a pre-created target, stow tree-folds into a single symlink and Claude Code's plugin cache writes would land inside the dotfiles repo. `claude-sync` handles the rest of `~/.claude/` but does not create this dir.
 - **Stow refuses absolute symlinks**. Files installed by external tools (claude, git-filter-repo, uv, uvx) must NOT be added to the bin package -- leave them as-is in `~/.local/bin`.
 - **After restructuring a package dir**, use `stow -t ~ -R <package>` to clean up stale symlinks.
 
