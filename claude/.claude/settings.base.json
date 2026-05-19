@@ -274,7 +274,6 @@
   },
   "enabledPlugins": {
     "claude-md-management@claude-plugins-official": true,
-    "remember@claude-plugins-official": false,
     "caveman@caveman": true,
     "superpowers@superpowers-marketplace": true,
     "compound-engineering@compound-engineering-plugin": true
