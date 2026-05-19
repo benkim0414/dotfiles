@@ -273,9 +273,9 @@ _check_path() {
   [[ "$current_mtime" =~ ^[0-9]+$ && "$current_mtime" -gt 0 ]] || return 0
 
   # Cache lookup.
-  local status p_mtime p_ts covered extended
-  status=NEW p_mtime=0 p_ts=0 covered=false extended="[[${offset}, ${limit}]]"
-  IFS=$'\t' read -r status p_mtime p_ts covered extended < <(
+  local status p_mtime p_ts covered extended p_denies
+  status=NEW p_mtime=0 p_ts=0 covered=false extended="[[${offset}, ${limit}]]" p_denies=0
+  IFS=$'\t' read -r status p_mtime p_ts covered extended p_denies < <(
     rc_lookup "$abs" "$offset" "$limit"
   ) || true
 
@@ -364,10 +364,14 @@ ${diff_out}"
     return 0
   fi
 
-  # Fully covered and unchanged: deny.
+  # Fully covered and unchanged: deny. Bump the per-(session, path) deny
+  # counter by writing a fresh cache entry with denies = prior + 1. The
+  # latest line wins on the next rc_lookup.
   local age
   age=$(( NOW - p_ts ))
-  rc_deny "$abs" "$age" "$size"
+  local _next_denies=$(( p_denies + 1 ))
+  rc_record "$abs" "$current_mtime" "$extended" "$_next_denies"
+  rc_deny "$abs" "$age" "$size" "$p_denies"
   return 1
 }
 
