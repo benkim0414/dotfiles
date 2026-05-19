@@ -1,5 +1,13 @@
 # Codex User Instructions
 
+## Subagent Approval Contract
+
+- Subagents inherit durable Codex config from `$CODEX_HOME/config.toml`.
+- Keep `approval_policy = "on-request"`; do not bypass the sandbox globally.
+- Routine sandbox-compatible repository work should flow through the configured auto reviewer.
+- Sensitive operations require direct user approval and must not be approved by auto-review: destructive commands, network access, credential access, writes outside configured workspace roots, and history rewrites.
+- Persistent prefix rules must be narrow and command-specific. Do not persist broad runtime prefixes such as `bash`, `python`, `node`, `ruby`, `perl`, or `sh`.
+
 ## Git Commit Workflow
 
 - Commit each self-contained logical change separately.
