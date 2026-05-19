@@ -67,12 +67,7 @@ if [[ "${READ_ONCE_DISABLE:-0}" == "1" ]]; then
     mkdir -p "$_log_dir" 2>/dev/null || true
     _log_date=$(date +%Y-%m-%d 2>/dev/null || true)
     _log_file="${_log_dir}/read-once-bypass-${_log_date}.log"
-    if [[ -f "$_log_file" ]]; then
-      _sz=$(stat -c %s "$_log_file" 2>/dev/null || stat -f %z "$_log_file" 2>/dev/null || echo 0)
-      if (( _sz > 52428800 )); then
-        mv "$_log_file" "${_log_file}.1" 2>/dev/null || true
-      fi
-    fi
+    # Filename is date-stamped, so rotation happens implicitly per day.
     jq -cn \
       --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || true)" \
       --arg sid "$SESSION_ID" \
