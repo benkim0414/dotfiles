@@ -45,12 +45,12 @@ CTX=""
 if [[ -n "$GIT_ABS_DIR" && -n "$GIT_COMMON_DIR" && "$GIT_ABS_DIR" != "$GIT_COMMON_DIR" ]]; then
   CTX="Post-compaction context: worktree session active (branch: ${BRANCH}). Isolation confirmed; edits are safe."
   if [[ "${CLAUDE_GIT_WORKFLOW:-}" == "no-pr" ]]; then
-    CTX+=" MODE: no-pr -- before ExitWorktree, run the two-agent review loop per ~/.claude/docs/no-pr-review.md until clean."
+    CTX+=" MODE: no-pr -- before ExitWorktree, run requesting-code-review until clean, then ce-compound."
   fi
 else
   CTX="Post-compaction context: main worktree (branch: ${BRANCH}). Call EnterWorktree() before any edits."
   if [[ "${CLAUDE_GIT_WORKFLOW:-}" == "no-pr" ]]; then
-    CTX+=" MODE: no-pr -- before merging, run the two-agent review loop per ~/.claude/docs/no-pr-review.md until clean, then ExitWorktree, merge to main, push. No PRs."
+    CTX+=" MODE: no-pr -- run requesting-code-review until clean, then ce-compound, then finishing-a-development-branch option 1. Reference: ~/.claude/docs/superpowers-workflow.md."
   fi
 fi
 
