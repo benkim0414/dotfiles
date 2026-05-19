@@ -6,8 +6,6 @@ macOS/Linux dotfiles managed with GNU Stow and Homebrew.
 
 Documented solutions: `docs/solutions/` stores past fixes and decisions by category with YAML frontmatter (`module`, `tags`, `problem_type`); relevant when implementing or debugging in documented areas.
 
-Fresh-machine setup: `.claude/docs/bootstrap.md`
-
 ## Daily workflow
 
 ```sh
