@@ -282,13 +282,27 @@ _check_path() {
   # First time seeing this path in this session.
   if [[ "$status" != "HIT" ]]; then
     rc_record "$abs" "$current_mtime" "[[${offset}, ${limit}]]"
-    # Diff mode: stash a snapshot of the full file on first read.
-    if [[ "${READ_ONCE_DIFF:-0}" == "1" && "$limit" == "-1" && "$offset" == "0" ]]; then
-      local snap_dir="${CACHE_DIR}/snapshots-${SESSION_ID}"
-      mkdir -p "$snap_dir" 2>/dev/null || true
-      local slug
-      slug=$(rc_path_slug "$abs") || true
-      [[ -n "$slug" ]] && cp -- "$abs" "${snap_dir}/${slug}" 2>/dev/null || true
+    # Diff mode: stash a snapshot of the full file on first read,
+    # regardless of the requested range. Size-capped via
+    # READ_ONCE_DIFF_MAX_BYTES (default 256KB) and dir-capped at 50 files.
+    if [[ "${READ_ONCE_DIFF:-1}" == "1" ]]; then
+      local _max_bytes="${READ_ONCE_DIFF_MAX_BYTES:-262144}"
+      if (( size <= _max_bytes )); then
+        local snap_dir="${CACHE_DIR}/snapshots-${SESSION_ID}"
+        mkdir -p "$snap_dir" 2>/dev/null || true
+        local slug
+        slug=$(rc_path_slug "$abs") || true
+        if [[ -n "$slug" ]]; then
+          cp -- "$abs" "${snap_dir}/${slug}" 2>/dev/null || true
+          # Evict oldest snapshots once the dir exceeds 50 entries.
+          local _count
+          _count=$(ls -1 "$snap_dir" 2>/dev/null | wc -l)
+          if (( _count > 50 )); then
+            ls -1t "$snap_dir" 2>/dev/null | tail -n +51 | \
+              while IFS= read -r _f; do rm -f -- "$snap_dir/$_f"; done
+          fi
+        fi
+      fi
     fi
     return 0
   fi
@@ -307,7 +321,15 @@ _check_path() {
         diff_out=$(diff -u "$snap" "$abs" 2>/dev/null || true)
         diff_lines=$(printf '%s\n' "$diff_out" | wc -l)
         max_lines="${READ_ONCE_DIFF_MAX:-40}"
-        if [[ -n "$diff_out" && "$diff_lines" -le "$max_lines" ]]; then
+        # Fallback rules: missing diff, oversize diff, binary marker, or
+        # current size > 4x snap size (heuristic for rewrites).
+        local _snap_size _bin_marker=0
+        _snap_size=$(stat -c %s "$snap" 2>/dev/null \
+                     || stat -f %z "$snap" 2>/dev/null || echo 0)
+        if [[ "$diff_out" == "Binary files"* ]]; then _bin_marker=1; fi
+        if [[ -n "$diff_out" && "$diff_lines" -le "$max_lines" \
+              && "$_bin_marker" -eq 0 \
+              && "$size" -le $((_snap_size * 4)) ]]; then
           cp -- "$abs" "$snap" 2>/dev/null || true
           rc_record "$abs" "$current_mtime" "[[${offset}, ${limit}]]"
           local tokens
