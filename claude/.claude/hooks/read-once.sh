@@ -213,6 +213,35 @@ mkdir -p "$CACHE_DIR" 2>/dev/null || exit 0
 # shellcheck disable=SC2034  # used by sourced read-once-cache.sh
 CACHE="${CACHE_DIR}/read-cache-${SESSION_ID}.jsonl"
 
+# Opportunistic prune: once per 24h, delete read-cache-*.jsonl + matching
+# snapshot dirs older than READ_ONCE_GC_DAYS. Backgrounded so the hot path
+# pays at most a single stat.
+if [[ "${READ_ONCE_GC_DISABLE:-0}" != "1" ]]; then
+  _sentinel="$CACHE_DIR/.last-read-once-prune"
+  _need_prune=1
+  if [[ -f "$_sentinel" ]]; then
+    _s_mtime=$(stat -c %Y "$_sentinel" 2>/dev/null \
+              || stat -f %m "$_sentinel" 2>/dev/null || echo 0)
+    if (( NOW - _s_mtime < 86400 )); then _need_prune=0; fi
+  fi
+  if (( _need_prune )); then
+    touch "$_sentinel" 2>/dev/null || true
+    {
+      _days="${READ_ONCE_GC_DAYS:-7}"
+      find "$CACHE_DIR" -maxdepth 1 -name 'read-cache-*.jsonl' -type f \
+        -mtime "+$_days" -delete 2>/dev/null || true
+      # Orphan snapshot dirs whose matching cache file was just removed
+      # (or never existed).
+      for _d in "$CACHE_DIR"/snapshots-*; do
+        [[ -d "$_d" ]] || continue
+        _sid="${_d##*/snapshots-}"
+        [[ -f "$CACHE_DIR/read-cache-$_sid.jsonl" ]] || rm -rf -- "$_d"
+      done
+    } &
+    disown
+  fi
+fi
+
 # Source shared helpers after fast-exits so the common non-cached Bash/Grep
 # paths pay no sourcing cost.
 # shellcheck source=../lib/read-once-cache.sh
