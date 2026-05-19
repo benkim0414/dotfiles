@@ -310,7 +310,7 @@ _check_path() {
   # File changed since last read.
   if [[ "$p_mtime" != "$current_mtime" ]]; then
     # Diff mode (Read/NotebookRead/qmd only): return diff instead of full re-read.
-    if [[ "${READ_ONCE_DIFF:-0}" == "1" \
+    if [[ "${READ_ONCE_DIFF:-1}" == "1" \
         && "$TOOL_NAME" != "Bash" && "$TOOL_NAME" != "Grep" ]]; then
       local snap_dir="${CACHE_DIR}/snapshots-${SESSION_ID}"
       local slug
@@ -334,7 +334,8 @@ _check_path() {
           rc_record "$abs" "$current_mtime" "[[${offset}, ${limit}]]"
           local tokens
           tokens=$(( size / 4 ))
-          local reason="read-once: ${abs} changed since last read (~${tokens} tokens). Diff (${diff_lines} lines) below — apply this instead of re-reading.
+          local _diff_tokens=$(( ${#diff_out} / 4 ))
+          local reason="read-once: ${abs} changed since last read (file ~${tokens} tokens, diff ~${_diff_tokens} tokens, ${diff_lines} lines). Apply this Diff instead of re-reading.
 ${diff_out}"
           jq -cn --arg r "$reason" '{
             hookSpecificOutput: {
