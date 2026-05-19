@@ -273,9 +273,9 @@
     "command": "$HOME/.claude/statusline.sh"
   },
   "enabledPlugins": {
-    "claude-md-management@claude-plugins-official": true,
     "caveman@caveman": true,
-    "superpowers@superpowers-marketplace": true,
-    "compound-engineering@compound-engineering-plugin": true
+    "claude-md-management@claude-plugins-official": true,
+    "compound-engineering@compound-engineering-plugin": true,
+    "superpowers@superpowers-marketplace": true
   }
 }
