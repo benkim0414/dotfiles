@@ -173,9 +173,13 @@ _check_path() {
   local file_path="$1" offset="$2" limit="$3"
 
   # Resolve symlinks (stow-managed dotfiles → canonical path).
+  # realpath -m: GNU coreutils. grealpath -m: brew install coreutils on macOS.
+  # readlink -f: GNU; final fallback returns the input unchanged (loses
+  # symlink resolution but keeps the hook functional).
   local abs
   abs=$(realpath -m "$file_path" 2>/dev/null \
     || grealpath -m "$file_path" 2>/dev/null \
+    || readlink -f "$file_path" 2>/dev/null \
     || echo "$file_path")
 
   # stat: existence + mtime + size. Any failure → allow (let the tool error).
