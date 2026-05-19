@@ -18,7 +18,8 @@ trap cleanup EXIT
 
 # fixture_session writes SESSION_ID to stdout
 fixture_session() {
-  printf '11111111-1111-1111-1111-%012x' "$RANDOM"
+  # 30 bits of entropy via two $RANDOM rolls (BSD-portable; date +%s%N is GNU-only).
+  printf '11111111-1111-1111-1111-%012x' "$((RANDOM * 32768 + RANDOM))"
 }
 
 # stdin_for TOOL FILE [OFFSET] [LIMIT] [COMMAND] [OUTPUT_MODE] -> JSON on stdout
