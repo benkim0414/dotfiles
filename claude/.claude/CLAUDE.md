@@ -42,48 +42,86 @@ Fall back to Glob/Grep when:
 Never automate `qmd collection add`, `qmd embed`, or `qmd update` --
 indexing is always a manual user action.
 
-## Wiki capture
-
-On `PreCompact` and `SessionEnd` (including `/clear`), the hook `capture-session-to-wiki.sh` writes a small stub to `${WIKI_VAULT}/raw/captures/` — one file per session, updated in-place on repeated compactions. Sessions with no tool calls or under 1 minute are skipped as trivial. To curate, run the wiki's local ingest skill from inside the wiki repo against unconsumed entries in `raw/captures/`.
-
 ## Git Workflow
 
-All work happens on isolated worktree branches. Hooks enforce worktree isolation,
-main-branch protection, and selective staging -- follow the `[git-workflow]` context
-injection at session start.
+All work happens on isolated worktree branches. Hooks enforce worktree
+isolation, main-branch protection, and selective staging -- follow the
+`[git-workflow]` context injection at session start.
 
-- "MODE: no-pr": after committing, run the two-agent review loop (`~/.claude/docs/no-pr-review.md`) until clean, then `ExitWorktree("keep")`, merge to main, push. No PRs.
+`EnterWorktree` FIRST. All plan artifacts (brainstorm spec at
+`docs/superpowers/specs/`, plan at `docs/superpowers/plans/`,
+`ce-compound` solution doc at `docs/solutions/`) live inside the
+worktree and merge with the feature.
+
+### Canonical workflow
+
+```
+EnterWorktree
+    ↓
+brainstorming         (design + spec)
+    ↓
+writing-plans         (step-by-step plan)
+    ↓
+subagent-driven-development     (TDD + systematic-debugging inline)
+    ↓
+verification-before-completion
+    ↓
+requesting-code-review          (re-invoke after fixes until clean)
+    ↓
+ce-compound                     (capture learnings -> docs/solutions/)
+    ↓
+finishing-a-development-branch
+   ├─ no-pr default: option 1 (local merge -> push main)
+   └─ PR mode:       compound-engineering:ce-commit-push-pr +
+                     compound-engineering:ce-resolve-pr-feedback
+```
+
+Full integration details: `~/.claude/docs/superpowers-workflow.md`
+
+### Commit rules
+
 - Commit each self-contained logical change atomically.
-- Conventional commits: `type(scope): description` -- types: feat, fix, docs, chore, refactor, test, ci, perf
-- When implementation is complete: `/pr:create` to review and create the PR.
-  Push with explicit refspec (`git push origin HEAD:<branch>`) to avoid `push.default=upstream` redirecting to main.
-- When PR is approved: `ExitWorktree("keep")` to return to main.
-  Use `ExitWorktree("remove")` only to discard exploratory work with no commits.
-- After ExitWorktree: wait for the user to merge. Do NOT run `gh pr merge` proactively.
-- After merge: `/pr:merge` handles finalization.
-- YOU MUST use merge commits (`gh pr merge --merge`), never squash or rebase.
+- Conventional commits: `type(scope): description` -- types: feat, fix,
+  docs, chore, refactor, test, ci, perf.
+- Stage specific files; never `git add -A` or `git add .` (hook-enforced).
 
-## Superpowers integration
+### No-pr mode (default)
 
-`superpowers@superpowers-marketplace` is enabled. Use it for:
-- TDD discipline (`superpowers:test-driven-development`)
-- Root-cause debugging (`superpowers:systematic-debugging`)
-- Pre-completion verification (`superpowers:verification-before-completion`)
-- Socratic design refinement (`superpowers:brainstorming`)
-- Implementation breakdowns (`superpowers:writing-plans`, `superpowers:executing-plans`)
+After implementation + `requesting-code-review` is clean +
+`ce-compound` has documented the solution: invoke
+`finishing-a-development-branch`, pick option 1 (local merge). Then
+push main. No PR created.
 
-Do NOT use superpowers for these -- existing workflow takes precedence:
-- Worktree management: hooks (`worktree-guard.sh`) enforce isolation; use
-  `EnterWorktree`/`ExitWorktree` tools, not `superpowers:using-git-worktrees`.
-- Finishing branches: use `pr:create`/`pr:merge` (PR mode) or
-  `no-pr-review.md` + ExitWorktree+merge (no-pr mode), not
-  `superpowers:finishing-a-development-branch`.
-- Code review: use `pr:review`, `pr:address`, or `no-pr-review.md`, not
-  `superpowers:requesting-code-review` / `superpowers:receiving-code-review` /
-  `superpowers:subagent-driven-development`.
-- Parallel agents: use `caveman:cavecrew` for compressed delegation, not
-  `superpowers:dispatching-parallel-agents`.
-- Skill authoring: use `skill-creator` plugin, not `superpowers:writing-skills`.
-- Plugin meta-guidance: existing CLAUDE.md is sufficient; skip `superpowers:using-superpowers`.
+### PR mode (opt-in)
 
-Workflow integration reference: `~/.claude/docs/superpowers-workflow.md`
+When a PR is needed:
+
+- `compound-engineering:ce-commit-push-pr` -- commit, push, and open
+  the PR with an adaptive value-first description (replaces older
+  `/pr:create`).
+- `compound-engineering:ce-resolve-pr-feedback` -- address review
+  threads (replaces older `/pr:address`).
+- After merge: `ExitWorktree("keep")` to return to main.
+- YOU MUST use merge commits (`gh pr merge --merge`), never squash or
+  rebase.
+
+### Worktree exit
+
+- `ExitWorktree("keep")` after merge (default).
+- `ExitWorktree("remove")` only for exploratory work with no commits.
+
+## Plugin integration
+
+`superpowers@superpowers-marketplace` and
+`compound-engineering@compound-engineering-plugin` are both enabled.
+Skill chain documented above.
+
+Caveats:
+
+- Worktree management uses the harness `EnterWorktree` / `ExitWorktree`
+  tools (hook-enforced) -- NOT `superpowers:using-git-worktrees`.
+- Parallel agents: use `caveman:cavecrew` for compressed delegation
+  when context budget matters; use
+  `superpowers:dispatching-parallel-agents` for the standard parallel
+  pattern.
+- Skill authoring: use the separate `skill-creator` plugin if needed.
