@@ -89,21 +89,28 @@ fi
 # Bash: exit early unless the command is a file-read invocation.
 FILE_ARGS=()
 if [[ "$TOOL_NAME" == "Bash" ]]; then
-  # Match leading: optional whitespace, optional "sudo ", then a read-type tool.
-  if ! [[ "$COMMAND" =~ ^[[:space:]]*(sudo[[:space:]]+)?(cat|head|tail|bat|view|less|more|sed)[[:space:]] ]]; then
+  # Match leading: optional whitespace, optional VAR=value assignments, optional
+  # one of sudo / env [VAR=val ...] / command / builtin, then a read-type tool.
+  if ! [[ "$COMMAND" =~ ^[[:space:]]*(([A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*[[:space:]]+)*)(sudo[[:space:]]+|env([[:space:]]+[A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*)*[[:space:]]+|command[[:space:]]+|builtin[[:space:]]+)?(cat|head|tail|bat|view|less|more|sed)[[:space:]] ]]; then
     exit 0
   fi
-  READ_TOOL="${BASH_REMATCH[2]}"
+  READ_TOOL="${BASH_REMATCH[5]}"
 
   # tail -f / --follow is a live stream, not a file read — allow it.
   if [[ "$READ_TOOL" == "tail" ]] && [[ "$COMMAND" =~ (^|[[:space:]])-[^[:space:]]*f([[:space:]]|$) ]]; then
     exit 0
   fi
 
-  # Extract the portion of the command after the tool name, removing output
-  # redirections (> or >>) so their targets are not mistaken for read args.
-  _rest="${COMMAND#*"$READ_TOOL"}"
+  # Extract the portion of the command after the tool name. Anchor with a
+  # leading whitespace boundary so a $READ_TOOL substring inside a VAR= prefix
+  # (e.g. FOO=catspawn) is not mistakenly stripped.
+  if [[ "$COMMAND" =~ (^|[[:space:]])"$READ_TOOL"[[:space:]](.*)$ ]]; then
+    _rest="${BASH_REMATCH[2]}"
+  else
+    _rest=""
+  fi
   _rest="${_rest%%>[^|]*}"   # strip anything after a non-piped >
+
 
   # Collect non-flag tokens as potential file arguments.
   _skip_next=0
