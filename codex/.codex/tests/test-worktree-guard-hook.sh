@@ -6,6 +6,9 @@ HOOK="$HOOK_ROOT/worktree-guard.sh"
 TEST_ROOT=""
 PRIMARY_REPO=""
 LINKED_WORKTREE=""
+SPACE_PRIMARY_REPO=""
+SPACE_LINKED_WORKTREE=""
+SPACE_LINKED_GIT_DIR=""
 OUTSIDE_DIR=""
 
 cleanup() {
@@ -20,6 +23,8 @@ setup_git_fixture() {
   TEST_ROOT="$(mktemp -d)"
   PRIMARY_REPO="$TEST_ROOT/primary"
   LINKED_WORKTREE="$TEST_ROOT/linked"
+  SPACE_PRIMARY_REPO="$TEST_ROOT/space primary"
+  SPACE_LINKED_WORKTREE="$TEST_ROOT/space linked"
   OUTSIDE_DIR="$TEST_ROOT/outside"
 
   mkdir -p "$OUTSIDE_DIR"
@@ -30,6 +35,15 @@ setup_git_fixture() {
   git -C "$PRIMARY_REPO" add README.md
   git -C "$PRIMARY_REPO" commit -m "test: seed fixture" >/dev/null
   git -C "$PRIMARY_REPO" worktree add "$LINKED_WORKTREE" -b fixture-worktree >/dev/null
+
+  git init "$SPACE_PRIMARY_REPO" >/dev/null
+  git -C "$SPACE_PRIMARY_REPO" config user.email "codex@example.test"
+  git -C "$SPACE_PRIMARY_REPO" config user.name "Codex Test"
+  printf 'fixture\n' >"$SPACE_PRIMARY_REPO/README.md"
+  git -C "$SPACE_PRIMARY_REPO" add README.md
+  git -C "$SPACE_PRIMARY_REPO" commit -m "test: seed fixture" >/dev/null
+  git -C "$SPACE_PRIMARY_REPO" worktree add "$SPACE_LINKED_WORKTREE" -b fixture-space-worktree >/dev/null
+  SPACE_LINKED_GIT_DIR="$(git -C "$SPACE_LINKED_WORKTREE" rev-parse --absolute-git-dir)"
 }
 
 run_hook_json() {
@@ -43,6 +57,24 @@ run_hook_json() {
     cwd: $cwd,
     tool_input: $tool_input
   }' | bash "$HOOK"
+}
+
+run_hook_json_with_tool_workdir() {
+  local cwd="$1"
+  local tool_workdir="$2"
+  local tool_name="$3"
+  local tool_input="$4"
+
+  jq -cn \
+    --arg cwd "$cwd" \
+    --arg tool_workdir "$tool_workdir" \
+    --arg tool_name "$tool_name" \
+    --argjson tool_input "$tool_input" '{
+      hook_event_name: "PreToolUse",
+      tool_name: $tool_name,
+      cwd: $cwd,
+      tool_input: ($tool_input + {workdir: $tool_workdir})
+    }' | bash "$HOOK"
 }
 
 run_hook_json_with_home() {
@@ -88,6 +120,24 @@ assert_allowed_json() {
     fi
   fi
   echo "ok allowed $tool_name in $cwd"
+}
+
+assert_allowed_command_with_tool_workdir() {
+  local cwd="$1"
+  local tool_workdir="$2"
+  local command="$3"
+  local output
+
+  output="$(run_hook_json_with_tool_workdir "$cwd" "$tool_workdir" "Bash" "$(jq -cn --arg command "$command" '{command: $command}')")"
+  if [[ -n "$output" ]]; then
+    jq -e . >/dev/null <<<"$output"
+    if jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null <<<"$output"; then
+      echo "expected allowed but denied: $command with workdir=$tool_workdir and cwd=$cwd" >&2
+      echo "$output" >&2
+      return 1
+    fi
+  fi
+  echo "ok allowed $command with workdir=$tool_workdir and cwd=$cwd"
 }
 
 assert_denied_json_with_home() {
@@ -153,6 +203,12 @@ assert_denied_command "$OUTSIDE_DIR" "printf 'blocked\n' >>$PRIMARY_REPO/redirec
 assert_denied_command_with_home "$TEST_ROOT" "$OUTSIDE_DIR" 'touch "$HOME/primary/env-generated.txt"'
 assert_allowed_json "$LINKED_WORKTREE" "apply_patch" "$(jq -cn '{cmd: "*** Begin Patch\n*** Add File: repo.txt\n+allowed\n*** End Patch\n"}')"
 assert_allowed_json "$LINKED_WORKTREE" "Write" "$(jq -cn --arg file_path "$LINKED_WORKTREE/generated.txt" '{file_path: $file_path, content: "allowed"}')"
+assert_allowed_command_with_tool_workdir "$PRIMARY_REPO" "$LINKED_WORKTREE" "git add README.md"
+assert_allowed_command "$PRIMARY_REPO" "git -C $LINKED_WORKTREE add README.md"
+assert_denied_command "$LINKED_WORKTREE" "git -C $PRIMARY_REPO add README.md"
+assert_denied_command "$OUTSIDE_DIR" "git -C \"$SPACE_PRIMARY_REPO\" add README.md"
+assert_allowed_command "$OUTSIDE_DIR" "git -C \"$SPACE_LINKED_WORKTREE\" add README.md"
+assert_allowed_command "$PRIMARY_REPO" "touch /tmp/worktree-guard-scratch-$$"
 
 assert_allowed_command "$PRIMARY_REPO" "git status --short"
 assert_allowed_command "$PRIMARY_REPO" "git -C $PRIMARY_REPO status --short"
@@ -204,6 +260,15 @@ assert_denied_command "$LINKED_WORKTREE" "p=../primary; touch \"\$p/linked-indir
 assert_denied_command "$LINKED_WORKTREE" "cd ../primary; touch linked-cd-generated.txt"
 assert_denied_command "$LINKED_WORKTREE" "cd ../primary/; touch linked-cd-slash-generated.txt"
 assert_denied_command "$LINKED_WORKTREE" "pushd ../primary; touch linked-pushd-generated.txt"
+assert_denied_command "$SPACE_LINKED_WORKTREE" "git --git-dir \"$SPACE_PRIMARY_REPO/.git\" --work-tree \"$SPACE_PRIMARY_REPO\" add README.md"
+assert_denied_command "$SPACE_LINKED_WORKTREE" "git --git-dir=\"$SPACE_PRIMARY_REPO/.git\" --work-tree=\"$SPACE_PRIMARY_REPO\" add README.md"
+assert_denied_command "$SPACE_LINKED_WORKTREE" "git --git-dir \"$SPACE_PRIMARY_REPO/.git\" --work-tree \"$SPACE_LINKED_WORKTREE\" add README.md"
+assert_denied_command "$SPACE_LINKED_WORKTREE" "git --git-dir=\"$SPACE_PRIMARY_REPO/.git\" --work-tree=\"$SPACE_LINKED_WORKTREE\" add README.md"
+assert_denied_command "$SPACE_LINKED_WORKTREE" "git --git-dir=\"$SPACE_PRIMARY_REPO/.git\" add README.md"
+assert_allowed_command "$SPACE_LINKED_WORKTREE" "git --git-dir \"$SPACE_LINKED_GIT_DIR\" add README.md"
+assert_allowed_command "$OUTSIDE_DIR" "git -C \"$SPACE_LINKED_WORKTREE\" --git-dir \"$SPACE_LINKED_GIT_DIR\" add README.md"
+assert_allowed_command "$SPACE_LINKED_WORKTREE" "git --git-dir \"$SPACE_LINKED_GIT_DIR\" --work-tree \"$SPACE_LINKED_WORKTREE\" add README.md"
+assert_allowed_command "$SPACE_LINKED_WORKTREE" "git --git-dir=\"$SPACE_LINKED_GIT_DIR\" --work-tree=\"$SPACE_LINKED_WORKTREE\" add README.md"
 assert_denied_command "$PRIMARY_REPO" "printf 'blocked\n' > generated.txt"
 assert_denied_command "$PRIMARY_REPO" "touch generated.txt"
 assert_denied_command "$PRIMARY_REPO" "git add README.md"
