@@ -5,8 +5,11 @@
 - Subagents inherit durable Codex config from `$CODEX_HOME/config.toml`.
 - Keep `approval_policy = "on-request"`; do not bypass the sandbox globally.
 - Routine sandbox-compatible repository work should flow through the configured auto reviewer.
-- Sensitive operations require direct user approval and must not be approved by auto-review: destructive commands, network access, credential access, writes outside configured workspace roots, and history rewrites.
-- Persistent prefix rules must be narrow and command-specific. Do not persist broad runtime prefixes such as `bash`, `python`, `node`, `ruby`, `perl`, or `sh`.
+- GitHub-scoped collaboration and branch sync operations may flow through auto-review when issued from an active repository worktree.
+- Allowed GitHub operations include PR `view/list/create/edit/comment/check/status/review`, issue `view/list/create/edit/comment/status`, `git fetch`, `git pull`, and ordinary non-force current-branch `git push` to GitHub remotes.
+- Sensitive operations require direct user approval and must not be approved by auto-review: `gh pr merge`, branch deletion, repository administration, settings or secrets changes, destructive issue or PR operations, force pushes, history rewrites, credential access, non-GitHub network access, direct GitHub API access through arbitrary runtimes or shell scripts, destructive commands, and writes outside configured workspace roots.
+- Persistent prefix rules must be narrow and command-specific, with operation-specific examples such as `gh pr view`, `gh pr list`, `gh pr create`, `gh pr edit`, `gh pr comment`, `gh pr check`, `gh pr status`, `gh pr review`, `gh issue view`, `gh issue list`, `gh issue create`, `gh issue edit`, `gh issue comment`, `gh issue status`, `git fetch`, and `git pull`. If a persistent `git push` rule is approved, it must be constrained to ordinary non-force current-branch pushes to GitHub remotes and must not cover `--force`, `--force-with-lease`, deletion refspecs, tags, mirror pushes, or broad branch mutation.
+- Do not persist broad runtime prefixes such as `bash`, `python`, `node`, `ruby`, `perl`, or `sh`.
 
 ## Worktree Isolation
 
