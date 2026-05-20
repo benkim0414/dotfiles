@@ -41,8 +41,24 @@ canonical_path() {
   fi
 }
 
+cwd="$(canonical_path "$cwd")"
+
+effective_cwd() {
+  local tool_workdir
+
+  tool_workdir="$(jq -r '.tool_input.workdir // .tool_input.cwd // .tool_input.current_working_directory // empty' <<<"$input" 2>/dev/null || true)"
+  if [[ -n "$tool_workdir" && -d "$tool_workdir" ]]; then
+    canonical_path "$tool_workdir"
+    return
+  fi
+
+  canonical_path "$cwd"
+}
+
 repo_root_for() {
-  git -C "$cwd" rev-parse --show-toplevel 2>/dev/null || true
+  local dir="${1:-$cwd}"
+
+  git -C "$dir" rev-parse --show-toplevel 2>/dev/null || true
 }
 
 repo_root_for_path() {
@@ -66,34 +82,38 @@ repo_root_for_path() {
 
 resolve_git_path() {
   local path="$1"
+  local base_dir="${2:-$cwd}"
+
   if [[ "$path" = /* ]]; then
     canonical_path "$path"
   else
-    canonical_path "$cwd/$path"
+    canonical_path "$base_dir/$path"
   fi
 }
 
 is_linked_worktree() {
+  local dir="${1:-$cwd}"
   local absolute_git_dir
   local common_git_dir
 
-  absolute_git_dir="$(git -C "$cwd" rev-parse --absolute-git-dir 2>/dev/null || true)"
-  common_git_dir="$(git -C "$cwd" rev-parse --git-common-dir 2>/dev/null || true)"
+  absolute_git_dir="$(git -C "$dir" rev-parse --absolute-git-dir 2>/dev/null || true)"
+  common_git_dir="$(git -C "$dir" rev-parse --git-common-dir 2>/dev/null || true)"
 
   if [[ -z "$absolute_git_dir" || -z "$common_git_dir" ]]; then
     return 1
   fi
 
   absolute_git_dir="$(canonical_path "$absolute_git_dir")"
-  common_git_dir="$(resolve_git_path "$common_git_dir")"
+  common_git_dir="$(resolve_git_path "$common_git_dir" "$dir")"
 
   [[ "$absolute_git_dir" != "$common_git_dir" ]]
 }
 
 primary_worktree_root_for_current_repo() {
+  local dir="${1:-$cwd}"
   local common_git_dir
 
-  common_git_dir="$(git -C "$cwd" rev-parse --git-common-dir 2>/dev/null || true)"
+  common_git_dir="$(git -C "$dir" rev-parse --git-common-dir 2>/dev/null || true)"
   if [[ -z "$common_git_dir" ]]; then
     return 1
   fi
@@ -101,7 +121,7 @@ primary_worktree_root_for_current_repo() {
   if [[ "$common_git_dir" = /* ]]; then
     common_git_dir="$(canonical_path "$common_git_dir")"
   else
-    common_git_dir="$(canonical_path "$cwd/$common_git_dir")"
+    common_git_dir="$(canonical_path "$dir/$common_git_dir")"
   fi
 
   canonical_path "$(dirname "$common_git_dir")"
@@ -299,6 +319,7 @@ main_worktree_root_for_target() {
 
 command_referenced_main_worktree_root() {
   local command="$1"
+  local base_dir="${2:-$cwd}"
   local -a words
   local word
   local candidate
@@ -342,7 +363,7 @@ command_referenced_main_worktree_root() {
         candidate="$word"
         ;;
       ./*|../*|*/*)
-        candidate="$cwd/$word"
+        candidate="$base_dir/$word"
         ;;
       *)
         continue
@@ -357,6 +378,48 @@ command_referenced_main_worktree_root() {
   done
 
   return 1
+}
+
+command_targets_outside_git_repo() {
+  local command="$1"
+  local -a words
+  local word
+  local found_target=0
+
+  if has_shell_control_syntax "$command"; then
+    return 1
+  fi
+
+  read -r -a words <<<"$command"
+
+  case "${words[0]:-}" in
+    touch)
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+
+  for word in "${words[@]:1}"; do
+    case "$word" in
+      --)
+        continue
+        ;;
+      -*)
+        continue
+        ;;
+    esac
+
+    found_target=1
+    if [[ "$word" != /* ]]; then
+      return 1
+    fi
+    if [[ -n "$(repo_root_for_path "$word")" ]]; then
+      return 1
+    fi
+  done
+
+  [[ "$found_target" -eq 1 ]]
 }
 
 is_read_only_rg_command() {
@@ -414,6 +477,52 @@ has_shell_path_indirection() {
       return 1
       ;;
   esac
+}
+
+git_command_cwd() {
+  local command="$1"
+  local selected_dir="${2:-$cwd}"
+  local -a words
+  local i
+
+  read -r -a words <<<"$command"
+
+  if [[ "${words[0]:-}" != "git" ]]; then
+    return 1
+  fi
+
+  selected_dir="$(canonical_path "$selected_dir")"
+  i=1
+  while (( i < ${#words[@]} )); do
+    case "${words[i]}" in
+      -C)
+        if [[ -z "${words[i + 1]:-}" ]]; then
+          return 1
+        fi
+        if [[ "${words[i + 1]}" = /* ]]; then
+          selected_dir="$(canonical_path "${words[i + 1]}")"
+        else
+          selected_dir="$(canonical_path "$selected_dir/${words[i + 1]}")"
+        fi
+        ((i += 2))
+        ;;
+      --git-dir|--work-tree|--namespace|-c)
+        ((i += 2))
+        ;;
+      --git-dir=*|--work-tree=*|--namespace=*|-c*)
+        ((i++))
+        ;;
+      --no-pager|--paginate|--no-optional-locks|--literal-pathspecs|--no-replace-objects)
+        ((i++))
+        ;;
+      *)
+        printf '%s\n' "$selected_dir"
+        return 0
+        ;;
+    esac
+  done
+
+  printf '%s\n' "$selected_dir"
 }
 
 is_read_only_git_command() {
@@ -565,8 +674,9 @@ is_read_only_command() {
 
 is_outside_repo_shell_command_allowed() {
   local command="$1"
+  local base_dir="${2:-$cwd}"
 
-  if command_referenced_main_worktree_root "$command" >/dev/null; then
+  if command_referenced_main_worktree_root "$command" "$base_dir" >/dev/null; then
     is_read_only_command "$command"
     return
   fi
@@ -666,8 +776,13 @@ MSG
 repo_root="$(repo_root_for)"
 if is_shell_tool; then
   command="$(command_text)"
+  shell_cwd="$(effective_cwd)"
+  command_cwd="$shell_cwd"
+  if git_selected_cwd="$(git_command_cwd "$command" "$shell_cwd")"; then
+    command_cwd="$git_selected_cwd"
+  fi
 
-  if referenced_root="$(command_referenced_main_worktree_root "$command")"; then
+  if referenced_root="$(command_referenced_main_worktree_root "$command" "$command_cwd")"; then
     if is_read_only_command "$command"; then
       exit 0
     fi
@@ -675,12 +790,13 @@ if is_shell_tool; then
     deny "$(block_reason "$referenced_root")"
   fi
 
+  repo_root="$(repo_root_for "$command_cwd")"
   if [[ -z "$repo_root" ]]; then
-    if is_outside_repo_shell_command_allowed "$command"; then
+    if is_outside_repo_shell_command_allowed "$command" "$command_cwd"; then
       exit 0
     fi
 
-    deny "$(block_reason "$(command_referenced_main_worktree_root "$command")")"
+    deny "$(block_reason "$(command_referenced_main_worktree_root "$command" "$command_cwd")")"
   fi
 
   if is_read_only_command "$command"; then
@@ -688,11 +804,15 @@ if is_shell_tool; then
   fi
   repo_root="$(canonical_path "$repo_root")"
 
-  if is_linked_worktree; then
+  if is_linked_worktree "$command_cwd"; then
     if has_shell_control_syntax "$command" && has_shell_path_indirection "$command"; then
-      deny "$(block_reason "$(primary_worktree_root_for_current_repo)")"
+      deny "$(block_reason "$(primary_worktree_root_for_current_repo "$command_cwd")")"
     fi
 
+    exit 0
+  fi
+
+  if command_targets_outside_git_repo "$command"; then
     exit 0
   fi
 
