@@ -64,9 +64,14 @@ and broad branch mutation commands. These sensitive operations require direct
 user approval and must not be approved by auto-review.
 
 When an approval request includes a persistent prefix rule, approve only narrow
-command-specific prefixes such as gh pr, gh issue, git fetch, git pull, or git
-push. Do not approve broad runtime prefixes such as bash, python, node, ruby,
-perl, or sh.
+operation-specific prefixes such as gh pr view, gh pr list, gh pr create, gh pr
+edit, gh pr comment, gh pr check, gh pr status, gh pr review, gh issue view,
+gh issue list, gh issue create, gh issue edit, gh issue comment, and gh issue
+status. Under the current prefix-rule model, git network commands (git fetch,
+git pull, git push) should use per-command approval unless the approval
+mechanism can enforce the exact GitHub, active-worktree, and non-destructive
+constraints. Do not approve broad runtime prefixes such as bash, python, node,
+ruby, perl, or sh.
 """
 ```
 
@@ -145,7 +150,9 @@ In `codex/.codex/AGENTS.md`, replace the three bullets under "Subagent Approval 
 - Routine sandbox-compatible repository work should flow through the configured auto reviewer.
 - GitHub-scoped collaboration and branch sync operations may flow through auto-review when issued from an active repository worktree: `gh pr view/list/create/edit/comment/check/status/review`, `gh issue view/list/create/edit/comment/status`, `git fetch`, `git pull`, and ordinary `git push` to GitHub remotes.
 - Sensitive operations require direct user approval and must not be approved by auto-review: `gh pr merge`, branch deletion, repository administration, settings or secrets changes, destructive issue or PR operations, force pushes, history rewrites, credential access, non-GitHub network access, direct GitHub API access through arbitrary runtimes or shell scripts, destructive commands, and writes outside configured workspace roots.
-- Persistent prefix rules must be narrow and command-specific, such as `gh pr`, `gh issue`, `git fetch`, `git pull`, or `git push`. Do not persist broad runtime prefixes such as `bash`, `python`, `node`, `ruby`, `perl`, or `sh`.
+- Persistent prefix rules must be narrow and command-specific, with operation-specific examples such as `gh pr view`, `gh pr list`, `gh pr create`, `gh pr edit`, `gh pr comment`, `gh pr check`, `gh pr status`, `gh pr review`, `gh issue view`, `gh issue list`, `gh issue create`, `gh issue edit`, `gh issue comment`, and `gh issue status`.
+- Under the current prefix-rule model, git network commands (`git fetch`, `git pull`, `git push`) should use per-command approval unless the approval mechanism can enforce the exact GitHub, active-worktree, and non-destructive constraints.
+- Do not persist broad runtime prefixes such as `bash`, `python`, `node`, `ruby`, `perl`, or `sh`.
 ```
 
 - [ ] **Step 3: Verify AGENTS wording includes the policy boundaries**

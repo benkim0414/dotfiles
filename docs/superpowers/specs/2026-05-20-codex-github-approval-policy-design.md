@@ -31,9 +31,17 @@ sync:
 - `gh issue view`, `list`, `create`, `edit`, `comment`, and `status`
 - `git fetch`, `git pull`, and ordinary `git push` for GitHub remotes
 
-Persistent approval rules for these operations must remain narrow and
-command-specific. Examples include `["gh", "pr"]`, `["gh", "issue"]`,
-`["git", "fetch"]`, `["git", "pull"]`, and `["git", "push"]`.
+Persistent approval rules must remain narrow and command-specific. Safe
+durable examples are operation-specific `gh pr ...` and `gh issue ...`
+commands, such as `gh pr view`, `gh pr check`, `gh issue view`, and
+`gh issue comment`.
+
+Under the current prefix-rule model, git network commands (`git fetch`,
+`git pull`, and `git push`) should use per-command approval unless the
+approval mechanism can enforce the exact GitHub, active-worktree, and
+non-destructive constraints. Durable git network prefixes must not be approved
+when they could cover non-GitHub remotes, branch-changing pulls, force pushes,
+deletion refspecs, tags, mirror pushes, or broad branch mutation.
 
 ## Denied Operations
 
