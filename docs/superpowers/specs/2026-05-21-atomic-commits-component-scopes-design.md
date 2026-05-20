@@ -30,21 +30,23 @@ Replaces the current three-bullet block under `### Commit rules` (Git Workflow s
 - **Conventional commits** — form `type(scope): description`; type enum (`feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `ci`, `perf`).
 - **Scope = affected component, not artifact directory** — rule + anti-pattern table + canonical-list pointer to `claude/.claude/lib/commit-scope.sh`.
 
-Closing block contains 5 good examples and 5 bad examples in a code fence, one bad example per anti-pattern class (artifact-type, repo-name, framework-name, location, multi-change).
+Closing block contains a small set of good/bad examples written with `<component>` and `<repo-name>` placeholders (not concrete dotfiles-only names) plus one prose line clarifying that examples are illustrative; real scopes are whatever component name appears in the current repo's history. One bad example per anti-pattern class (artifact-type, repo-name, framework-name, location, multi-change).
 
 ### 2. `claude/.claude/lib/commit-scope.sh`
 
-Pure POSIX-bash lib, no side effects on source. Two top-level arrays:
+Pure POSIX-bash lib, no side effects on source. Repo-agnostic. Two top-level arrays + one helper for the dynamic repo-name ban:
 
 ```bash
+# Universal anti-patterns. No repo-specific literals (e.g. no 'dotfiles', no 'myapp').
 BANNED_SCOPES=(
   spec plan "spec, plan"
-  dotfiles
   openspec proposal rfc prd
   specs plans changes
   docs doc src lib
 )
 
+# Documentation-artifact directories whose path names artifact type, not component.
+# Adding a new AI-skill framework = add its publish dir here.
 ARTIFACT_PREFIXES=(
   docs/superpowers/specs
   docs/superpowers/plans
@@ -53,12 +55,27 @@ ARTIFACT_PREFIXES=(
 )
 ```
 
-Two functions:
+The current repo's basename is banned dynamically so the rule works in any repo without per-repo configuration. Detection:
+
+```bash
+_repo_basename() {
+  # Test override for fixtures
+  if [[ -n "${COMMIT_SCOPE_REPO_NAME:-}" ]]; then
+    echo "$COMMIT_SCOPE_REPO_NAME"
+    return 0
+  fi
+  local top
+  top=$(git rev-parse --show-toplevel 2>/dev/null) || return 1
+  basename "$top"
+}
+```
+
+Two public functions:
 
 ```bash
 is_banned_scope <scope>
 ```
-Returns 0 if `<scope>` matches any entry in `BANNED_SCOPES`; returns 1 otherwise. Used by hook for the banned-scope warning path.
+Returns 0 if `<scope>` matches any entry in `BANNED_SCOPES` OR equals the current repo basename (via `_repo_basename`); returns 1 otherwise. The git-toplevel lookup is best-effort: if `git` fails (not a repo, missing binary), only the static list applies. Used by hook for the banned-scope warning path.
 
 ```bash
 suggest_scope <staged-file-list> <known-scopes-csv>
@@ -131,7 +148,7 @@ run.sh helpers.sh
 # Lib-unit (commit 1) — call is_banned_scope / suggest_scope directly
 10-banned-spec.sh
 11-banned-plan.sh
-12-banned-dotfiles.sh
+12-banned-repo-name.sh
 13-banned-openspec.sh
 14-good-component-not-banned.sh
 20-suggest-package-dir.sh
@@ -157,7 +174,7 @@ Three test layers:
 
 - **Lib unit** (IDs 00, 10-25, 50) — source `commit-scope.sh` directly, drive `is_banned_scope` + `suggest_scope` with fixture args, assert return code / stdout. Multi-toplevel case 25 asserts the lib returns empty (the atomicity warning itself is a hook concern).
 - **Hook integration** (IDs 60-67) — `mktemp -d` git fixture, stage real files, synthesize PreToolUse JSON, pipe to `git-safety.sh`, grep stderr for expected emit substrings.
-- **Sentinel** (ID 50) — assert `BANNED_SCOPES` array still contains `spec`, `plan`, `dotfiles`, `openspec`.
+- **Sentinel** (ID 50) — assert `BANNED_SCOPES` array still contains the universal anti-patterns `spec`, `plan`, `openspec`, `docs`. Also assert `is_banned_scope` returns 0 when called with the value of `COMMIT_SCOPE_REPO_NAME` override (dynamic repo-name ban path).
 
 `run.sh` iterates `[0-9][0-9]-*.sh`, prints `PASS/FAIL`, exits non-zero on any fail. Same shape as `tests/read-once/run.sh`.
 
@@ -166,23 +183,25 @@ Coverage rule: each banned scope class in the CLAUDE.md anti-pattern table has a
 ## Data flow
 
 ```
-agent issues:  git commit -m "docs(spec): foo"
+agent issues:  git commit -m "docs(spec): <subject>"
         │
         ▼
 PreToolUse hook fires (Bash matcher)
         │
         ▼
 git-safety.sh:
-  parse -m argument           → msg = "docs(spec): foo"
+  parse -m argument           → msg = "docs(spec): <subject>"
   extract declared_scope      → "spec"
-  is_banned_scope "spec"      → true
+  is_banned_scope "spec"      → true   (universal anti-pattern)
   emit_context: "scope='spec' is BANNED ..."
         │
         ▼
 (continues to staged-context emit:)
-  collect staged files
-  suggest_scope("...spec.md", "read-once,claude,codex") → "read-once"
-  emit_context: "Staged files (1): ... Suggested scope: read-once ..."
+  collect staged files                             (e.g. one file under ARTIFACT_PREFIXES)
+  derive slug from path                            (e.g. strip YYYY-MM-DD prefix + -design.md suffix)
+  known_scopes := scopes from `git log -50`        (whatever components the current repo uses)
+  suggest_scope(slug, known_scopes)                → echo <component> if a known scope matches the slug, else empty
+  emit_context: "Staged files (1): ... Suggested scope: <component> ..."
         │
         ▼
 agent sees both warnings before commit lands
@@ -240,10 +259,12 @@ Scope `claude` is correct on all three commits: lib + hook + doc all live under 
 
 ## Success criteria
 
-- `BANNED_SCOPES` array contains `spec`, `plan`, `dotfiles`, `openspec`, plus the rest of the table.
+- `BANNED_SCOPES` array contains the universal anti-patterns `spec`, `plan`, `openspec`, `docs`, plus the rest of the table. No repo-specific literals.
+- `_repo_basename` returns the current repo's directory name (or honors `COMMIT_SCOPE_REPO_NAME` override) and `is_banned_scope` returns 0 for that value.
 - `ARTIFACT_PREFIXES` array contains `docs/superpowers/specs`, `docs/superpowers/plans`, `docs/solutions`, `openspec/changes`.
 - `bash claude/.claude/tests/commit-scope/run.sh` exits 0 with all cases PASS.
 - A live commit attempt with `docs(spec): X` produces a visible PreToolUse warning citing `BANNED`.
-- A live commit attempt with one file under `docs/superpowers/specs/2026-05-21-read-once-foo-design.md` produces a `Suggested scope: read-once` hint (given `read-once` exists in recent history).
-- CLAUDE.md `### Commit rules` section renders the four subsections + anti-pattern table + canonical-list pointer + 5+5 examples.
+- A live commit attempt with scope equal to the current repo's directory basename produces the same `BANNED` warning, regardless of which repo the agent is in.
+- A live commit attempt with one file under an `ARTIFACT_PREFIXES` directory produces a `Suggested scope: <slug-token>` hint matching a known scope from the repo's `git log` history.
+- CLAUDE.md `### Commit rules` section renders the four subsections + anti-pattern table + canonical-list pointer + good/bad examples written with `<component>` placeholders.
 - No new hook entries in `settings.json` (extending existing `git-safety.sh` PreToolUse registration).
