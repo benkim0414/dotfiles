@@ -1,6 +1,7 @@
 ---
 title: "Enforce Codex workflows in linked git worktrees"
 date: "2026-05-20"
+last_updated: "2026-05-20"
 category: "workflow-issues"
 module: "dotfiles/codex"
 problem_type: "workflow_issue"
@@ -70,12 +71,25 @@ The guard should:
 - Detect whether the current repository checkout is a linked worktree by
   comparing `git rev-parse --absolute-git-dir` with
   `git rev-parse --git-common-dir`.
+- Prefer the effective tool workdir from the hook payload when Codex provides
+  one, because the hook process `cwd` can differ from the shell command's
+  requested execution directory.
 - Canonicalize paths before deciding whether a target is inside a primary
   checkout or linked worktree.
 - Allow read-only inspection commands in a primary checkout.
 - Allow ordinary writes inside the active linked worktree.
+- Allow non-repository scratch writes, such as `touch /tmp/<file>`, when they do
+  not target any Git worktree.
 - Deny writes into a primary checkout from a primary checkout, a sibling linked
   worktree, or an outside directory.
+- Resolve explicit Git target selectors before classifying the command:
+  `git -C <path>`, `git --work-tree <path>`, and `git --git-dir <path>`.
+- Parse command words with enough shell awareness to preserve quoted paths with
+  spaces. Simple whitespace splitting is not safe for guard decisions.
+- Validate explicit `--git-dir` values against the selected worktree's own
+  `git rev-parse --absolute-git-dir`. A linked `--work-tree` paired with the
+  primary repo's `.git` directory can still mutate the primary index and must be
+  denied.
 - Inspect direct tool target fields, `apply_patch` patch headers, shell command
   text, MCP executor payloads, and nested
   `ctx_batch_execute.commands[].command` entries.
@@ -117,6 +131,19 @@ misses shell and MCP execution. A guard that treats command names as read-only
 without checking write-capable flags creates bypasses. The reliable pattern is
 path-aware, command-aware, and fail-closed around ambiguous shell control.
 
+A guard that trusts only the hook process `cwd` also creates false positives.
+Codex can invoke a shell tool with an effective `workdir` inside a linked
+worktree while the hook payload still appears rooted at the repository's primary
+checkout. In that case, blocking `git add`, `git update-index`, `git apply
+--cached`, or `git hash-object -w` prevents the intended isolated workflow.
+
+The inverse is just as important: Git command options can redirect mutations
+away from the apparent shell cwd. `git -C`, `--work-tree`, and `--git-dir` must
+be interpreted as part of the target calculation. In particular, `--git-dir`
+controls which index Git mutates; a command whose `--work-tree` points at a
+linked worktree but whose `--git-dir` points at the primary checkout is still a
+primary-worktree mutation.
+
 ## When to Apply
 
 - Use this pattern when Codex or other agents should keep a stable primary
@@ -126,6 +153,10 @@ path-aware, command-aware, and fail-closed around ambiguous shell control.
 - Use it when MCP tools can execute shell-like payloads or batch command arrays.
 - Use it when dotfiles generate global Codex config that must be safe across
   arbitrary downstream repositories.
+- Use it when hook payload metadata can contain both a session/root directory
+  and a tool-specific execution directory.
+- Use it when Git commands may use explicit target selectors such as `-C`,
+  `--work-tree`, or `--git-dir`.
 - Do not treat this as a hostile-code sandbox. It is a workflow safety guard for
   trusted developer machines and trusted agent sessions.
 
@@ -145,6 +176,21 @@ Allow recovery from a primary checkout:
 
 ```bash
 git worktree add .worktrees/recovery -b recovery-branch
+```
+
+Allow writes when the tool's effective workdir or explicit Git target is a
+linked worktree:
+
+```bash
+git add README.md docs/github-issues.md
+git -C "/path/with spaces/repo/.worktrees/feature" add README.md
+git --git-dir "/path/repo/.git/worktrees/feature" add README.md
+```
+
+Allow scratch writes that do not target any Git repository:
+
+```bash
+touch /tmp/worktree-guard-scratch
 ```
 
 Block direct writes in a primary checkout:
@@ -176,6 +222,22 @@ cd ../primary; touch linked-cd-generated.txt
 pushd ../primary; touch linked-pushd-generated.txt
 ```
 
+Block explicit Git target selectors that point at the primary checkout or its
+index, even when the shell command starts from a linked worktree:
+
+```bash
+git -C "/path/repo" add README.md
+git --work-tree "/path/repo" add README.md
+git --git-dir "/path/repo/.git" --work-tree "/path/repo/.worktrees/feature" add README.md
+```
+
+Do not over-correct by denying matching linked git directories:
+
+```bash
+git --git-dir "/path/repo/.git/worktrees/feature" add README.md
+git --git-dir "/path/repo/.git/worktrees/feature" --work-tree "/path/repo/.worktrees/feature" add README.md
+```
+
 Inspect nested MCP payloads as executable surfaces:
 
 ```json
@@ -197,6 +259,10 @@ Regression tests should include both allowed and denied cases for:
 - Direct edit tools: `Write`, `apply_patch`
 - Shell mutation: redirects, `touch`, `git add`
 - Git mutation: branch creation, forced branch updates, output-writing flags
+- Effective tool workdir fields: `workdir`, `cwd`, or
+  `current_working_directory` when present in the hook payload
+- Git target selectors: `git -C`, `--work-tree`, `--git-dir`, quoted paths with
+  spaces, mismatched primary git dirs, and matching linked git dirs
 - Command flags that mutate: `sed -i`, `find -delete`, `find -fprint`,
   `rg --pre`
 - Path escapes: absolute paths, relative paths, `$HOME`, quoted paths, variables
