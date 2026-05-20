@@ -8,6 +8,7 @@ PRIMARY_REPO=""
 LINKED_WORKTREE=""
 SPACE_PRIMARY_REPO=""
 SPACE_LINKED_WORKTREE=""
+SPACE_LINKED_GIT_DIR=""
 OUTSIDE_DIR=""
 
 cleanup() {
@@ -42,6 +43,7 @@ setup_git_fixture() {
   git -C "$SPACE_PRIMARY_REPO" add README.md
   git -C "$SPACE_PRIMARY_REPO" commit -m "test: seed fixture" >/dev/null
   git -C "$SPACE_PRIMARY_REPO" worktree add "$SPACE_LINKED_WORKTREE" -b fixture-space-worktree >/dev/null
+  SPACE_LINKED_GIT_DIR="$(git -C "$SPACE_LINKED_WORKTREE" rev-parse --absolute-git-dir)"
 }
 
 run_hook_json() {
@@ -258,6 +260,11 @@ assert_denied_command "$LINKED_WORKTREE" "p=../primary; touch \"\$p/linked-indir
 assert_denied_command "$LINKED_WORKTREE" "cd ../primary; touch linked-cd-generated.txt"
 assert_denied_command "$LINKED_WORKTREE" "cd ../primary/; touch linked-cd-slash-generated.txt"
 assert_denied_command "$LINKED_WORKTREE" "pushd ../primary; touch linked-pushd-generated.txt"
+assert_denied_command "$SPACE_LINKED_WORKTREE" "git --git-dir \"$SPACE_PRIMARY_REPO/.git\" --work-tree \"$SPACE_PRIMARY_REPO\" add README.md"
+assert_denied_command "$SPACE_LINKED_WORKTREE" "git --git-dir=\"$SPACE_PRIMARY_REPO/.git\" --work-tree=\"$SPACE_PRIMARY_REPO\" add README.md"
+assert_denied_command "$SPACE_LINKED_WORKTREE" "git --git-dir=\"$SPACE_PRIMARY_REPO/.git\" add README.md"
+assert_allowed_command "$SPACE_LINKED_WORKTREE" "git --git-dir \"$SPACE_LINKED_GIT_DIR\" --work-tree \"$SPACE_LINKED_WORKTREE\" add README.md"
+assert_allowed_command "$SPACE_LINKED_WORKTREE" "git --git-dir=\"$SPACE_LINKED_GIT_DIR\" --work-tree=\"$SPACE_LINKED_WORKTREE\" add README.md"
 assert_denied_command "$PRIMARY_REPO" "printf 'blocked\n' > generated.txt"
 assert_denied_command "$PRIMARY_REPO" "touch generated.txt"
 assert_denied_command "$PRIMARY_REPO" "git add README.md"
