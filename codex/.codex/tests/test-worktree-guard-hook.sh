@@ -45,6 +45,24 @@ run_hook_json() {
   }' | bash "$HOOK"
 }
 
+run_hook_json_with_tool_workdir() {
+  local cwd="$1"
+  local tool_workdir="$2"
+  local tool_name="$3"
+  local tool_input="$4"
+
+  jq -cn \
+    --arg cwd "$cwd" \
+    --arg tool_workdir "$tool_workdir" \
+    --arg tool_name "$tool_name" \
+    --argjson tool_input "$tool_input" '{
+      hook_event_name: "PreToolUse",
+      tool_name: $tool_name,
+      cwd: $cwd,
+      tool_input: ($tool_input + {workdir: $tool_workdir})
+    }' | bash "$HOOK"
+}
+
 run_hook_json_with_home() {
   local home="$1"
   local cwd="$2"
@@ -88,6 +106,24 @@ assert_allowed_json() {
     fi
   fi
   echo "ok allowed $tool_name in $cwd"
+}
+
+assert_allowed_command_with_tool_workdir() {
+  local cwd="$1"
+  local tool_workdir="$2"
+  local command="$3"
+  local output
+
+  output="$(run_hook_json_with_tool_workdir "$cwd" "$tool_workdir" "Bash" "$(jq -cn --arg command "$command" '{command: $command}')")"
+  if [[ -n "$output" ]]; then
+    jq -e . >/dev/null <<<"$output"
+    if jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null <<<"$output"; then
+      echo "expected allowed but denied: $command with workdir=$tool_workdir and cwd=$cwd" >&2
+      echo "$output" >&2
+      return 1
+    fi
+  fi
+  echo "ok allowed $command with workdir=$tool_workdir and cwd=$cwd"
 }
 
 assert_denied_json_with_home() {
@@ -153,6 +189,10 @@ assert_denied_command "$OUTSIDE_DIR" "printf 'blocked\n' >>$PRIMARY_REPO/redirec
 assert_denied_command_with_home "$TEST_ROOT" "$OUTSIDE_DIR" 'touch "$HOME/primary/env-generated.txt"'
 assert_allowed_json "$LINKED_WORKTREE" "apply_patch" "$(jq -cn '{cmd: "*** Begin Patch\n*** Add File: repo.txt\n+allowed\n*** End Patch\n"}')"
 assert_allowed_json "$LINKED_WORKTREE" "Write" "$(jq -cn --arg file_path "$LINKED_WORKTREE/generated.txt" '{file_path: $file_path, content: "allowed"}')"
+assert_allowed_command_with_tool_workdir "$PRIMARY_REPO" "$LINKED_WORKTREE" "git add README.md"
+assert_allowed_command "$PRIMARY_REPO" "git -C $LINKED_WORKTREE add README.md"
+assert_denied_command "$LINKED_WORKTREE" "git -C $PRIMARY_REPO add README.md"
+assert_allowed_command "$PRIMARY_REPO" "touch /tmp/worktree-guard-scratch-$$"
 
 assert_allowed_command "$PRIMARY_REPO" "git status --short"
 assert_allowed_command "$PRIMARY_REPO" "git -C $PRIMARY_REPO status --short"
