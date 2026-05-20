@@ -122,6 +122,18 @@ assert_allowed_json() {
   echo "ok allowed $tool_name in $cwd"
 }
 
+assert_approval_required_json() {
+  local cwd="$1"
+  local tool_name="$2"
+  local tool_input="$3"
+  local expected_reason="$4"
+  local output
+
+  output="$(run_hook_json "$cwd" "$tool_name" "$tool_input")"
+  assert_approval_required_output "$output" "$expected_reason"
+  echo "ok approval required $tool_name in $cwd"
+}
+
 assert_allowed_command_with_tool_workdir() {
   local cwd="$1"
   local tool_workdir="$2"
@@ -154,6 +166,16 @@ assert_denied_json_with_home() {
   echo "ok denied $tool_name in $cwd with HOME=$home"
 }
 
+assert_approval_required_output() {
+  local output="$1"
+  local expected_reason="$2"
+
+  jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null <<<"$output"
+  jq -e --arg expected_reason "$expected_reason" '
+    .hookSpecificOutput.permissionDecisionReason | contains("requires explicit approval") and contains($expected_reason)
+  ' >/dev/null <<<"$output"
+}
+
 assert_denied_command() {
   local cwd="$1"
   local command="$2"
@@ -164,6 +186,17 @@ assert_allowed_command() {
   local cwd="$1"
   local command="$2"
   assert_allowed_json "$cwd" "Bash" "$(jq -cn --arg command "$command" '{command: $command}')"
+}
+
+assert_approval_required_command() {
+  local cwd="$1"
+  local command="$2"
+  local expected_reason="$3"
+  local output
+
+  output="$(run_hook_json "$cwd" "Bash" "$(jq -cn --arg command "$command" '{command: $command}')")"
+  assert_approval_required_output "$output" "$expected_reason"
+  echo "ok approval required $command in $cwd"
 }
 
 assert_denied_command_with_home() {
