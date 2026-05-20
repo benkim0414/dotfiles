@@ -36,7 +36,7 @@ from the active repository worktree and are limited to ordinary PR, issue,
 fetch, pull, or push workflows. This includes GitHub CLI PR view, list,
 create, edit, comment, check, status, and review operations; GitHub CLI issue
 view, list, create, edit, comment, and status operations; git fetch; git pull;
-and ordinary git push to GitHub remotes.
+and ordinary non-force current-branch git push to GitHub remotes.
 
 Deny destructive commands, broad arbitrary shell approvals, credential access,
 writes outside configured workspace roots, non-GitHub network access, direct
@@ -50,11 +50,11 @@ When an approval request includes a persistent prefix rule, approve only narrow
 operation-specific prefixes such as gh pr view, gh pr list, gh pr create, gh pr
 edit, gh pr comment, gh pr check, gh pr status, gh pr review, gh issue view,
 gh issue list, gh issue create, gh issue edit, gh issue comment, gh issue
-status, git fetch, or git pull. Persistent git push approvals must be
-constrained to ordinary non-force current-branch pushes to GitHub remotes, and
-must not cover --force, --force-with-lease, deletion refspecs, tags, mirror
-pushes, or broad branch mutation. Do not approve broad runtime prefixes such as
-bash, python, node, ruby, perl, or sh.
+status, git fetch, or git pull. Persistent git push prefix rules must not be
+approved unless the approval mechanism can enforce the full exact constraint;
+in the current prefix-rule model, agents should request per-command approval
+for ordinary pushes instead of a durable git push prefix. Do not approve broad
+runtime prefixes such as bash, python, node, ruby, perl, or sh.
 """
 
 [features]
