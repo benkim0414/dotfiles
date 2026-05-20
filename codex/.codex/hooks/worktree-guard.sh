@@ -255,6 +255,124 @@ mcp_executor_command_texts() {
   ' <<<"$input" 2>/dev/null || true
 }
 
+shell_words() {
+  local command="$1"
+  local output_name="$2"
+  local -n output="$output_name"
+  local char
+  local next_char
+  local quote=""
+  local token=""
+  local in_token=0
+  local i=0
+  local length="${#command}"
+
+  output=()
+  while (( i < length )); do
+    char="${command:i:1}"
+
+    if [[ -n "$quote" ]]; then
+      case "$quote" in
+        "'")
+          if [[ "$char" == "'" ]]; then
+            quote=""
+          else
+            token+="$char"
+          fi
+          ;;
+        '"')
+          case "$char" in
+            '"')
+              quote=""
+              ;;
+            "\\")
+              ((i++))
+              if (( i >= length )); then
+                token+="\\"
+                break
+              fi
+              next_char="${command:i:1}"
+              case "$next_char" in
+                '$'|'`'|'"'|"\\"|$'\n')
+                  token+="$next_char"
+                  ;;
+                *)
+                  token+="\\$next_char"
+                  ;;
+              esac
+              ;;
+            *)
+              token+="$char"
+              ;;
+          esac
+          ;;
+      esac
+    else
+      case "$char" in
+        [[:space:]])
+          if [[ "$in_token" -eq 1 ]]; then
+            output+=("$token")
+            token=""
+            in_token=0
+          fi
+          ;;
+        "'")
+          quote="'"
+          in_token=1
+          ;;
+        '"')
+          quote='"'
+          in_token=1
+          ;;
+        "\\")
+          in_token=1
+          ((i++))
+          if (( i >= length )); then
+            token+="\\"
+            break
+          fi
+          token+="${command:i:1}"
+          ;;
+        *)
+          token+="$char"
+          in_token=1
+          ;;
+      esac
+    fi
+
+    ((i++))
+  done
+
+  if [[ -n "$quote" ]]; then
+    return 1
+  fi
+
+  if [[ "$in_token" -eq 1 ]]; then
+    output+=("$token")
+  fi
+
+  return 0
+}
+
+has_unresolved_git_c_option() {
+  local command="$1"
+  local -a words
+
+  case "$command" in
+    git[[:space:]]*-C*|git[[:space:]]*--git-dir*|git[[:space:]]*--work-tree*)
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+
+  if shell_words "$command" words; then
+    return 1
+  fi
+
+  return 0
+}
+
 main_worktree_root_for_path() {
   local path="$1"
   local target_path
@@ -325,7 +443,7 @@ command_referenced_main_worktree_root() {
   local candidate
   local root
 
-  read -r -a words <<<"$command"
+  shell_words "$command" words || return 1
 
   for word in "${words[@]}"; do
     word="${word%\"}"
@@ -390,7 +508,7 @@ command_targets_outside_git_repo() {
     return 1
   fi
 
-  read -r -a words <<<"$command"
+  shell_words "$command" words || return 1
 
   case "${words[0]:-}" in
     touch)
@@ -427,7 +545,7 @@ is_read_only_rg_command() {
   local -a words
   local word
 
-  read -r -a words <<<"$command"
+  shell_words "$command" words || return 1
 
   if [[ "${words[0]:-}" != "rg" ]]; then
     return 1
@@ -485,7 +603,7 @@ git_command_cwd() {
   local -a words
   local i
 
-  read -r -a words <<<"$command"
+  shell_words "$command" words || return 1
 
   if [[ "${words[0]:-}" != "git" ]]; then
     return 1
@@ -533,7 +651,7 @@ is_read_only_git_command() {
   local subcommand
   local i
 
-  read -r -a words <<<"$command"
+  shell_words "$command" words || return 1
 
   if [[ "${words[0]:-}" != "git" ]]; then
     return 1
@@ -612,7 +730,7 @@ is_read_only_find_command() {
   local -a words
   local word
 
-  read -r -a words <<<"$command"
+  shell_words "$command" words || return 1
 
   if [[ "${words[0]:-}" != "find" ]]; then
     return 1
@@ -642,7 +760,7 @@ is_read_only_command() {
     return 0
   fi
 
-  read -r -a words <<<"$command"
+  shell_words "$command" words || return 1
 
   case "${words[0]:-}" in
     ""|pwd|ls|grep|cat|head|tail|stat)
@@ -777,6 +895,9 @@ repo_root="$(repo_root_for)"
 if is_shell_tool; then
   command="$(command_text)"
   shell_cwd="$(effective_cwd)"
+  if has_unresolved_git_c_option "$command"; then
+    deny "$(block_reason "$(repo_root_for "$shell_cwd")")"
+  fi
   command_cwd="$shell_cwd"
   if git_selected_cwd="$(git_command_cwd "$command" "$shell_cwd")"; then
     command_cwd="$git_selected_cwd"

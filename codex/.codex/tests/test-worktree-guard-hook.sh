@@ -6,6 +6,8 @@ HOOK="$HOOK_ROOT/worktree-guard.sh"
 TEST_ROOT=""
 PRIMARY_REPO=""
 LINKED_WORKTREE=""
+SPACE_PRIMARY_REPO=""
+SPACE_LINKED_WORKTREE=""
 OUTSIDE_DIR=""
 
 cleanup() {
@@ -20,6 +22,8 @@ setup_git_fixture() {
   TEST_ROOT="$(mktemp -d)"
   PRIMARY_REPO="$TEST_ROOT/primary"
   LINKED_WORKTREE="$TEST_ROOT/linked"
+  SPACE_PRIMARY_REPO="$TEST_ROOT/space primary"
+  SPACE_LINKED_WORKTREE="$TEST_ROOT/space linked"
   OUTSIDE_DIR="$TEST_ROOT/outside"
 
   mkdir -p "$OUTSIDE_DIR"
@@ -30,6 +34,14 @@ setup_git_fixture() {
   git -C "$PRIMARY_REPO" add README.md
   git -C "$PRIMARY_REPO" commit -m "test: seed fixture" >/dev/null
   git -C "$PRIMARY_REPO" worktree add "$LINKED_WORKTREE" -b fixture-worktree >/dev/null
+
+  git init "$SPACE_PRIMARY_REPO" >/dev/null
+  git -C "$SPACE_PRIMARY_REPO" config user.email "codex@example.test"
+  git -C "$SPACE_PRIMARY_REPO" config user.name "Codex Test"
+  printf 'fixture\n' >"$SPACE_PRIMARY_REPO/README.md"
+  git -C "$SPACE_PRIMARY_REPO" add README.md
+  git -C "$SPACE_PRIMARY_REPO" commit -m "test: seed fixture" >/dev/null
+  git -C "$SPACE_PRIMARY_REPO" worktree add "$SPACE_LINKED_WORKTREE" -b fixture-space-worktree >/dev/null
 }
 
 run_hook_json() {
@@ -192,6 +204,8 @@ assert_allowed_json "$LINKED_WORKTREE" "Write" "$(jq -cn --arg file_path "$LINKE
 assert_allowed_command_with_tool_workdir "$PRIMARY_REPO" "$LINKED_WORKTREE" "git add README.md"
 assert_allowed_command "$PRIMARY_REPO" "git -C $LINKED_WORKTREE add README.md"
 assert_denied_command "$LINKED_WORKTREE" "git -C $PRIMARY_REPO add README.md"
+assert_denied_command "$OUTSIDE_DIR" "git -C \"$SPACE_PRIMARY_REPO\" add README.md"
+assert_allowed_command "$OUTSIDE_DIR" "git -C \"$SPACE_LINKED_WORKTREE\" add README.md"
 assert_allowed_command "$PRIMARY_REPO" "touch /tmp/worktree-guard-scratch-$$"
 
 assert_allowed_command "$PRIMARY_REPO" "git status --short"
