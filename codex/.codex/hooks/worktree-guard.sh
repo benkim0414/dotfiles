@@ -727,6 +727,101 @@ git_command_has_git_dir_without_work_tree() {
   [[ "$saw_git_dir" -eq 1 && "$saw_work_tree" -eq 0 ]]
 }
 
+git_command_has_mismatched_git_dir() {
+  local command="$1"
+  local selected_dir="${2:-$cwd}"
+  local -a words
+  local i
+  local option_path
+  local explicit_git_dir=""
+  local work_tree_path=""
+  local work_tree_git_dir
+  local invalid_work_tree=0
+
+  shell_words "$command" words || return 1
+
+  if [[ "${words[0]:-}" != "git" ]]; then
+    return 1
+  fi
+
+  selected_dir="$(canonical_path "$selected_dir")"
+  i=1
+  while (( i < ${#words[@]} )); do
+    case "${words[i]}" in
+      -C)
+        if [[ -z "${words[i + 1]:-}" ]]; then
+          return 1
+        fi
+        selected_dir="$(resolve_git_path "${words[i + 1]}" "$selected_dir")"
+        ((i += 2))
+        ;;
+      --namespace|-c)
+        ((i += 2))
+        ;;
+      --git-dir)
+        option_path="${words[i + 1]:-}"
+        if [[ -z "$option_path" ]]; then
+          return 0
+        fi
+        explicit_git_dir="$(resolve_git_path "$option_path" "$selected_dir")"
+        ((i += 2))
+        ;;
+      --work-tree)
+        option_path="${words[i + 1]:-}"
+        if [[ -z "$option_path" ]]; then
+          invalid_work_tree=1
+          ((i += 2))
+          continue
+        fi
+        work_tree_path="$(resolve_git_path "$option_path" "$selected_dir")"
+        selected_dir="$work_tree_path"
+        ((i += 2))
+        ;;
+      --git-dir=*)
+        option_path="${words[i]#--git-dir=}"
+        if [[ -z "$option_path" ]]; then
+          return 0
+        fi
+        explicit_git_dir="$(resolve_git_path "$option_path" "$selected_dir")"
+        ((i++))
+        ;;
+      --work-tree=*)
+        option_path="${words[i]#--work-tree=}"
+        if [[ -z "$option_path" ]]; then
+          invalid_work_tree=1
+          ((i++))
+          continue
+        fi
+        work_tree_path="$(resolve_git_path "$option_path" "$selected_dir")"
+        selected_dir="$work_tree_path"
+        ((i++))
+        ;;
+      --namespace=*|-c*|--no-pager|--paginate|--no-optional-locks|--literal-pathspecs|--no-replace-objects)
+        ((i++))
+        ;;
+      *)
+        break
+        ;;
+    esac
+  done
+
+  if [[ -z "$explicit_git_dir" ]]; then
+    return 1
+  fi
+
+  if [[ "$invalid_work_tree" -eq 1 || -z "$work_tree_path" || -z "$(repo_root_for "$work_tree_path")" ]]; then
+    return 0
+  fi
+
+  work_tree_git_dir="$(git -C "$work_tree_path" rev-parse --absolute-git-dir 2>/dev/null || true)"
+  if [[ -z "$work_tree_git_dir" ]]; then
+    return 0
+  fi
+
+  work_tree_git_dir="$(canonical_path "$work_tree_git_dir")"
+  [[ "$explicit_git_dir" != "$work_tree_git_dir" ]]
+}
+
 is_read_only_git_command() {
   local command="$1"
   local -a words
@@ -982,8 +1077,13 @@ if is_shell_tool; then
   if has_unresolved_git_c_option "$command"; then
     deny "$(block_reason "$(repo_root_for "$shell_cwd")")"
   fi
-  if git_command_has_git_dir_without_work_tree "$command" "$shell_cwd" && ! is_read_only_git_command "$command"; then
-    deny "$(block_reason "$(command_referenced_main_worktree_root "$command" "$shell_cwd" || primary_worktree_root_for_current_repo "$shell_cwd" || repo_root_for "$shell_cwd" || printf '%s' "$shell_cwd")")"
+  if ! is_read_only_git_command "$command"; then
+    if git_command_has_git_dir_without_work_tree "$command" "$shell_cwd"; then
+      deny "$(block_reason "$(command_referenced_main_worktree_root "$command" "$shell_cwd" || primary_worktree_root_for_current_repo "$shell_cwd" || repo_root_for "$shell_cwd" || printf '%s' "$shell_cwd")")"
+    fi
+    if git_command_has_mismatched_git_dir "$command" "$shell_cwd"; then
+      deny "$(block_reason "$(command_referenced_main_worktree_root "$command" "$shell_cwd" || primary_worktree_root_for_current_repo "$shell_cwd" || repo_root_for "$shell_cwd" || printf '%s' "$shell_cwd")")"
+    fi
   fi
   command_cwd="$shell_cwd"
   if git_selected_cwd="$(git_command_cwd "$command" "$shell_cwd")"; then

@@ -262,6 +262,8 @@ assert_denied_command "$LINKED_WORKTREE" "cd ../primary/; touch linked-cd-slash-
 assert_denied_command "$LINKED_WORKTREE" "pushd ../primary; touch linked-pushd-generated.txt"
 assert_denied_command "$SPACE_LINKED_WORKTREE" "git --git-dir \"$SPACE_PRIMARY_REPO/.git\" --work-tree \"$SPACE_PRIMARY_REPO\" add README.md"
 assert_denied_command "$SPACE_LINKED_WORKTREE" "git --git-dir=\"$SPACE_PRIMARY_REPO/.git\" --work-tree=\"$SPACE_PRIMARY_REPO\" add README.md"
+assert_denied_command "$SPACE_LINKED_WORKTREE" "git --git-dir \"$SPACE_PRIMARY_REPO/.git\" --work-tree \"$SPACE_LINKED_WORKTREE\" add README.md"
+assert_denied_command "$SPACE_LINKED_WORKTREE" "git --git-dir=\"$SPACE_PRIMARY_REPO/.git\" --work-tree=\"$SPACE_LINKED_WORKTREE\" add README.md"
 assert_denied_command "$SPACE_LINKED_WORKTREE" "git --git-dir=\"$SPACE_PRIMARY_REPO/.git\" add README.md"
 assert_allowed_command "$SPACE_LINKED_WORKTREE" "git --git-dir \"$SPACE_LINKED_GIT_DIR\" --work-tree \"$SPACE_LINKED_WORKTREE\" add README.md"
 assert_allowed_command "$SPACE_LINKED_WORKTREE" "git --git-dir=\"$SPACE_LINKED_GIT_DIR\" --work-tree=\"$SPACE_LINKED_WORKTREE\" add README.md"
