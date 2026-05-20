@@ -50,11 +50,11 @@ When an approval request includes a persistent prefix rule, approve only narrow
 operation-specific prefixes such as gh pr view, gh pr list, gh pr create, gh pr
 edit, gh pr comment, gh pr check, gh pr status, gh pr review, gh issue view,
 gh issue list, gh issue create, gh issue edit, gh issue comment, gh issue
-status, git fetch, or git pull. Persistent git push prefix rules must not be
-approved unless the approval mechanism can enforce the full exact constraint;
-in the current prefix-rule model, agents should request per-command approval
-for ordinary pushes instead of a durable git push prefix. Do not approve broad
-runtime prefixes such as bash, python, node, ruby, perl, or sh.
+status. Under the current prefix-rule model, git network commands (git fetch,
+git pull, git push) should use per-command approval unless the approval
+mechanism can enforce the exact GitHub, active-worktree, and non-destructive
+constraints. Do not approve broad runtime prefixes such as bash, python, node,
+ruby, perl, or sh.
 """
 
 [features]
