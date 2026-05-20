@@ -31,14 +31,24 @@ Approve routine sandbox-compatible repository work: read-only commands, status
 inspection, diffs, formatting checks, and test commands that write only inside
 the active workspace or temporary directories.
 
-Deny destructive commands, broad arbitrary shell approvals, network access,
-credential access, writes outside configured workspace roots, and history
-rewrites. These sensitive operations require direct user approval and must not
-be approved by auto-review.
+Approve GitHub-scoped collaboration and branch sync commands when they are run
+from the active repository worktree and are limited to ordinary PR, issue,
+fetch, pull, or push workflows. This includes GitHub CLI PR and issue view,
+list, create, edit, comment, check, status, and review operations; git fetch;
+git pull; and ordinary git push to GitHub remotes.
+
+Deny destructive commands, broad arbitrary shell approvals, credential access,
+writes outside configured workspace roots, non-GitHub network access, direct
+GitHub API access through arbitrary runtimes or shell scripts, GitHub merge
+operations, branch deletion, repository administration, settings or secrets
+changes, destructive issue or PR operations, force pushes, history rewrites,
+and broad branch mutation commands. These sensitive operations require direct
+user approval and must not be approved by auto-review.
 
 When an approval request includes a persistent prefix rule, approve only narrow
-command-specific prefixes. Do not approve broad runtime prefixes such as bash,
-python, node, ruby, perl, or sh.
+command-specific prefixes such as gh pr, gh issue, git fetch, git pull, or git
+push. Do not approve broad runtime prefixes such as bash, python, node, ruby,
+perl, or sh.
 """
 
 [features]
