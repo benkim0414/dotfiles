@@ -265,6 +265,8 @@ assert_denied_command "$SPACE_LINKED_WORKTREE" "git --git-dir=\"$SPACE_PRIMARY_R
 assert_denied_command "$SPACE_LINKED_WORKTREE" "git --git-dir \"$SPACE_PRIMARY_REPO/.git\" --work-tree \"$SPACE_LINKED_WORKTREE\" add README.md"
 assert_denied_command "$SPACE_LINKED_WORKTREE" "git --git-dir=\"$SPACE_PRIMARY_REPO/.git\" --work-tree=\"$SPACE_LINKED_WORKTREE\" add README.md"
 assert_denied_command "$SPACE_LINKED_WORKTREE" "git --git-dir=\"$SPACE_PRIMARY_REPO/.git\" add README.md"
+assert_allowed_command "$SPACE_LINKED_WORKTREE" "git --git-dir \"$SPACE_LINKED_GIT_DIR\" add README.md"
+assert_allowed_command "$OUTSIDE_DIR" "git -C \"$SPACE_LINKED_WORKTREE\" --git-dir \"$SPACE_LINKED_GIT_DIR\" add README.md"
 assert_allowed_command "$SPACE_LINKED_WORKTREE" "git --git-dir \"$SPACE_LINKED_GIT_DIR\" --work-tree \"$SPACE_LINKED_WORKTREE\" add README.md"
 assert_allowed_command "$SPACE_LINKED_WORKTREE" "git --git-dir=\"$SPACE_LINKED_GIT_DIR\" --work-tree=\"$SPACE_LINKED_WORKTREE\" add README.md"
 assert_denied_command "$PRIMARY_REPO" "printf 'blocked\n' > generated.txt"
