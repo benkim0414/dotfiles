@@ -19,8 +19,8 @@ Three runtime layers (doc, lib, hook) plus a dedicated test suite. The lib carri
 
 The four signals replace the prior `BANNED_SCOPES` + `ARTIFACT_PREFIXES` lists:
 
-- **S1 — Universal container** (static, tiny): scope is one of `docs`, `doc`, `src`, `lib`, `bin`, `scripts`, `script`, `tests`, `test`, `assets`, `static`, `public`, `vendor`, `build`, `dist`, `target`. These are filesystem conventions, ~30 years stable across codebases, not framework names.
-- **S2 — Repo basename**: scope equals `$(basename $(git rev-parse --show-toplevel))`. Test override `COMMIT_SCOPE_REPO_NAME` for fixtures.
+- **S1 — Universal container with history escape**: scope is one of `docs`, `doc`, `src`, `lib`, `bin`, `scripts`, `script`, `tests`, `test`, `assets`, `static`, `public`, `vendor`, `build`, `dist`, `target`, `packages`, `apps` AND scope is NOT in `git log -100` history. Container-named scopes that the repo legitimately uses (e.g. a docs-only repo using `docs` as a real component) escape via the history check.
+- **S2 — Repo basename**: scope equals `$(basename $(git rev-parse --show-toplevel))`. No history escape — repo basename is never a useful component scope. Test override `COMMIT_SCOPE_REPO_NAME` for fixtures.
 - **S3 — Path segment with history escape**: scope (or its singular/plural form) equals any directory segment of staged file paths, AND scope is NOT in `git log -100` history. Catches `docs(spec)` with `docs/.../specs/...` staged, `docs(openspec)` with `openspec/changes/...` staged, etc. Known-good components (e.g. real package dir `auth/` already used as scope in history) escape via the history check.
 - **S4 — New scope advisory** (soft warning, separate emit): scope not in `git log -100` history AND not derived from staged paths. Emitted as a verify-this hint, not a ban.
 
@@ -51,6 +51,7 @@ CONTAINER_NAMES=(
   docs doc src lib bin scripts script
   tests test assets static public
   vendor build dist target
+  packages apps
 )
 ```
 
@@ -72,11 +73,11 @@ is_banned_scope <scope> [<staged-files>]
 
 Exit 0 (banned) if ANY signal fires:
 
-1. `_is_container "$scope"` → S1 banned.
-2. `[[ "$scope" == "$(_repo_basename)" ]]` → S2 banned.
-3. `<staged-files>` provided, scope not in `_known_scopes`, AND scope (or singular/plural) matches any `_path_segments` entry → S3 banned.
+1. `_is_container "$scope"` AND scope NOT in `_known_scopes` → S1 banned.
+2. `[[ "$scope" == "$(_repo_basename)" ]]` → S2 banned (no history escape).
+3. `<staged-files>` provided, scope NOT in `_known_scopes`, AND scope (or singular/plural) matches any `_path_segments` entry → S3 banned.
 
-Exit 1 otherwise. The history-escape on S3 lets legitimate component scopes that happen to share a name with a path segment (e.g. scope `auth` for `src/auth/login.ts` when `auth` already appears in `git log`) pass without false flags.
+Exit 1 otherwise. The history escape on S1 lets repos that legitimately ship `docs` or `lib` as a real component override the universal-container default. The history escape on S3 lets legitimate component scopes that happen to share a name with a path segment (e.g. scope `auth` for `src/auth/login.ts` when `auth` already appears in `git log`) pass without false flags.
 
 ```bash
 suggest_scope <staged-files>
@@ -85,10 +86,11 @@ suggest_scope <staged-files>
 Echo candidate scope (empty if none). Algorithm:
 
 1. Single staged file matching `^[0-9]{4}-[0-9]{2}-[0-9]{2}-(.+)\.md$` → strip `-design`/`-plan` suffix from group 1; set candidate = slug.
-2. Else single top-level dir of staged files AND that dir is NOT in `CONTAINER_NAMES` → candidate = dir name.
-3. Else echo empty.
-4. Match candidate against each line of `_known_scopes`. Scope `S` matches candidate `C` iff `C == S`, `C` starts with `S-`, `C` contains `-S-`, OR `C` ends with `-S`. Longest match wins; echo it.
-5. If no known scope matches, echo bare candidate (still useful — agent sees the slug).
+2. Else single staged `.md` file under a nested path → walk path segments from deepest (parent of file) to shallowest; first non-`CONTAINER_NAMES` segment becomes candidate. Catches `openspec/changes/codex-cli-fix/proposal.md` → `codex-cli-fix`; catches `docs/adr/0042-auth-rotation.md` → `0042-auth-rotation` (date-less ADR style); ignores `openspec/`, `docs/` because they are containers.
+3. Else single top-level dir of staged files AND that dir is NOT in `CONTAINER_NAMES` → candidate = dir name.
+4. Else echo empty.
+5. Match candidate against each line of `_known_scopes`. Scope `S` matches candidate `C` iff `C == S`, `C` starts with `S-`, `C` contains `-S-`, OR `C` ends with `-S`. Longest match wins; echo it.
+6. If no known scope matches, echo bare candidate (still useful — agent sees the slug).
 
 No external dependencies beyond bash builtins + `awk`/`sort`/`tr` already used by the existing hook.
 
@@ -157,21 +159,23 @@ run.sh helpers.sh
 00-smoke-lib-sources.sh
 
 # Lib-unit (commit 1)
-10-s1-container-docs.sh                  # S1: docs banned
-11-s1-container-src.sh                   # S1: src banned
-12-s1-container-tests.sh                 # S1: tests banned
-13-s2-repo-basename.sh                   # S2: COMMIT_SCOPE_REPO_NAME override banned
-14-s3-path-segment-spec.sh               # S3: scope 'spec' with staged docs/.../specs/foo.md banned
-15-s3-path-segment-plan.sh               # S3: scope 'plan' with staged docs/.../plans/foo.md banned
-16-s3-path-segment-openspec.sh           # S3: scope 'openspec' with staged openspec/changes/foo banned
-17-s3-history-escape.sh                  # S3: scope 'auth' matches src/auth segment BUT is in known_scopes -> not banned
-18-good-component-passes.sh              # scope NOT in any signal -> not banned
+10-s1-container-docs.sh                  # S1: docs banned (no history)
+11-s1-container-src.sh                   # S1: src banned (no history)
+12-s1-container-tests.sh                 # S1: tests banned (no history)
+13-s1-history-escape.sh                  # S1: scope 'docs' IS in known_scopes -> not banned
+14-s2-repo-basename.sh                   # S2: COMMIT_SCOPE_REPO_NAME override banned
+15-s3-path-segment-spec.sh               # S3: scope 'spec' with staged docs/.../specs/foo.md banned
+16-s3-path-segment-plan.sh               # S3: scope 'plan' with staged docs/.../plans/foo.md banned
+17-s3-path-segment-openspec.sh           # S3: scope 'openspec' with staged openspec/changes/foo banned
+18-s3-history-escape.sh                  # S3: scope 'auth' matches src/auth segment BUT is in known_scopes -> not banned
+19-good-component-passes.sh              # scope NOT in any signal -> not banned
 20-suggest-from-date-slug.sh             # docs/superpowers/specs/2026-05-21-read-once-foo-design.md -> 'read-once' when in history
-21-suggest-from-toplevel-dir.sh          # single staged file under 'auth/' top-level -> 'auth'
-22-suggest-skips-container-toplevel.sh   # single staged file under 'docs/' top-level -> empty
-23-suggest-multi-toplevel-empty.sh       # multi-top-level staged -> empty
-24-suggest-no-known-match-echoes-slug.sh # date slug 'unknown-thing' with empty history -> echoes 'unknown-thing'
-50-sentinel-container-list.sh            # CONTAINER_NAMES contains docs, src, lib, tests; lib is repo-agnostic (no 'dotfiles', no 'openspec')
+21-suggest-from-nested-md-path.sh        # openspec/changes/codex-cli-fix/proposal.md -> 'codex-cli-fix'
+22-suggest-from-toplevel-dir.sh          # single staged file under 'auth/' top-level -> 'auth'
+23-suggest-skips-container-toplevel.sh   # single staged file under 'docs/' top-level (non-.md) -> empty
+24-suggest-multi-toplevel-empty.sh       # multi-top-level staged -> empty
+25-suggest-no-known-match-echoes-slug.sh # date slug 'unknown-thing' with empty history -> echoes 'unknown-thing'
+50-sentinel-container-list.sh            # CONTAINER_NAMES contains docs, src, lib, tests, packages, apps; lib is repo-agnostic (no 'dotfiles', no 'openspec')
 
 # Hook-integration (commit 2)
 60-hook-smoke.sh
@@ -189,9 +193,9 @@ run.sh helpers.sh
 
 Three test layers:
 
-- **Lib unit** (IDs 00, 10-24, 50) — source `commit-scope.sh` directly, drive `is_banned_scope` + `suggest_scope` with fixture args + env overrides (`COMMIT_SCOPE_REPO_NAME`, `COMMIT_SCOPE_KNOWN_OVERRIDE`), assert return code / stdout. No git fixture needed.
+- **Lib unit** (IDs 00, 10-25, 50) — source `commit-scope.sh` directly, drive `is_banned_scope` + `suggest_scope` with fixture args + env overrides (`COMMIT_SCOPE_REPO_NAME`, `COMMIT_SCOPE_KNOWN_OVERRIDE`), assert return code / stdout. No git fixture needed.
 - **Hook integration** (IDs 60-70) — `mktemp -d` git fixture, stage real files, synthesize PreToolUse JSON, pipe to `git-safety.sh`, grep stderr for expected emit substrings.
-- **Sentinel** (ID 50) — assert `CONTAINER_NAMES` array contains the universal anchors `docs`, `src`, `lib`, `tests`. Assert the lib file does NOT contain framework-name literals (grep -v `spec`, `plan`, `openspec`, `dotfiles`, `proposal`, `rfc`, `prd` in array context) — protects the repo-agnostic guarantee.
+- **Sentinel** (ID 50) — assert `CONTAINER_NAMES` array contains the universal anchors `docs`, `src`, `lib`, `tests`, `packages`, `apps`. Assert the lib file does NOT contain framework-name literals (grep -v `spec`, `plan`, `openspec`, `dotfiles`, `proposal`, `rfc`, `prd` in array context) — protects the repo-agnostic guarantee.
 
 `run.sh` iterates `[0-9][0-9]-*.sh`, prints `PASS/FAIL`, exits non-zero on any fail. Same shape as `tests/read-once/run.sh`.
 
@@ -237,8 +241,9 @@ agent sees both warnings before commit lands
 - Missing lib file: hook hits `set -uo pipefail` source failure → fails loud, agent notices, lib must ship together with hook. Acceptable.
 - Malformed commit message (no `-m`, heredoc, mismatched quotes): banned-check + new-scope advisory skipped silently. Suggest + atomicity still emit on staged context.
 - Empty staged list: existing hook returns before any new code runs. Same behavior.
-- Fresh repo (no `git log` history): `_known_scopes` empty → history-escape in S3 doesn't fire; S3 may flag more aggressively in brand-new repos. Acceptable bootstrap friction.
-- Outside a git repo: `_repo_basename` and `_known_scopes` return empty; S2 + S3 history-escape silently skipped; S1 still runs. Hook still useful.
+- Bootstrap (first 2-3 commits in a fresh repo): `_known_scopes` empty → history-escape in S1 + S3 doesn't fire → may flag legit scopes that share names with containers or path segments. Acceptable bootstrap friction; warnings settle once the repo's scope vocabulary lands in history. Operator can ignore early warnings or seed history with `git commit --allow-empty -m "chore(<component>): seed scope"` if friction is unacceptable.
+- Plural inflection limitation: `_seg_matches_scope` handles `+s` (`spec` ↔ `specs`, `change` ↔ `changes`). Irregular plurals (`policy` ↔ `policies`, `tax` ↔ `taxes`, `category` ↔ `categories`) not covered. Rare enough in artifact-dir conventions to defer; can extend later if a real false-negative appears.
+- Outside a git repo: `_repo_basename` and `_known_scopes` return empty; S2 + S1/S3 history-escape silently skipped; S1 fires aggressively (no escape possible). Hook still useful but noisier. Agents rarely commit outside a git repo, so deferred.
 - Malformed lib (someone re-introduces a framework-name list): sentinel test catches it.
 
 ## Testing
@@ -265,7 +270,7 @@ Three atomic commits, each independently bisectable, each dogfooding the new pri
 
 1. `feat(claude): add signal-driven commit-scope lib`
    - `claude/.claude/lib/commit-scope.sh` with `CONTAINER_NAMES` + private helpers (`_repo_basename`, `_known_scopes`, `_is_container`, `_seg_matches_scope`, `_path_segments`) + public `is_banned_scope` / `suggest_scope`.
-   - `claude/.claude/tests/commit-scope/{run.sh,helpers.sh}` + lib-unit cases 00, 10-18, 20-24, 50.
+   - `claude/.claude/tests/commit-scope/{run.sh,helpers.sh}` + lib-unit cases 00, 10-19, 20-25, 50.
 2. `feat(claude): wire commit-scope checks into git-safety hook`
    - `claude/.claude/hooks/git-safety.sh` extension (banned-check block + suggest/atomicity + new-scope advisory additions to staged-context emit).
    - Hook-integration test cases 60-70.
