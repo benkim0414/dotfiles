@@ -88,35 +88,6 @@ if [[ "$COMMAND" =~ git[[:space:]]+commit ]]; then
   fi
 fi
 
-# --- Commit scope validation (signal-driven, non-blocking) ---
-if [[ "$COMMAND" =~ git[[:space:]]+commit ]]; then
-  source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../lib/commit-scope.sh"
-  source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../lib/session.sh"
-
-  scope_msg=""
-  msg_pat_dquote='-m[[:space:]]+"([^"]*)"'
-  msg_pat_squote="-m[[:space:]]+'([^']*)'"
-  if [[ "$COMMAND" =~ $msg_pat_dquote ]]; then
-    scope_msg="${BASH_REMATCH[1]}"
-  elif [[ "$COMMAND" =~ $msg_pat_squote ]]; then
-    scope_msg="${BASH_REMATCH[1]}"
-  fi
-
-  # Only the scoped form `type(scope): ...` declares a scope. Unscoped
-  # commits (`type: ...`) are valid per CLAUDE.md and must not be flagged.
-  declared_scope=""
-  scoped_pat='^[a-z]+\(([^)]+)\):'
-  if [[ "$scope_msg" =~ $scoped_pat ]]; then
-    declared_scope="${BASH_REMATCH[1]}"
-  fi
-
-  staged_for_scope=$(git diff --cached --name-only 2>/dev/null || true)
-
-  if [[ -n "$declared_scope" ]] && is_banned_scope "$declared_scope" "$staged_for_scope"; then
-    emit_context "PreToolUse" "Scope check: scope='${declared_scope}' is BANNED (filesystem container, repo basename, or path-segment match). Scope names a component, not a location. See CLAUDE.md > Commit rules > Scope."
-  fi
-fi
-
 # --- Compute git context once (shared by all main-branch guards below) ---
 BRANCH="" MAIN_BRANCH="main"
 if git rev-parse --git-dir >/dev/null 2>&1; then
@@ -239,9 +210,33 @@ file_count=$(echo "$staged" | wc -l)
 dirs=$(echo "$staged" | grep '/' | cut -d/ -f1 | sort -u | tr '\n' ', ' | sed 's/,$//')
 
 # Collect known scopes from recent history — cached with 60-second TTL.
-# Source session.sh here (provides emit_context + portability helpers for EPOCHSECONDS/file_mtime).
+# Source session.sh (provides emit_context + portability helpers) and
+# commit-scope.sh (provides is_banned_scope + suggest_scope).
 # shellcheck source=../lib/session.sh
 source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../lib/session.sh"
+# shellcheck source=../lib/commit-scope.sh
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../lib/commit-scope.sh"
+
+# Parse declared scope from commit message (only scoped form counts).
+scope_msg=""
+msg_pat_dquote='-m[[:space:]]+"([^"]*)"'
+msg_pat_squote="-m[[:space:]]+'([^']*)'"
+if [[ "$COMMAND" =~ $msg_pat_dquote ]]; then
+  scope_msg="${BASH_REMATCH[1]}"
+elif [[ "$COMMAND" =~ $msg_pat_squote ]]; then
+  scope_msg="${BASH_REMATCH[1]}"
+fi
+
+declared_scope=""
+scoped_pat='^[a-z]+\(([^)]+)\):'
+if [[ "$scope_msg" =~ $scoped_pat ]]; then
+  declared_scope="${BASH_REMATCH[1]}"
+fi
+
+# Banned-scope emit (S1/S2/S3 via is_banned_scope) — separate from staged-context.
+if [[ -n "$declared_scope" ]] && is_banned_scope "$declared_scope" "$staged"; then
+  emit_context "PreToolUse" "Scope check: scope='${declared_scope}' is BANNED (filesystem container, repo basename, or path-segment match). Scope names a component, not a location. See CLAUDE.md > Commit rules > Scope."
+fi
 
 repo_path=$(git rev-parse --show-toplevel 2>/dev/null || true)
 repo_key=${repo_path//[^a-zA-Z0-9_]/_}
