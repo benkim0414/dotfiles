@@ -102,12 +102,11 @@ if [[ "$COMMAND" =~ git[[:space:]]+commit ]]; then
     scope_msg="${BASH_REMATCH[1]}"
   fi
 
+  # Only the scoped form `type(scope): ...` declares a scope. Unscoped
+  # commits (`type: ...`) are valid per CLAUDE.md and must not be flagged.
   declared_scope=""
   scoped_pat='^[a-z]+\(([^)]+)\):'
-  unscoped_pat='^([a-z]+):'
   if [[ "$scope_msg" =~ $scoped_pat ]]; then
-    declared_scope="${BASH_REMATCH[1]}"
-  elif [[ "$scope_msg" =~ $unscoped_pat ]]; then
     declared_scope="${BASH_REMATCH[1]}"
   fi
 
