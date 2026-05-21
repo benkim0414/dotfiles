@@ -86,6 +86,7 @@ copy_sync_fixture() {
   cp "$REPO_ROOT/bin/.local/bin/codex-sync" "$dotfiles/bin/.local/bin/codex-sync"
   cp "$REPO_ROOT/codex/.codex/config.base.toml" "$dotfiles/codex/.codex/config.base.toml"
   cp "$REPO_ROOT/codex/.codex/hooks/atomic-commits.sh" "$dotfiles/codex/.codex/hooks/atomic-commits.sh"
+  cp "$REPO_ROOT/codex/.codex/hooks/worktree-guard.sh" "$dotfiles/codex/.codex/hooks/worktree-guard.sh"
 }
 
 TEST_ROOT="$(mktemp -d)"
@@ -115,12 +116,33 @@ assert_file_contains "$CONFIG" "command = '$EXPECTED_HOOK_PATH context-mode hook
 assert_file_contains "$CONFIG" "command = '$EXPECTED_HOOK_PATH context-mode hook codex userpromptsubmit'"
 assert_file_contains "$CONFIG" "command = '$EXPECTED_HOOK_PATH context-mode hook codex stop'"
 assert_file_contains "$CONFIG" 'command = '\''bash "$HOME/.codex/hooks/atomic-commits.sh"'\'''
+assert_file_contains "$CONFIG" 'command = '\''bash "$HOME/.codex/hooks/worktree-guard.sh"'\'''
 
 [[ "$(readlink "$CODEX_HOME/config.toml")" == "$DOTFILES/codex/.codex/config.toml" ]]
 [[ "$(readlink "$CODEX_HOME/hooks/atomic-commits.sh")" == "$DOTFILES/codex/.codex/hooks/atomic-commits.sh" ]]
+[[ "$(readlink "$CODEX_HOME/hooks/worktree-guard.sh")" == "$DOTFILES/codex/.codex/hooks/worktree-guard.sh" ]]
 assert_path_absent "$CODEX_HOME/hooks.json"
 
 printf '{"tool_input":{"command":"echo ok"}}' | env -i HOME="$HOME_DIR" PATH="/usr/bin:/bin" bash "$CODEX_HOME/hooks/atomic-commits.sh"
+jq -cn --arg cwd "$TEST_ROOT" --arg tool_name "Write" '{hook_event_name:"PreToolUse", tool_name:$tool_name, cwd:$cwd, tool_input:{file_path:"outside.txt", content:"ok"}}' | env -i HOME="$HOME_DIR" PATH="/usr/bin:/bin" bash "$CODEX_HOME/hooks/worktree-guard.sh" >/dev/null
+
+LIVE_PRIMARY_REPO="$TEST_ROOT/live-primary"
+git init "$LIVE_PRIMARY_REPO" >/dev/null
+git -C "$LIVE_PRIMARY_REPO" config user.email "codex@example.test"
+git -C "$LIVE_PRIMARY_REPO" config user.name "Codex Test"
+printf 'fixture\n' >"$LIVE_PRIMARY_REPO/README.md"
+git -C "$LIVE_PRIMARY_REPO" add README.md
+git -C "$LIVE_PRIMARY_REPO" commit -m "test: seed fixture" >/dev/null
+live_guard_output="$(
+  jq -cn --arg cwd "$LIVE_PRIMARY_REPO" --arg tool_name "mcp__context_mode__.ctx_execute" '{
+    hook_event_name:"PreToolUse",
+    tool_name:$tool_name,
+    cwd:$cwd,
+    tool_input:{language:"shell", code:"touch generated.txt"}
+  }' | env -i HOME="$HOME_DIR" PATH="/usr/bin:/bin" bash "$CODEX_HOME/hooks/worktree-guard.sh"
+)"
+jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null <<<"$live_guard_output"
+jq -e '.hookSpecificOutput.permissionDecisionReason | contains("main worktree")' >/dev/null <<<"$live_guard_output"
 
 UNMANAGED_DOTFILES="$TEST_ROOT/unmanaged-dotfiles"
 UNMANAGED_HOME="$TEST_ROOT/unmanaged-home"
@@ -143,6 +165,7 @@ fi
 assert_file_contains "$TEST_ROOT/unmanaged.err" "codex-sync: refusing to remove unmanaged hooks.json: $UNMANAGED_CODEX_HOME/hooks.json"
 [[ "$(readlink "$UNMANAGED_CODEX_HOME/config.toml")" == "/before/config" ]]
 [[ "$(readlink "$UNMANAGED_CODEX_HOME/hooks/atomic-commits.sh")" == "/before/atomic-commits.sh" ]]
+assert_path_absent "$UNMANAGED_CODEX_HOME/hooks/worktree-guard.sh"
 
 NONPRIMARY_DOTFILES="$TEST_ROOT/nonprimary-dotfiles"
 NONPRIMARY_HOME="$TEST_ROOT/nonprimary-home"
@@ -154,6 +177,7 @@ assert_file_contains "$TEST_ROOT/nonprimary.err" "codex-sync: generated config o
 [[ -f "$NONPRIMARY_DOTFILES/codex/.codex/config.toml" ]]
 assert_path_absent "$NONPRIMARY_HOME/.codex/config.toml"
 assert_path_absent "$NONPRIMARY_HOME/.codex/hooks/atomic-commits.sh"
+assert_path_absent "$NONPRIMARY_HOME/.codex/hooks/worktree-guard.sh"
 
 INFERRED_DOTFILES="$TEST_ROOT/inferred-dotfiles"
 INFERRED_HOME="$TEST_ROOT/inferred-home"
@@ -165,5 +189,6 @@ assert_file_contains "$TEST_ROOT/inferred.err" "codex-sync: generated config onl
 [[ -f "$INFERRED_DOTFILES/codex/.codex/config.toml" ]]
 assert_path_absent "$INFERRED_HOME/.codex/config.toml"
 assert_path_absent "$INFERRED_HOME/.codex/hooks/atomic-commits.sh"
+assert_path_absent "$INFERRED_HOME/.codex/hooks/worktree-guard.sh"
 
 printf 'ok codex sync hook wiring\n'

@@ -8,6 +8,7 @@ codex_dir="$dotfiles/codex/.codex"
 base_config="$codex_dir/config.base.toml"
 generated_config="$codex_dir/config.toml"
 tracked_atomic_hook="$codex_dir/hooks/atomic-commits.sh"
+tracked_worktree_hook="$codex_dir/hooks/worktree-guard.sh"
 codex_home="${CODEX_HOME:-$HOME/.codex}"
 codex_home_was_set=0
 if [[ -n "${CODEX_HOME+x}" ]]; then
@@ -16,6 +17,7 @@ fi
 live_config="$codex_home/config.toml"
 live_hooks_dir="$codex_home/hooks"
 live_atomic_hook="$live_hooks_dir/atomic-commits.sh"
+live_worktree_hook="$live_hooks_dir/worktree-guard.sh"
 legacy_hooks_json="$codex_home/hooks.json"
 tracked_hooks_json="$codex_dir/hooks.json"
 primary_dotfiles="$HOME/workspace/dotfiles"
@@ -109,6 +111,7 @@ should_wire_live() {
 
 require_file "$base_config"
 require_file "$tracked_atomic_hook"
+require_file "$tracked_worktree_hook"
 
 install -m 0644 "$base_config" "$generated_config"
 
@@ -121,4 +124,5 @@ validate_managed_legacy_hooks_json
 mkdir -p "$live_hooks_dir"
 replace_symlink "$live_config" "$generated_config"
 replace_symlink "$live_atomic_hook" "$tracked_atomic_hook"
+replace_symlink "$live_worktree_hook" "$tracked_worktree_hook"
 remove_managed_legacy_hooks_json

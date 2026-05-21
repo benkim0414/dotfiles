@@ -31,14 +31,30 @@ Approve routine sandbox-compatible repository work: read-only commands, status
 inspection, diffs, formatting checks, and test commands that write only inside
 the active workspace or temporary directories.
 
-Deny destructive commands, broad arbitrary shell approvals, network access,
-credential access, writes outside configured workspace roots, and history
-rewrites. These sensitive operations require direct user approval and must not
-be approved by auto-review.
+Approve GitHub-scoped collaboration and branch sync commands when they are run
+from the active repository worktree and are limited to ordinary PR, issue,
+fetch, pull, or push workflows. This includes GitHub CLI PR view, list,
+create, edit, comment, check, status, and review operations; GitHub CLI issue
+view, list, create, edit, comment, and status operations; git fetch; git pull;
+and ordinary non-force current-branch git push to GitHub remotes.
+
+Deny destructive commands, broad arbitrary shell approvals, credential access,
+writes outside configured workspace roots, non-GitHub network access, direct
+GitHub API access through arbitrary runtimes or shell scripts, GitHub merge
+operations, branch deletion, repository administration, settings or secrets
+changes, destructive issue or PR operations, force pushes, history rewrites,
+and broad branch mutation commands. These sensitive operations require direct
+user approval and must not be approved by auto-review.
 
 When an approval request includes a persistent prefix rule, approve only narrow
-command-specific prefixes. Do not approve broad runtime prefixes such as bash,
-python, node, ruby, perl, or sh.
+operation-specific prefixes such as gh pr view, gh pr list, gh pr create, gh pr
+edit, gh pr comment, gh pr check, gh pr status, gh pr review, gh issue view,
+gh issue list, gh issue create, gh issue edit, gh issue comment, gh issue
+status. Under the current prefix-rule model, git network commands (git fetch,
+git pull, git push) should use per-command approval unless the approval
+mechanism can enforce the exact GitHub, active-worktree, and non-destructive
+constraints. Do not approve broad runtime prefixes such as bash, python, node,
+ruby, perl, or sh.
 """
 
 [features]
@@ -63,6 +79,15 @@ type = "command"
 command = 'bash "$HOME/.codex/hooks/atomic-commits.sh"'
 timeout = 10
 statusMessage = "Checking atomic commit workflow"
+
+[[hooks.PreToolUse]]
+matcher = "apply_patch|Edit|Write|MultiEdit|NotebookEdit|local_shell|shell|shell_command|exec_command|Bash|Shell|mcp__"
+
+[[hooks.PreToolUse.hooks]]
+type = "command"
+command = 'bash "$HOME/.codex/hooks/worktree-guard.sh"'
+timeout = 10
+statusMessage = "Checking worktree isolation"
 
 [[hooks.PreToolUse]]
 matcher = "local_shell|shell|shell_command|exec_command|Bash|Shell|apply_patch|Edit|Write|grep_files|ctx_execute|ctx_execute_file|ctx_batch_execute|ctx_fetch_and_index|ctx_search|ctx_index|mcp__"
