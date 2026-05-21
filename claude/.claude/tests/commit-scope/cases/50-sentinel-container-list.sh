@@ -13,11 +13,15 @@ source "$TEST_HOME/helpers.sh"
   done
 )
 
-# Guarantee: lib file must not contain framework-name literals as values.
-# Match only `<name>` as a standalone token within an array literal or quoted string.
+# Guarantee: lib file must not contain framework-name literals as standalone
+# array tokens or quoted strings. Word-boundary match catches the literal
+# anywhere on a line, including mid-line additions like
+#   CONTAINER_NAMES=(docs doc spec src ...)
+# Excludes occurrences inside comments to keep documentation freedom.
 banned_literals=(spec plan openspec dotfiles proposal rfc prd)
 for lit in "${banned_literals[@]}"; do
-  if grep -E "^[[:space:]]*${lit}[[:space:]]|\"${lit}\"|'${lit}'" "$LIB" >/dev/null; then
+  # Strip comments, then word-boundary match
+  if grep -E "^[^#]*\b${lit}\b" "$LIB" | grep -qE "(^|[[:space:](\"'])${lit}([[:space:])\"',]|$)"; then
     echo "  lib contains framework-name literal '$lit' (repo-agnostic violation)" >&2
     exit 1
   fi
