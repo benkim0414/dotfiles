@@ -37,12 +37,16 @@ assert_suggest_eq() {
 
 # init_git_fixture <dir>
 # Creates a git repo at <dir> with an initial empty commit so HEAD is valid.
+# Uses a feature branch (not main) so git-safety.sh's main-branch guard does
+# not fire during tests. Disables global commit-msg hook so seed commits with
+# new scopes succeed.
 init_git_fixture() {
   local dir="$1"
   ( cd "$dir" \
-    && git init -q -b main \
+    && git init -q -b feature \
     && git config user.email "test@example.com" \
     && git config user.name "Test" \
+    && git config core.hooksPath /dev/null \
     && git commit -q --allow-empty -m "chore(seed): initial" )
 }
 
