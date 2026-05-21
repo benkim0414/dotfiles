@@ -142,7 +142,7 @@ live_guard_output="$(
   }' | env -i HOME="$HOME_DIR" PATH="/usr/bin:/bin" bash "$CODEX_HOME/hooks/worktree-guard.sh"
 )"
 jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null <<<"$live_guard_output"
-jq -e '.hookSpecificOutput.permissionDecisionReason | contains("main worktree")' >/dev/null <<<"$live_guard_output"
+jq -e '.hookSpecificOutput.permissionDecisionReason | contains("primary worktree")' >/dev/null <<<"$live_guard_output"
 
 UNMANAGED_DOTFILES="$TEST_ROOT/unmanaged-dotfiles"
 UNMANAGED_HOME="$TEST_ROOT/unmanaged-home"
