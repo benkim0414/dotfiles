@@ -210,9 +210,33 @@ file_count=$(echo "$staged" | wc -l)
 dirs=$(echo "$staged" | grep '/' | cut -d/ -f1 | sort -u | tr '\n' ', ' | sed 's/,$//')
 
 # Collect known scopes from recent history — cached with 60-second TTL.
-# Source session.sh here (provides emit_context + portability helpers for EPOCHSECONDS/file_mtime).
+# Source session.sh (provides emit_context + portability helpers) and
+# commit-scope.sh (provides is_banned_scope + suggest_scope).
 # shellcheck source=../lib/session.sh
 source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../lib/session.sh"
+# shellcheck source=../lib/commit-scope.sh
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../lib/commit-scope.sh"
+
+# Parse declared scope from commit message (only scoped form counts).
+scope_msg=""
+msg_pat_dquote='-m[[:space:]]+"([^"]*)"'
+msg_pat_squote="-m[[:space:]]+'([^']*)'"
+if [[ "$COMMAND" =~ $msg_pat_dquote ]]; then
+  scope_msg="${BASH_REMATCH[1]}"
+elif [[ "$COMMAND" =~ $msg_pat_squote ]]; then
+  scope_msg="${BASH_REMATCH[1]}"
+fi
+
+declared_scope=""
+scoped_pat='^[a-z]+\(([^)]+)\):'
+if [[ "$scope_msg" =~ $scoped_pat ]]; then
+  declared_scope="${BASH_REMATCH[1]}"
+fi
+
+# Banned-scope emit (S1/S2/S3 via is_banned_scope) — separate from staged-context.
+if [[ -n "$declared_scope" ]] && is_banned_scope "$declared_scope" "$staged"; then
+  emit_context "PreToolUse" "Scope check: scope='${declared_scope}' is BANNED (filesystem container, repo basename, or path-segment match). Scope names a component, not a location. See CLAUDE.md > Commit rules > Scope."
+fi
 
 repo_path=$(git rev-parse --show-toplevel 2>/dev/null || true)
 repo_key=${repo_path//[^a-zA-Z0-9_]/_}
@@ -232,6 +256,9 @@ else
 fi
 
 # Build context string for structured injection.
+suggested=$(suggest_scope "$staged")
+top_level_count=$(echo "$staged" | grep '/' | cut -d/ -f1 | sort -u | wc -l | tr -d ' ')
+
 ctx="Staged files (${file_count}): ${staged}"
 if [[ -n "$dirs" ]]; then
   ctx+=". Top-level directories: ${dirs}"
@@ -239,7 +266,22 @@ fi
 if [[ -n "$known_scopes" ]]; then
   ctx+=". Known scopes: ${known_scopes}"
 fi
-ctx+=". IMPORTANT: Use a known scope. Verify this is ONE logical change."
+if [[ -n "$suggested" ]]; then
+  ctx+=". Suggested scope (derived): ${suggested}"
+fi
+if (( top_level_count > 1 )); then
+  ctx+=". ATOMICITY: staged files span ${top_level_count} top-level dirs. Verify ONE logical change; split if not."
+fi
+
+# S4: new-scope soft advisory (declared scope valid but unfamiliar)
+if [[ -n "${declared_scope:-}" ]] \
+   && ! is_banned_scope "$declared_scope" "$staged" \
+   && ! echo "$known_scopes" | tr ',' '\n' | grep -qxF "$declared_scope" \
+   && [[ "$declared_scope" != "$suggested" ]]; then
+  ctx+=". NEW SCOPE: '${declared_scope}' not in git log history; suggested from paths is '${suggested:-<none>}'. Verify scope names a component."
+fi
+
+ctx+=". Pick scope by component, not artifact path. See CLAUDE.md > Commit rules > Scope."
 
 emit_context "PreToolUse" "$ctx"
 

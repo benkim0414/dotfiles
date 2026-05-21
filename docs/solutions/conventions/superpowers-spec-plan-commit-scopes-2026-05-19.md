@@ -198,5 +198,6 @@ In the resolved case, the remote was updated from `d64665f` to `ca2586c`.
 
 ## Related
 
+- [Signal-driven commit-scope validation in PreToolUse hook](./commit-scope-signal-driven-validation-2026-05-21.md) operationalises this human convention as automated signals in `claude/.claude/lib/commit-scope.sh` + `claude/.claude/hooks/git-safety.sh`. The list-driven `BANNED_SCOPES` / `ARTIFACT_PREFIXES` approach is retired in favor of four signals derived from filesystem + `git log` history.
 - [Superpowers workflow reorganization](../workflow-issues/superpowers-workflow-reorg-2026-05-19.md) covers the broader Superpowers workflow that produces specs and plans.
 - [Subagent-driven mechanical edit fidelity](../workflow-issues/subagent-driven-mechanical-edit-fidelity-2026-05-19.md) is related workflow guidance for executing detailed plans without drifting from the requested edit.
