@@ -83,6 +83,13 @@ run_hook_in() {
   ( cd "$dir" && pretooluse_json "$cmd" | bash "$HOOK" )
 }
 
+# run_hook_in_status <dir> <command>
+# Same as run_hook_in but echoes the hook exit status to stdout.
+run_hook_in_status() {
+  local dir="$1" cmd="$2"
+  ( cd "$dir" && pretooluse_json "$cmd" | bash "$HOOK" >/dev/null 2>&1; echo $? )
+}
+
 assert_hook_emits() {
   local out="$1" needle="$2"
   echo "$out" | grep -qF -- "$needle" \
