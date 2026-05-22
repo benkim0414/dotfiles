@@ -110,6 +110,6 @@ fix has reusable lessons worth capturing.
   doc merges to main with the feature commits.
 - `finishing-a-development-branch` runs tests first; never proceeds if
   tests fail. Option 1 = local merge, option 2 = PR via `gh pr create`,
-  option 3 = keep as-is, option 4 = discard. Prefer option 1 for no-pr
-  mode; for PR mode, use `ce-commit-push-pr` instead of option 2 for
-  richer descriptions.
+  option 3 = keep as-is, option 4 = discard. Use option 2 in PR mode
+  (default); use option 1 in no-pr mode (opt-in). External PR-review
+  feedback is handled reactively by `receiving-code-review`.
