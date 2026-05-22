@@ -51,6 +51,16 @@ check_bash() {
     printf 'Possible deny-list bypass for rm -rf'
     return 0
   fi
+  # Curl/wget piped into a shell -- classic RCE-from-network shape.
+  if [[ "$cmd" =~ (curl|wget)[^\|]*\|[[:space:]]*(bash|sh|zsh|ksh)([[:space:]]|$) ]]; then
+    printf 'Piped/chained execution of fetched content'
+    return 0
+  fi
+  # Semicolon- or &&-chained rm -rf hiding behind a benign-looking prefix.
+  if [[ "$cmd" =~ (\;|&&)[[:space:]]*rm[[:space:]]+-r[fF]?[[:space:]] ]]; then
+    printf 'Piped/chained execution of fetched content'
+    return 0
+  fi
   printf ''
 }
 
