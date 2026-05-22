@@ -71,9 +71,10 @@ requesting-code-review          (re-invoke after fixes until clean)
 ce-compound                     (capture learnings -> docs/solutions/)
     ↓
 finishing-a-development-branch
-   ├─ no-pr default: option 1 (local merge -> push main)
-   └─ PR mode:       compound-engineering:ce-commit-push-pr +
-                     compound-engineering:ce-resolve-pr-feedback
+   ├─ PR mode (default):    option 2 (push + gh pr create)
+   │                        receiving-code-review (reactive on feedback)
+   │                        user merges via gh pr merge --merge
+   └─ no-pr mode (opt-in):  option 1 (local merge -> push main)
 ```
 
 Full integration details: `~/.claude/docs/superpowers-workflow.md`
