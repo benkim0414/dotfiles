@@ -83,6 +83,35 @@ operations specific to that repo. Example:
 
 Local settings override base on a per-key basis (arrays concatenate).
 
+### Semantic policy hook
+
+`~/.claude/hooks/permission-policy.sh` runs on PreToolUse for
+`Bash|Write|Edit|MultiEdit|NotebookEdit|WebFetch`. It catches risky
+shapes that the regex `allow`/`deny`/`ask` lists cannot express:
+
+- shell-expanded secret paths (`$HOME/.ssh/*`, absolute `/Users/ben/.ssh/*`)
+- `rm -rf` deny-list bypass forms (`\rm`, `command rm`, quoted forms,
+  leading whitespace)
+- curl/wget piped into a shell; base64/tar/gpg piped to curl/wget
+- direct edits to live `~/.claude/` outside the dotfiles repo
+- shell-init and persistence file edits (`~/.zshrc`, `~/.bashrc`,
+  `~/.gitconfig`, LaunchAgents, crontab)
+- WebFetch to dynamic-DNS / paste / webhook hosts, oversized query
+  strings, base64-shaped payloads, URLs that reference local paths
+
+The hook only emits `permissionDecision: "ask"` -- never `deny`. Hard
+blocks stay in `permissions.deny` so they remain visible and version-
+controlled. Disable the hook for a single shell with
+`CLAUDE_PERMISSION_POLICY=off`; revert the PreToolUse registration in
+`settings.base.json` for a permanent rollback.
+
+Lib + tests follow the existing `commit-scope` convention:
+
+- `claude/.claude/lib/permission-policy.sh` -- pattern matchers
+- `claude/.claude/hooks/permission-policy.sh` -- dispatcher
+- `claude/.claude/tests/permission-policy/run.sh` -- run with
+  `bash run.sh` to verify all 13 cases pass
+
 # Brewfile rules
 
 - CLI tools: `brew "<name>"` -- keep sorted alphabetically.
