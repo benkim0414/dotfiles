@@ -139,5 +139,13 @@ check_web_fetch() {
     return 0
   fi
 
+  # URL references a local filesystem path or shell var (likely exfil bait).
+  if [[ "$url" == *'/Users/ben/'* \
+     || "$url" == *'$HOME/'* \
+     || "$url" == *'${HOME}/'* ]]; then
+    printf 'Fetch URL references local filesystem path'
+    return 0
+  fi
+
   printf ''
 }
