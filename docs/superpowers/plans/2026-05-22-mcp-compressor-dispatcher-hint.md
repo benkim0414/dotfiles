@@ -4,9 +4,9 @@
 
 **Goal:** Teach fresh Claude sessions the `tool_name`+`arguments` dispatcher shape required by mcp-compressor-wrapped MCP servers, by adding an authoritative section to the always-loaded global CLAUDE.md, and file an upstream issue against `atlassian-labs/mcp-compressor` for the empty-inputSchema design flaw.
 
-**Architecture:** Two-part fix.
+**Architecture:** Originally two-part fix; Part 2 deferred during implementation.
 (1) Edit `claude/.claude/CLAUDE.md` to add a section after the existing `## Semantic Search (qmd)` block (line 43) and before `## Git Workflow` (line 45). The file is stowed to `~/.claude/CLAUDE.md`, which Claude Code loads at session start.
-(2) Create a GitHub issue at `atlassian-labs/mcp-compressor` documenting the empty `inputSchema` for `*_get_tool_schema`/`*_invoke_tool` across versions 0.18.1-0.23.0 and all compression levels, with reproduction transcript.
+(2) ~~Create a GitHub issue at `atlassian-labs/mcp-compressor` documenting the empty `inputSchema` for `*_get_tool_schema`/`*_invoke_tool` across versions 0.18.1-0.23.0 and all compression levels, with reproduction transcript.~~ DEFERRED 2026-05-22 — see spec Part 2 and Task 2 below.
 
 **Tech Stack:** Markdown (CLAUDE.md), GitHub CLI (`gh`).
 
@@ -132,7 +132,10 @@ Expected: commit succeeds. `git log --oneline -1` shows the new commit.
 
 ---
 
-## Task 2: File upstream issue against atlassian-labs/mcp-compressor
+## Task 2: File upstream issue against atlassian-labs/mcp-compressor — DEFERRED 2026-05-22
+
+> **Status:** skipped during implementation. The CLAUDE.md hint (Task 1) is sufficient locally; revisit if the compressor still publishes empty inputSchema in a future release and the hint stops being enough. Recorded in the spec's "Part 2" section. Steps below preserved for future use.
+
 
 **Files:**
 - Create (external): GitHub issue at https://github.com/atlassian-labs/mcp-compressor
