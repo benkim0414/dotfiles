@@ -91,6 +91,24 @@ check_file_edit() {
     fi
   fi
 
+  # Shell init / persistence files via live paths. Edits via the dotfiles
+  # source path (e.g., zsh/.zshrc inside the repo) don't match here and
+  # stay silent naturally.
+  if [[ "$path" == /Users/ben/.zshrc \
+     || "$path" == /Users/ben/.bashrc \
+     || "$path" == /Users/ben/.gitconfig \
+     || "$path" == /Users/ben/Library/LaunchAgents/* \
+     || "$path" == /Users/ben/.config/launchd/* \
+     || "$path" == /etc/crontab \
+     || "$path" == /var/spool/cron/* ]]; then
+    if [[ -n "$wt_root" && "$path" == "$wt_root"/* ]]; then
+      :
+    else
+      printf 'Shell init / persistence file edit'
+      return 0
+    fi
+  fi
+
   printf ''
 }
 
