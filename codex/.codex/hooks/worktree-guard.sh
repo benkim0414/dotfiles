@@ -306,6 +306,14 @@ registered_worktree_branch() {
   return 1
 }
 
+branch_is_merged_into_head() {
+  local branch="$1"
+  local dir="${2:-$cwd}"
+
+  git -C "$dir" rev-parse --verify --quiet "$branch" >/dev/null 2>&1 || return 1
+  git -C "$dir" merge-base --is-ancestor "$branch" HEAD >/dev/null 2>&1
+}
+
 protected_branch_name() {
   local branch="$1"
 
@@ -1804,7 +1812,9 @@ is_allowed_worktree_branch_delete() {
   [[ "$saw_delete" -eq 1 && -n "$branch" ]] || return 1
   protected_branch_name "$branch" && return 1
   [[ -n "$active_branch" && "$branch" == "$active_branch" ]] && return 1
-  registered_worktree_branch "$branch" "$base_dir" || [[ "$branch" == worktree-* ]]
+  registered_worktree_branch "$branch" "$base_dir" ||
+    [[ "$branch" == worktree-* ]] ||
+    { protected_branch_name "$active_branch" && branch_is_merged_into_head "$branch" "$base_dir"; }
 }
 
 is_allowed_worktree_lifecycle_git_command() {
@@ -1831,6 +1841,9 @@ is_allowed_worktree_lifecycle_git_command() {
           target="$(worktree_command_target_path lifecycle_words 3 || true)"
           [[ -n "$target" ]] || return 1
           path_is_registered_worktree_under_primary_worktrees_dir "$(resolve_git_path "$target" "$base_dir")" "$base_dir"
+          ;;
+        prune)
+          [[ ${#lifecycle_words[@]} -eq 3 ]]
           ;;
         *)
           return 1

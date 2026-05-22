@@ -527,6 +527,7 @@ assert_approval_required_command "$PRIMARY_REPO" "git worktree add .worktrees/ne
 assert_approval_required_command "$PRIMARY_REPO" "git worktree add .worktrees/forced --force forced-branch" "unregistered worktree-like path"
 assert_allowed_command "$PRIMARY_REPO" "touch .worktrees/nested-linked/generated-from-primary.txt"
 assert_allowed_command "$PRIMARY_REPO" "git worktree remove .worktrees/nested-linked"
+assert_allowed_command "$PRIMARY_REPO" "git worktree prune"
 assert_allowed_command "$PRIMARY_REPO" "git checkout main"
 assert_allowed_command "$PRIMARY_REPO" "git switch main"
 assert_allowed_command "$PRIMARY_REPO" "git merge worktree-nested-linked"
@@ -538,6 +539,8 @@ assert_approval_required_command "$PRIMARY_REPO" "git merge worktree-nested-link
 git -C "$PRIMARY_REPO" checkout main >/dev/null
 git -C "$PRIMARY_REPO" worktree remove .worktrees/nested-linked
 assert_allowed_command "$PRIMARY_REPO" "git branch -d worktree-nested-linked"
+git -C "$PRIMARY_REPO" branch merged-cleanup-branch
+assert_allowed_command "$PRIMARY_REPO" "git branch -d merged-cleanup-branch"
 assert_approval_required_command "$PRIMARY_REPO" "git branch -d unrelated-worktree-cleanup" "primary worktree"
 assert_allowed_command "$PRIMARY_REPO" "rg -n fixture README.md"
 assert_allowed_command "$OUTSIDE_DIR" "git -C ../primary status --short"

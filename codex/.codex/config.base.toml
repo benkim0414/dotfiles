@@ -41,8 +41,8 @@ and ordinary non-force current-branch git push to GitHub remotes.
 Approve normal local worktree lifecycle operations for this repository:
 creating linked worktrees under .worktrees/, editing registered linked
 worktrees, switching to main, merging a registered worktree branch into main,
-removing the linked worktree, and deleting the merged worktree branch with
-git branch -d.
+removing the linked worktree, pruning stale worktree metadata, and deleting a
+merged non-protected worktree branch with git branch -d.
 
 Deny destructive commands, broad arbitrary shell approvals, credential access,
 writes outside configured workspace roots, non-GitHub network access, direct
