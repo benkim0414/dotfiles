@@ -40,6 +40,17 @@ check_bash() {
     printf 'Bash command references secret path via non-tilde form'
     return 0
   fi
+  # Bypass attempts for `rm -rf` that evade the deny/ask pattern.
+  # Detect leading whitespace AND prefixed command forms directly against $cmd.
+  if [[ "$cmd" =~ ^[[:space:]]+rm[[:space:]]+-r[fF]?[[:space:]] \
+     || "$cmd" =~ ^\\rm[[:space:]]+-r[fF]?[[:space:]] \
+     || "$cmd" =~ ^command[[:space:]]+rm[[:space:]]+-r[fF]?[[:space:]] \
+     || "$cmd" =~ ^builtin[[:space:]]+rm[[:space:]]+-r[fF]?[[:space:]] \
+     || "$cmd" =~ ^\"rm\"[[:space:]]+-r[fF]?[[:space:]] \
+     || "$cmd" =~ ^\'rm\'[[:space:]]+-r[fF]?[[:space:]] ]]; then
+    printf 'Possible deny-list bypass for rm -rf'
+    return 0
+  fi
   printf ''
 }
 
