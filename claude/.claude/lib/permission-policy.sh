@@ -35,6 +35,7 @@ check_bash() {
      || "$cmd" == *'${HOME}/.claude/.credentials'* \
      || "$cmd" == *'/Users/ben/.claude/.credentials'* \
      || "$cmd" == *'$HOME/.gnupg/'* \
+     || "$cmd" == *'${HOME}/.gnupg/'* \
      || "$cmd" == *'/Users/ben/.gnupg/'* ]]; then
     printf 'Bash command references secret path via non-tilde form'
     return 0

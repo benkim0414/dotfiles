@@ -10,6 +10,7 @@ assert_bash_flagged 'cat /Users/ben/.ssh/id_rsa'
 assert_bash_flagged 'cat /Users/ben/.ssh/id_ed25519'
 assert_bash_flagged 'cp /Users/ben/.aws/credentials /tmp/leak'
 assert_bash_flagged 'gpg --decrypt /Users/ben/.claude/.credentials.json'
+assert_bash_flagged 'gpg --decrypt ${HOME}/.gnupg/secring.gpg'
 
 # Negative: regular bash stays silent
 assert_bash_silent 'ls /tmp'
