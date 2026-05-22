@@ -59,7 +59,14 @@ cwd="$(canonical_path "$cwd")"
 effective_cwd() {
   local tool_workdir
 
-  tool_workdir="$(jq -r '.tool_input.workdir // .tool_input.cwd // .tool_input.current_working_directory // empty' <<<"$input" 2>/dev/null || true)"
+  tool_workdir="$(jq -r '
+    .tool_input.workdir //
+    .tool_input.cwd //
+    .tool_input.current_working_directory //
+    .workdir //
+    .current_working_directory //
+    empty
+  ' <<<"$input" 2>/dev/null || true)"
   if [[ -n "$tool_workdir" && -d "$tool_workdir" ]]; then
     canonical_path "$tool_workdir"
     return

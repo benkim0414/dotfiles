@@ -93,6 +93,27 @@ run_hook_json_with_tool_workdir() {
   bash "$HOOK" <<<"$payload"
 }
 
+run_hook_json_with_top_level_workdir() {
+  local cwd="$1"
+  local tool_workdir="$2"
+  local tool_name="$3"
+  local tool_input="$4"
+  local payload
+
+  payload="$(jq -cn \
+    --arg cwd "$cwd" \
+    --arg tool_workdir "$tool_workdir" \
+    --arg tool_name "$tool_name" \
+    --argjson tool_input "$tool_input" '{
+      hook_event_name: "PreToolUse",
+      tool_name: $tool_name,
+      cwd: $cwd,
+      workdir: $tool_workdir,
+      tool_input: $tool_input
+    }')"
+  bash "$HOOK" <<<"$payload"
+}
+
 run_hook_json_with_home() {
   local home="$1"
   local cwd="$2"
@@ -181,6 +202,24 @@ assert_allowed_command_with_tool_workdir() {
     fi
   fi
   echo "ok allowed $command with workdir=$tool_workdir and cwd=$cwd"
+}
+
+assert_allowed_command_with_top_level_workdir() {
+  local cwd="$1"
+  local tool_workdir="$2"
+  local command="$3"
+  local output
+
+  output="$(run_hook_json_with_top_level_workdir "$cwd" "$tool_workdir" "Bash" "$(jq -cn --arg command "$command" '{command: $command}')")"
+  if [[ -n "$output" ]]; then
+    jq -e . >/dev/null <<<"$output"
+    if jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null <<<"$output"; then
+      echo "expected allowed but denied: $command with top-level workdir=$tool_workdir and cwd=$cwd" >&2
+      echo "$output" >&2
+      return 1
+    fi
+  fi
+  echo "ok allowed $command with top-level workdir=$tool_workdir and cwd=$cwd"
 }
 
 assert_denied_json_with_home() {
@@ -301,6 +340,12 @@ assert_allowed_command "$PRIMARY_REPO" "git -C $LINKED_WORKTREE commit -m 'test:
 assert_allowed_command_with_tool_workdir "$PRIMARY_REPO" "$NESTED_LINKED_WORKTREE" "apply_patch <<'PATCH'
 *** Begin Patch
 *** Add File: shell-apply-patch.txt
++allowed
+*** End Patch
+PATCH"
+assert_allowed_command_with_top_level_workdir "$PRIMARY_REPO" "$NESTED_LINKED_WORKTREE" "apply_patch <<'PATCH'
+*** Begin Patch
+*** Add File: shell-apply-patch-top-level.txt
 +allowed
 *** End Patch
 PATCH"
