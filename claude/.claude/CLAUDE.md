@@ -150,7 +150,12 @@ docs(docs): <description>                        # universal container (S1)
 feat(<component>): change X and Y                # "and" = two changes -> split
 ```
 
-### No-pr mode (default)
+### No-pr mode (opt-in)
+
+Enable per repo by setting
+`"env": {"CLAUDE_GIT_WORKFLOW": "no-pr"}` in that repo's
+`.claude/settings.local.json`. The hook reads the env var; no other
+config required. This dotfiles repo is the documented example.
 
 After implementation + `requesting-code-review` is clean +
 `ce-compound` has documented the solution: invoke
