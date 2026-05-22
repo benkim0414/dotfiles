@@ -1618,11 +1618,6 @@ is_read_only_git_command() {
 
   subcommand="${git_words[1]:-}"
 
-  if [[ "$subcommand" == "worktree" && "${git_words[2]:-}" == "add" ]]; then
-    [[ "${git_words[3]:-}" == .worktrees/* ]]
-    return
-  fi
-
   case "$subcommand" in
     status|diff|log|show|rev-parse|ls-files)
       for word in "${git_words[@]:2}"; do
@@ -1809,7 +1804,7 @@ is_allowed_worktree_branch_delete() {
   [[ "$saw_delete" -eq 1 && -n "$branch" ]] || return 1
   protected_branch_name "$branch" && return 1
   [[ -n "$active_branch" && "$branch" == "$active_branch" ]] && return 1
-  registered_worktree_branch "$branch" "$base_dir"
+  registered_worktree_branch "$branch" "$base_dir" || [[ "$branch" == *worktree* ]]
 }
 
 is_allowed_worktree_lifecycle_git_command() {
@@ -1851,6 +1846,7 @@ is_allowed_worktree_lifecycle_git_command() {
       branch="${lifecycle_words[2]:-}"
       [[ ${#lifecycle_words[@]} -eq 3 ]] || return 1
       protected_branch_name "$branch" && return 1
+      protected_branch_name "$(active_branch_for "$base_dir")" || return 1
       registered_worktree_branch "$branch" "$base_dir"
       ;;
     branch)

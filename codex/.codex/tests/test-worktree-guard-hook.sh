@@ -523,6 +523,8 @@ assert_allowed_command "$PRIMARY_REPO" "git ls-files"
 assert_allowed_command "$PRIMARY_REPO" "git branch --show-current"
 assert_allowed_command "$PRIMARY_REPO" "git -C $PRIMARY_REPO branch --show-current"
 assert_allowed_command "$PRIMARY_REPO" "git worktree add .worktrees/recovery -b recovery-branch"
+assert_approval_required_command "$PRIMARY_REPO" "git worktree add .worktrees/nested/recovery -b nested-recovery-branch" "unregistered worktree-like path"
+assert_approval_required_command "$PRIMARY_REPO" "git worktree add .worktrees/forced --force forced-branch" "unregistered worktree-like path"
 assert_allowed_command "$PRIMARY_REPO" "touch .worktrees/nested-linked/generated-from-primary.txt"
 assert_allowed_command "$PRIMARY_REPO" "git worktree remove .worktrees/nested-linked"
 assert_allowed_command "$PRIMARY_REPO" "git checkout main"
@@ -530,6 +532,12 @@ assert_allowed_command "$PRIMARY_REPO" "git switch main"
 assert_allowed_command "$PRIMARY_REPO" "git merge fixture-nested-worktree"
 assert_allowed_command "$PRIMARY_REPO" "git branch -d fixture-nested-worktree"
 assert_approval_required_command "$PRIMARY_REPO" "git worktree remove --force .worktrees/nested-linked" "primary worktree"
+git -C "$PRIMARY_REPO" branch integration
+git -C "$PRIMARY_REPO" checkout integration >/dev/null
+assert_approval_required_command "$PRIMARY_REPO" "git merge fixture-nested-worktree" "primary worktree"
+git -C "$PRIMARY_REPO" checkout main >/dev/null
+git -C "$PRIMARY_REPO" worktree remove .worktrees/nested-linked
+assert_allowed_command "$PRIMARY_REPO" "git branch -d fixture-nested-worktree"
 assert_allowed_command "$PRIMARY_REPO" "rg -n fixture README.md"
 assert_allowed_command "$OUTSIDE_DIR" "git -C ../primary status --short"
 assert_allowed_command "$LINKED_WORKTREE" "git -C ../primary status --short"
