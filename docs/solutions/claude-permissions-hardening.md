@@ -80,6 +80,37 @@ Two layers:
   dispatcher with env-var disable and fast-exit.
 - `claude/.claude/tests/permission-policy/` -- runner + 13 cases.
 
+## Known limitations
+
+- **Bash secret-path check is substring, not semantic.** `cat /Users/ben/.ssh/...`,
+  `ls /Users/ben/.ssh/`, and `rsync local /Users/ben/.ssh/safe/` all flag the
+  same way -- the lib does not parse argument intent. The hook only asks
+  (never denies), so the cost is prompt fatigue, not blocked work. Narrowing
+  to credential filenames (`id_rsa`, `id_ed25519`, `credentials`, etc.) is a
+  follow-up option if the prompts become noisy.
+- **`rm -rf` bypass coverage is incomplete.** Uppercase R variants (`rm -RF`)
+  and double-space (`rm  -rf`) are not caught by the current regex. The base
+  `Bash(rm -rf *)` ask still catches the canonical form.
+- **Pipe-to-shell check covers only shells.** `curl ... | python` and
+  `wget ... | node` slip through. The more common shell-piping shape is
+  caught.
+- **Literal `$HOME` deny patterns don't shell-expand.** Entries like
+  `Bash(*$HOME/.ssh/id_rsa*)` in `settings.base.json` only match when the
+  command literally contains the substring `$HOME`. The lib's `check_bash`
+  handles the expanded form. The redundancy is intentional belt-and-suspenders
+  coverage across both layers.
+- **`mcp__*__*invoke*` was deliberately dropped from the ask list.** It
+  caught `mcp-compressor` dispatchers (atlassian, slack, qmd,
+  sequential-thinking) on every call regardless of read/write intent,
+  defeating the `mcp__*` allow. Per-server-tool ask entries in
+  `.claude/settings.local.json` can gate specific dispatchers when stricter
+  control is needed.
+- **Settings-precedence interaction with hook `ask` is not verbatim-documented.**
+  The Claude Code docs imply (but do not state explicitly) that hook
+  `permissionDecision: ask` overrides a settings `allow` match. Live smoke
+  test in a fresh session post-merge is the source of truth -- see the spec's
+  "Smoke test" section for the procedure.
+
 ## Related
 
 - `claude/.claude/lib/commit-scope.sh` and `hooks/git-safety.sh` --
