@@ -22,6 +22,7 @@ canonical_path() {
 # --- check_bash -----------------------------------------------------------
 # Inspect a bash command string and return a non-empty reason if any
 # risky-shape pattern matches; empty otherwise.
+# shellcheck disable=SC2016  # intentional literal $HOME / ${HOME} matching
 check_bash() {
   local cmd="$1"
   # Shell-expanded secret paths the tilde-prefix deny list misses.
@@ -115,6 +116,7 @@ check_file_edit() {
 # --- check_web_fetch ------------------------------------------------------
 # Inspect a URL string and return a non-empty reason if it matches exfil /
 # suspect-host / local-path patterns.
+# shellcheck disable=SC2016  # intentional literal $HOME / ${HOME} matching
 check_web_fetch() {
   local url="$1"
 
