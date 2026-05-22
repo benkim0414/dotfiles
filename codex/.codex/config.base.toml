@@ -38,15 +38,20 @@ create, edit, comment, check, status, and review operations; GitHub CLI issue
 view, list, create, edit, comment, and status operations; git fetch; git pull;
 and ordinary non-force current-branch git push to GitHub remotes.
 
+Approve normal local worktree lifecycle operations for this repository:
+creating linked worktrees under .worktrees/, editing registered linked
+worktrees, switching to main, merging a registered worktree branch into main,
+removing the linked worktree, and deleting the merged worktree branch with
+git branch -d.
+
 Deny destructive commands, broad arbitrary shell approvals, credential access,
 writes outside configured workspace roots, non-GitHub network access, direct
 GitHub API access through arbitrary runtimes or shell scripts, GitHub merge
-operations including gh pr merge, local merge-to-main operations such as
-git checkout main followed by git merge <branch>, branch deletion, repository
-administration, settings or secrets changes, destructive issue or PR
-operations, force pushes, history rewrites, and broad branch mutation commands.
-These sensitive operations require direct user approval and must not be
-approved by auto-review.
+operations including gh pr merge, branch deletion outside the registered
+worktree cleanup flow, repository administration, settings or secrets changes,
+destructive issue or PR operations, force pushes, history rewrites, and broad
+branch mutation commands. These sensitive operations require direct user
+approval and must not be approved by auto-review.
 
 When an approval request includes a persistent prefix rule, approve only narrow
 operation-specific prefixes such as gh pr view, gh pr list, gh pr create, gh pr

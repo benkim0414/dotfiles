@@ -108,10 +108,11 @@ EXPECTED_HOOK_PATH='PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$HOME/.
 assert_top_level_contains "$CONFIG" 'approval_policy = "on-request"'
 assert_top_level_contains "$CONFIG" 'approvals_reviewer = "auto_review"'
 assert_table_contains "$CONFIG" '[auto_review]' 'Approve routine sandbox-compatible repository work'
+assert_table_contains "$CONFIG" '[auto_review]' 'Approve normal local worktree lifecycle operations'
+assert_table_contains "$CONFIG" '[auto_review]' 'merging a registered worktree branch into main'
 assert_table_contains "$CONFIG" '[auto_review]' 'gh pr merge'
-assert_table_contains "$CONFIG" '[auto_review]' 'local merge-to-main operations'
-assert_table_contains "$CONFIG" '[auto_review]' 'git checkout main followed by git merge <branch>'
-assert_table_contains "$CONFIG" '[auto_review]' 'These sensitive operations require direct user approval'
+assert_table_contains "$CONFIG" '[auto_review]' 'branch deletion outside the registered'
+assert_table_contains "$CONFIG" '[auto_review]' 'These sensitive operations require direct user'
 assert_table_contains "$CONFIG" '[mcp_servers.context-mode]' 'default_tools_approval_mode = "approve"'
 assert_file_contains "$CONFIG" "command = '$EXPECTED_HOOK_PATH context-mode hook codex pretooluse'"
 assert_file_contains "$CONFIG" "command = '$EXPECTED_HOOK_PATH context-mode hook codex posttooluse'"

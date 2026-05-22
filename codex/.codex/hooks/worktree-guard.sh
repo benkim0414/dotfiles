@@ -280,6 +280,38 @@ registered_worktree_match_for_path() {
   printf '%s\n' "$match"
 }
 
+worktree_branch_registry_for() {
+  local dir="${1:-$cwd}"
+  local line
+
+  git -C "$dir" worktree list --porcelain 2>/dev/null |
+    while IFS= read -r line; do
+      case "$line" in
+        branch\ refs/heads/*)
+          printf '%s\n' "${line#branch refs/heads/}"
+          ;;
+      esac
+    done
+}
+
+registered_worktree_branch() {
+  local branch="$1"
+  local dir="${2:-$cwd}"
+  local registered_branch
+
+  while IFS= read -r registered_branch; do
+    [[ "$registered_branch" == "$branch" ]] && return 0
+  done < <(worktree_branch_registry_for "$dir")
+
+  return 1
+}
+
+protected_branch_name() {
+  local branch="$1"
+
+  [[ "$branch" == "main" || "$branch" == "master" ]]
+}
+
 path_is_under_primary_worktrees_dir() {
   local path="$1"
   local base_dir="${2:-$cwd}"
@@ -289,6 +321,21 @@ path_is_under_primary_worktrees_dir() {
   primary="$(primary_worktree_from_registry "$base_dir" || true)"
   [[ -n "$primary" ]] || return 1
   candidate="$(canonical_path "$path")"
+  path_is_inside "$candidate" "$primary/.worktrees"
+}
+
+path_is_registered_worktree_under_primary_worktrees_dir() {
+  local path="$1"
+  local base_dir="${2:-$cwd}"
+  local primary
+  local match
+  local candidate
+
+  primary="$(primary_worktree_from_registry "$base_dir" || true)"
+  [[ -n "$primary" ]] || return 1
+  match="$(registered_worktree_match_for_path "$path" "$base_dir" || true)"
+  [[ -n "$match" && "$match" != "$primary" ]] || return 1
+  candidate="$(canonical_path "$match")"
   path_is_inside "$candidate" "$primary/.worktrees"
 }
 
@@ -802,6 +849,11 @@ approval_required_worktree_root_for_path() {
       target_repo_root="${target_category#*$'\t'}"
       printf '%s\n' "$target_repo_root"
       return 0
+    fi
+    if [[ "$category" == "registered-linked-worktree" ]] &&
+      path_is_registered_worktree_under_primary_worktrees_dir "$path" "$base_dir" &&
+      ! is_linked_worktree "$base_dir"; then
+      return 1
     fi
   fi
 
@@ -1612,6 +1664,216 @@ is_read_only_git_command() {
   esac
 }
 
+git_lifecycle_words() {
+  local command="$1"
+  local output_name="$2"
+  local -n output_words="$output_name"
+  local -a words
+  local i
+
+  output_words=()
+  shell_words "$command" words || return 1
+  [[ "${words[0]:-}" == "git" ]] || return 1
+
+  output_words=("git")
+  i=1
+  while (( i < ${#words[@]} )); do
+    case "${words[i]}" in
+      -C|--git-dir|--work-tree|--namespace)
+        i=$((i + 2))
+        ;;
+      --git-dir=*|--work-tree=*|--namespace=*|--no-pager|--paginate|--no-replace-objects|--literal-pathspecs|--no-optional-locks)
+        i=$((i + 1))
+        ;;
+      --)
+        output_words+=("${words[@]:i + 1}")
+        break
+        ;;
+      *)
+        output_words+=("${words[@]:i}")
+        break
+        ;;
+    esac
+  done
+}
+
+active_branch_for() {
+  local dir="${1:-$cwd}"
+
+  git -C "$dir" branch --show-current 2>/dev/null || true
+}
+
+path_is_single_primary_worktrees_child() {
+  local path="$1"
+  local base_dir="${2:-$cwd}"
+  local primary
+  local candidate
+  local relative
+
+  primary="$(primary_worktree_from_registry "$base_dir" || true)"
+  [[ -n "$primary" ]] || return 1
+  candidate="$(resolve_git_path "$path" "$base_dir")"
+  path_is_inside "$candidate" "$primary/.worktrees" || return 1
+  relative="${candidate#"$primary/.worktrees/"}"
+  [[ -n "$relative" && "$relative" != */* ]]
+}
+
+worktree_command_target_path() {
+  local input_name="$1"
+  local start_index="$2"
+  local -n git_words="$input_name"
+  local i="$start_index"
+  local word
+
+  while (( i < ${#git_words[@]} )); do
+    word="${git_words[i]}"
+    case "$word" in
+      -b|-B|--branch|--orphan)
+        i=$((i + 2))
+        ;;
+      --branch=*|--orphan=*|--checkout|--detach|--force|--guess-remote|--lock|--no-checkout|--quiet|--reason=*|--track|--no-track)
+        i=$((i + 1))
+        ;;
+      --)
+        if (( i + 1 < ${#git_words[@]} )); then
+          printf '%s\n' "${git_words[i + 1]}"
+          return 0
+        fi
+        return 1
+        ;;
+      -*)
+        i=$((i + 1))
+        ;;
+      *)
+        printf '%s\n' "$word"
+        return 0
+        ;;
+    esac
+  done
+
+  return 1
+}
+
+is_allowed_worktree_branch_delete() {
+  local input_name="$1"
+  local base_dir="${2:-$cwd}"
+  local -n git_words="$input_name"
+  local active_branch
+  local branch=""
+  local saw_delete=0
+  local i
+  local word
+
+  active_branch="$(active_branch_for "$base_dir")"
+  i=2
+  while (( i < ${#git_words[@]} )); do
+    word="${git_words[i]}"
+    case "$word" in
+      -d|--delete)
+        saw_delete=1
+        ;;
+      -D|-f|--force)
+        return 1
+        ;;
+      --)
+        ;;
+      -*)
+        return 1
+        ;;
+      *)
+        if [[ -n "$branch" ]]; then
+          return 1
+        fi
+        branch="$word"
+        ;;
+    esac
+    i=$((i + 1))
+  done
+
+  [[ "$saw_delete" -eq 1 && -n "$branch" ]] || return 1
+  protected_branch_name "$branch" && return 1
+  [[ -n "$active_branch" && "$branch" == "$active_branch" ]] && return 1
+  registered_worktree_branch "$branch" "$base_dir"
+}
+
+is_allowed_worktree_lifecycle_git_command() {
+  local command="$1"
+  local base_dir="${2:-$cwd}"
+  local -a lifecycle_words
+  local subcommand
+  local target
+  local branch
+
+  git_lifecycle_words "$command" lifecycle_words || return 1
+  subcommand="${lifecycle_words[1]:-}"
+
+  case "$subcommand" in
+    worktree)
+      case "${lifecycle_words[2]:-}" in
+        add)
+          target="$(worktree_command_target_path lifecycle_words 3 || true)"
+          [[ -n "$target" ]] || return 1
+          path_is_single_primary_worktrees_child "$target" "$base_dir"
+          ;;
+        remove)
+          target="$(worktree_command_target_path lifecycle_words 3 || true)"
+          [[ -n "$target" ]] || return 1
+          path_is_registered_worktree_under_primary_worktrees_dir "$(resolve_git_path "$target" "$base_dir")" "$base_dir"
+          ;;
+        *)
+          return 1
+          ;;
+      esac
+      ;;
+    checkout|switch)
+      branch="${lifecycle_words[2]:-}"
+      [[ ${#lifecycle_words[@]} -eq 3 ]] || return 1
+      protected_branch_name "$branch"
+      ;;
+    merge)
+      branch="${lifecycle_words[2]:-}"
+      [[ ${#lifecycle_words[@]} -eq 3 ]] || return 1
+      protected_branch_name "$branch" && return 1
+      registered_worktree_branch "$branch" "$base_dir"
+      ;;
+    branch)
+      is_allowed_worktree_branch_delete lifecycle_words "$base_dir"
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+is_allowed_registered_worktree_touch_command() {
+  local command="$1"
+  local base_dir="${2:-$cwd}"
+  local -a words
+  local word
+  local found_target=0
+  local i
+
+  has_shell_control_syntax "$command" && return 1
+  shell_words "$command" words || return 1
+  [[ "${words[0]:-}" == "touch" ]] || return 1
+
+  i=1
+  while (( i < ${#words[@]} )); do
+    word="${words[i]}"
+    case "$word" in
+      -*)
+        ;;
+      *)
+        path_is_registered_worktree_under_primary_worktrees_dir "$(resolve_git_path "$word" "$base_dir")" "$base_dir" || return 1
+        found_target=1
+        ;;
+    esac
+    i=$((i + 1))
+  done
+
+  [[ "$found_target" -eq 1 ]]
+}
+
 is_read_only_find_command() {
   local command="$1"
   local -a words
@@ -1840,6 +2102,14 @@ if is_shell_tool; then
 
   require_approval_for_shell_patch_targets "$command" "$command_cwd"
 
+  if is_allowed_worktree_lifecycle_git_command "$command" "$command_cwd"; then
+    exit 0
+  fi
+
+  if is_allowed_registered_worktree_touch_command "$command" "$command_cwd"; then
+    exit 0
+  fi
+
   if referenced_root="$(command_referenced_main_worktree_root "$command" "$command_cwd")"; then
     if is_read_only_command "$command"; then
       exit 0
@@ -1891,6 +2161,14 @@ if is_mcp_executor_tool; then
     found_command=1
     if is_linked_worktree "$command_cwd" && has_shell_control_syntax "$command" && has_shell_path_indirection "$command"; then
       deny "$(block_reason "$(primary_worktree_root_for_current_repo "$command_cwd")")"
+    fi
+
+    if is_allowed_worktree_lifecycle_git_command "$command" "$command_cwd"; then
+      continue
+    fi
+
+    if is_allowed_registered_worktree_touch_command "$command" "$command_cwd"; then
+      continue
     fi
 
     if referenced_root="$(command_referenced_main_worktree_root "$command" "$command_cwd")"; then
