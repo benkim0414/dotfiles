@@ -6,7 +6,12 @@ set -uo pipefail
 source "$TEST_HOME/helpers.sh"
 
 assert_file_flagged '/Users/ben/.zshrc' ''
+assert_file_flagged '/Users/ben/.zshenv' ''
+assert_file_flagged '/Users/ben/.zprofile' ''
+assert_file_flagged '/Users/ben/.zlogin' ''
 assert_file_flagged '/Users/ben/.bashrc' ''
+assert_file_flagged '/Users/ben/.bash_profile' ''
+assert_file_flagged '/Users/ben/.profile' ''
 assert_file_flagged '/Users/ben/.gitconfig' ''
 assert_file_flagged '/Users/ben/Library/LaunchAgents/com.example.plist' ''
 assert_file_flagged '/Users/ben/.config/launchd/foo.plist' ''

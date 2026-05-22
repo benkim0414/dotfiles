@@ -96,7 +96,12 @@ check_file_edit() {
   # source path (e.g., zsh/.zshrc inside the repo) don't match here and
   # stay silent naturally.
   if [[ "$path" == /Users/ben/.zshrc \
+     || "$path" == /Users/ben/.zshenv \
+     || "$path" == /Users/ben/.zprofile \
+     || "$path" == /Users/ben/.zlogin \
      || "$path" == /Users/ben/.bashrc \
+     || "$path" == /Users/ben/.bash_profile \
+     || "$path" == /Users/ben/.profile \
      || "$path" == /Users/ben/.gitconfig \
      || "$path" == /Users/ben/Library/LaunchAgents/* \
      || "$path" == /Users/ben/.config/launchd/* \
