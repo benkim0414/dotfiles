@@ -124,5 +124,20 @@ check_web_fetch() {
     return 0
   fi
 
+  # Extract query string (everything after first `?`, strip fragment).
+  local query=""
+  if [[ "$url" == *\?* ]]; then
+    query="${url#*\?}"
+    query="${query%%#*}"
+  fi
+  if (( ${#query} > 500 )); then
+    printf 'Fetch URL carries large query payload (possible exfil)'
+    return 0
+  fi
+  if [[ "$query" =~ [A-Za-z0-9+/]{120,}={0,2} ]]; then
+    printf 'Fetch URL carries large query payload (possible exfil)'
+    return 0
+  fi
+
   printf ''
 }
