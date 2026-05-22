@@ -22,9 +22,10 @@ requesting-code-review         ← dispatch superpowers:code-reviewer subagent
 ce-compound                    ← document learnings
     ↓                             → docs/solutions/<...>.md
 finishing-a-development-branch ← integrate
-   ├─ no-pr default: option 1 (local merge → push main)
-   └─ PR mode:       compound-engineering:ce-commit-push-pr
-                     compound-engineering:ce-resolve-pr-feedback
+   ├─ PR mode (default):    option 2 (push + gh pr create)
+   │                        receiving-code-review (reactive on feedback)
+   │                        user merges via gh pr merge --merge
+   └─ no-pr mode (opt-in):  option 1 (local merge → push main)
 ```
 
 ### Artifact placement
