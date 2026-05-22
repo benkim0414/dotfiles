@@ -24,7 +24,21 @@ canonical_path() {
 # risky-shape pattern matches; empty otherwise.
 check_bash() {
   local cmd="$1"
-  # Implemented in later tasks.
+  # Shell-expanded secret paths the tilde-prefix deny list misses.
+  if [[ "$cmd" == *'$HOME/.ssh/'* \
+     || "$cmd" == *'${HOME}/.ssh/'* \
+     || "$cmd" == *'/Users/ben/.ssh/'* \
+     || "$cmd" == *'$HOME/.aws/credentials'* \
+     || "$cmd" == *'${HOME}/.aws/credentials'* \
+     || "$cmd" == *'/Users/ben/.aws/credentials'* \
+     || "$cmd" == *'$HOME/.claude/.credentials'* \
+     || "$cmd" == *'${HOME}/.claude/.credentials'* \
+     || "$cmd" == *'/Users/ben/.claude/.credentials'* \
+     || "$cmd" == *'$HOME/.gnupg/'* \
+     || "$cmd" == *'/Users/ben/.gnupg/'* ]]; then
+    printf 'Bash command references secret path via non-tilde form'
+    return 0
+  fi
   printf ''
 }
 
