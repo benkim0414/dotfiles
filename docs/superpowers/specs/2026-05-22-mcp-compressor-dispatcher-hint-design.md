@@ -111,25 +111,18 @@ Why CLAUDE.md vs SessionStart hook:
   and the schemas of the underlying tools still wouldn't surface
   upfront.
 
-### Part 2 - file upstream issue
+### Part 2 - file upstream issue (DEFERRED 2026-05-22)
 
-File a GitHub issue at `atlassian-labs/mcp-compressor` describing:
+Originally planned: file a GitHub issue at `atlassian-labs/mcp-compressor`
+documenting the empty-inputSchema bug across versions 0.18.1-0.23.0 and
+all compression levels.
 
-- `compressed-tools` mode publishes `inputSchema:
-  {"type":"object","properties":{}}` for `*_get_tool_schema` and
-  `*_invoke_tool` across all observed versions (0.18.1-0.23.0) and
-  compression levels (low/high/medium/max).
-- Recommended fix: dispatcher `inputSchema` should declare
-  `tool_name` (required, string) and `arguments` (object, default
-  `{}`). For `_get_tool_schema`, only `tool_name` required.
-- Why it matters: schema-aware MCP clients (Claude Code, schema-aware
-  SDKs) cannot discover the dispatcher contract and either fail
-  outright or burn tokens probing shapes. Empty `properties` invites
-  the LLM to call with `{}`, which the server then rejects.
-- Include the reproduction (probe transcript from this design).
-
-Out of scope: opening the PR ourselves. The reproduction is enough
-signal; let the maintainers choose the fix.
+Status: skipped during implementation. The CLAUDE.md hint (Part 1) is
+sufficient to unblock fresh sessions on this machine, and the upstream
+project sees active maintenance (recent PRs #201-#215 in the week prior
+to this design) so the bug may surface on the maintainers' own radar
+without an external report. Revisit if the schema is still empty in a
+future compressor release and the hint stops being enough.
 
 ## Non-goals
 
