@@ -124,9 +124,10 @@ check_file_edit() {
 # shellcheck disable=SC2016  # intentional literal $HOME / ${HOME} matching
 check_web_fetch() {
   local url="$1"
+  local url_lc="${url,,}"
 
-  # Suspect hosts: dynamic-DNS, paste, webhook receivers.
-  if [[ "$url" =~ ^https?://([^/]*\.)?(requestbin\.com|webhook\.site|pipedream\.net|ngrok\.io|trycloudflare\.com)([/:?]|$) ]]; then
+  # Suspect hosts: dynamic-DNS, paste, webhook receivers. Case-insensitive via lc copy.
+  if [[ "$url_lc" =~ ^https?://([^/]*\.)?(requestbin\.com|webhook\.site|pipedream\.net|ngrok\.io|trycloudflare\.com)([/:?]|$) ]]; then
     printf 'Fetch to dynamic-DNS / paste / webhook host'
     return 0
   fi
