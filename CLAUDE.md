@@ -54,6 +54,35 @@ Run `claude-sync` after editing either file to regenerate `~/.claude/settings.js
 The script deep-merges arrays (concatenate + deduplicate) and objects (overlay wins).
 Without claude-skills cloned, it copies the base as-is.
 
+## Permission posture
+
+User-scope defaults (in `claude/.claude/settings.base.json`):
+
+- `defaultMode: "auto"` -- new sessions open in auto mode. A classifier
+  judges unmatched tool calls; explicit `allow` entries skip the
+  classifier. Requires Opus 4.6+ / Sonnet 4.6+ (Opus 4.7 in use).
+- `permissions.allow: ["mcp__*", ...]` -- all MCP server tools skip the
+  prompt path. Includes context-mode, qmd, sequential-thinking,
+  Atlassian, Slack, Linear, Notion, claude.ai integrations, future
+  servers.
+
+Per-repo overrides live in `.claude/settings.local.json` (gitignored).
+Add `permissions.ask` or `permissions.deny` rules there for sensitive
+operations specific to that repo. Example:
+
+```json
+{
+  "permissions": {
+    "ask": [
+      "mcp__claude_ai_Atlassian__*",
+      "mcp__slack__slack_post_message"
+    ]
+  }
+}
+```
+
+Local settings override base on a per-key basis (arrays concatenate).
+
 # Brewfile rules
 
 - CLI tools: `brew "<name>"` -- keep sorted alphabetically.
