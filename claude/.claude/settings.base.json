@@ -6,7 +6,7 @@
   "model": "opus[1m]",
   "theme": "custom:catppuccin",
   "effortLevel": "auto",
-  "defaultMode": "acceptEdits",
+  "defaultMode": "auto",
   "permissions": {
     "allow": [
       "Read",
