@@ -298,7 +298,22 @@ apply_patch_target_paths() {
       ;;
   esac
 
-  patch="$(jq -r '.tool_input.cmd // empty' <<<"$input" 2>/dev/null || true)"
+  patch="$(
+    jq -r '
+      if (.tool_input | type) == "string" then
+        .tool_input
+      else
+        [
+          .tool_input.cmd?,
+          .tool_input.command?,
+          .tool_input.patch?,
+          .tool_input.content?
+        ]
+        | .[]
+        | select(type == "string" and length > 0)
+      end
+    ' <<<"$input" 2>/dev/null || true
+  )"
   while IFS= read -r line; do
     case "$line" in
       "*** Add File: "*)
