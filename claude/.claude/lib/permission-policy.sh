@@ -61,6 +61,11 @@ check_bash() {
     printf 'Piped/chained execution of fetched content'
     return 0
   fi
+  # base64|curl/wget or tar|curl/wget or gpg|curl -- classic exfil shapes.
+  if [[ "$cmd" =~ (base64|tar|gpg)[^\|]*\|[^\|]*(curl|wget)[[:space:]] ]]; then
+    printf 'Possible data exfiltration pipeline'
+    return 0
+  fi
   printf ''
 }
 
