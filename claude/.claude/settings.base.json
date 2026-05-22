@@ -196,7 +196,6 @@
       "mcp__*__*sync*",
       "mcp__*__*deploy*",
       "mcp__*__*apply*",
-      "mcp__*__*invoke*",
       "mcp__*__*patch*",
       "mcp__*__*write*"
     ]
