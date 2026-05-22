@@ -97,8 +97,22 @@
       "Bash(*~/.config/gh/hosts.yml*)",
       "Bash(bw get *)",
       "Bash(bw list *)",
+      "Bash(bw export*)",
+      "Bash(bw export --*)",
       "Bash(op read *)",
-      "Bash(op item get *)"
+      "Bash(op item get *)",
+      "Bash(op document get *)",
+      "Bash(op item edit *)",
+      "Bash(op vault export*)",
+      "Bash(*$HOME/.ssh/id_rsa*)",
+      "Bash(*$HOME/.ssh/id_ed25519*)",
+      "Bash(*$HOME/.ssh/id_ecdsa*)",
+      "Bash(*$HOME/.aws/credentials*)",
+      "Bash(*$HOME/.claude/.credentials*)",
+      "Bash(*/Users/ben/.ssh/id_rsa*)",
+      "Bash(*/Users/ben/.ssh/id_ed25519*)",
+      "Bash(*/Users/ben/.aws/credentials*)",
+      "Bash(*/Users/ben/.claude/.credentials*)"
     ],
     "ask": [
       "Bash(rm -rf *)",
@@ -136,9 +150,54 @@
       "Bash(npm install -g *)",
       "Bash(cargo install *)",
       "Bash(go install *)",
+      "Bash(curl * -X POST*)",
+      "Bash(curl * -X PUT*)",
+      "Bash(curl * -X DELETE*)",
+      "Bash(curl * -X PATCH*)",
+      "Bash(curl * --request POST*)",
+      "Bash(curl * --request PUT*)",
+      "Bash(curl * --request DELETE*)",
+      "Bash(curl * -d *)",
+      "Bash(curl * --data*)",
+      "Bash(wget --post-*)",
+      "Bash(chmod *)",
+      "Bash(chown *)",
+      "Bash(dd *)",
+      "Bash(mkfs*)",
+      "Bash(find * -delete*)",
+      "Bash(find * -exec rm*)",
+      "Bash(git config *)",
+      "Bash(git filter-repo*)",
+      "Bash(git filter-branch*)",
+      "Bash(git rebase -i*)",
+      "Bash(git push origin main*)",
+      "Bash(git push * main*)",
+      "Bash(git push * master*)",
+      "Bash(npm publish*)",
+      "Bash(cargo publish*)",
+      "Bash(twine upload*)",
+      "Bash(gem push*)",
+      "Bash(gh api * -X POST*)",
+      "Bash(gh api * -X PUT*)",
+      "Bash(gh api * -X PATCH*)",
+      "Bash(gh api --method POST*)",
+      "Bash(gh api --method PUT*)",
+      "Bash(gh api --method PATCH*)",
       "CronCreate",
       "CronDelete",
-      "RemoteTrigger"
+      "RemoteTrigger",
+      "mcp__*__*create*",
+      "mcp__*__*delete*",
+      "mcp__*__*remove*",
+      "mcp__*__*update*",
+      "mcp__*__*edit*",
+      "mcp__*__*add*",
+      "mcp__*__*transition*",
+      "mcp__*__*sync*",
+      "mcp__*__*deploy*",
+      "mcp__*__*apply*",
+      "mcp__*__*patch*",
+      "mcp__*__*write*"
     ]
   },
   "hooks": {
@@ -189,6 +248,15 @@
           {
             "type": "command",
             "command": "bash $HOME/.claude/hooks/worktree-guard.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|Write|Edit|MultiEdit|NotebookEdit|WebFetch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $HOME/.claude/hooks/permission-policy.sh"
           }
         ]
       },
