@@ -6,18 +6,6 @@
 #   check_bash <command>                 -- emit reason or empty
 #   check_file_edit <path> <wt_root>     -- emit reason or empty
 #   check_web_fetch <url>                -- emit reason or empty
-#   canonical_path <path>                -- echo canonical path (no symlinks)
-
-# --- canonical_path -------------------------------------------------------
-# Resolve symlinks and "." / ".." segments to an absolute path.
-# Uses GNU readlink -f if available, falls back to python3 realpath.
-canonical_path() {
-  local p="$1"
-  if readlink -f / >/dev/null 2>&1; then
-    readlink -f -- "$p" 2>/dev/null && return 0
-  fi
-  python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' -- "$p" 2>/dev/null
-}
 
 # --- check_bash -----------------------------------------------------------
 # Inspect a bash command string and return a non-empty reason if any
