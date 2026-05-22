@@ -41,10 +41,12 @@ and ordinary non-force current-branch git push to GitHub remotes.
 Deny destructive commands, broad arbitrary shell approvals, credential access,
 writes outside configured workspace roots, non-GitHub network access, direct
 GitHub API access through arbitrary runtimes or shell scripts, GitHub merge
-operations, branch deletion, repository administration, settings or secrets
-changes, destructive issue or PR operations, force pushes, history rewrites,
-and broad branch mutation commands. These sensitive operations require direct
-user approval and must not be approved by auto-review.
+operations including gh pr merge, local merge-to-main operations such as
+git checkout main followed by git merge <branch>, branch deletion, repository
+administration, settings or secrets changes, destructive issue or PR
+operations, force pushes, history rewrites, and broad branch mutation commands.
+These sensitive operations require direct user approval and must not be
+approved by auto-review.
 
 When an approval request includes a persistent prefix rule, approve only narrow
 operation-specific prefixes such as gh pr view, gh pr list, gh pr create, gh pr
