@@ -97,8 +97,22 @@
       "Bash(*~/.config/gh/hosts.yml*)",
       "Bash(bw get *)",
       "Bash(bw list *)",
+      "Bash(bw export*)",
+      "Bash(bw export --*)",
       "Bash(op read *)",
-      "Bash(op item get *)"
+      "Bash(op item get *)",
+      "Bash(op document get *)",
+      "Bash(op item edit *)",
+      "Bash(op vault export*)",
+      "Bash(*$HOME/.ssh/id_rsa*)",
+      "Bash(*$HOME/.ssh/id_ed25519*)",
+      "Bash(*$HOME/.ssh/id_ecdsa*)",
+      "Bash(*$HOME/.aws/credentials*)",
+      "Bash(*$HOME/.claude/.credentials*)",
+      "Bash(*/Users/ben/.ssh/id_rsa*)",
+      "Bash(*/Users/ben/.ssh/id_ed25519*)",
+      "Bash(*/Users/ben/.aws/credentials*)",
+      "Bash(*/Users/ben/.claude/.credentials*)"
     ],
     "ask": [
       "Bash(rm -rf *)",
