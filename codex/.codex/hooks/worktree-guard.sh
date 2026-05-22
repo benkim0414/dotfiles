@@ -189,6 +189,92 @@ path_is_inside() {
   esac
 }
 
+worktree_registry_for() {
+  local dir="${1:-$cwd}"
+  local line
+  local path
+
+  git -C "$dir" worktree list --porcelain 2>/dev/null |
+    while IFS= read -r line; do
+      case "$line" in
+        worktree\ *)
+          path="${line#worktree }"
+          canonical_path "$path"
+          ;;
+      esac
+    done
+}
+
+primary_worktree_from_registry() {
+  local dir="${1:-$cwd}"
+
+  worktree_registry_for "$dir" | sed -n '1p'
+}
+
+registered_worktree_match_for_path() {
+  local path="$1"
+  local base_dir="${2:-$cwd}"
+  local candidate
+  local match=""
+  local root
+
+  candidate="$(canonical_path "$path")"
+  while IFS= read -r root; do
+    if path_is_inside "$candidate" "$root"; then
+      if [[ -z "$match" || ${#root} -gt ${#match} ]]; then
+        match="$root"
+      fi
+    fi
+  done < <(worktree_registry_for "$base_dir")
+
+  [[ -n "$match" ]] || return 1
+  printf '%s\n' "$match"
+}
+
+path_is_under_primary_worktrees_dir() {
+  local path="$1"
+  local base_dir="${2:-$cwd}"
+  local primary
+  local candidate
+
+  primary="$(primary_worktree_from_registry "$base_dir" || true)"
+  [[ -n "$primary" ]] || return 1
+  candidate="$(canonical_path "$path")"
+  path_is_inside "$candidate" "$primary/.worktrees"
+}
+
+target_worktree_category() {
+  local path="$1"
+  local base_dir="${2:-$cwd}"
+  local match
+  local primary
+
+  match="$(registered_worktree_match_for_path "$path" "$base_dir" || true)"
+  primary="$(primary_worktree_from_registry "$base_dir" || true)"
+
+  if [[ -n "$primary" && "$match" == "$primary" ]] && path_is_under_primary_worktrees_dir "$path" "$base_dir"; then
+    printf '%s\t%s\n' "unregistered-worktree-like-path" "$(canonical_path "$path")"
+    return 0
+  fi
+
+  if [[ -n "$match" && -n "$primary" && "$match" == "$primary" ]]; then
+    printf '%s\t%s\n' "primary-worktree" "$match"
+    return 0
+  fi
+
+  if [[ -n "$match" ]]; then
+    printf '%s\t%s\n' "registered-linked-worktree" "$match"
+    return 0
+  fi
+
+  if path_is_under_primary_worktrees_dir "$path" "$base_dir"; then
+    printf '%s\t%s\n' "unregistered-worktree-like-path" "$(canonical_path "$path")"
+    return 0
+  fi
+
+  return 1
+}
+
 tool_target_path() {
   jq -r '
     .tool_input.file_path //
@@ -236,6 +322,66 @@ apply_patch_target_paths() {
       printf '%s\n' "$path"
     fi
   done <<<"$patch"
+}
+
+patch_header_target_paths() {
+  local patch="$1"
+  local line
+  local path
+
+  while IFS= read -r line; do
+    case "$line" in
+      "*** Add File: "*)
+        path="${line#"*** Add File: "}"
+        ;;
+      "*** Update File: "*)
+        path="${line#"*** Update File: "}"
+        ;;
+      "*** Delete File: "*)
+        path="${line#"*** Delete File: "}"
+        ;;
+      "*** Move to: "*)
+        path="${line#"*** Move to: "}"
+        ;;
+      "--- a/"*|"+++ b/"*)
+        path="${line#??? }"
+        path="${path#?/}"
+        ;;
+      "--- /dev/null"|"+++ /dev/null")
+        continue
+        ;;
+      *)
+        continue
+        ;;
+    esac
+
+    if [[ -n "$path" && "$path" != "/dev/null" ]]; then
+      printf '%s\n' "$path"
+    fi
+  done <<<"$patch"
+}
+
+shell_patch_target_paths() {
+  local command="$1"
+  local -a words
+
+  if ! grep -Eq '(^|[[:space:];|&])apply_patch([[:space:];|&]|$)|(^|[[:space:];|&])git[[:space:]]+apply([[:space:];|&]|$)' <<<"$command"; then
+    return 0
+  fi
+
+  patch_header_target_paths "$command"
+
+  if shell_words "$command" words; then
+    case "${words[0]:-} ${words[1]:-}" in
+      "git apply")
+        ;;
+      "apply_patch "*)
+        ;;
+      *)
+        return 0
+        ;;
+    esac
+  fi
 }
 
 tool_target_paths() {
@@ -510,8 +656,20 @@ worktree_root_for_target() {
 approval_required_worktree_root_for_path() {
   local path="$1"
   local base_dir="${2:-$cwd}"
+  local target_category
+  local category
   local target_repo_root
   local base_repo_root
+
+  target_category="$(target_worktree_category "$path" "$base_dir" || true)"
+  if [[ -n "$target_category" ]]; then
+    category="${target_category%%$'\t'*}"
+    if [[ "$category" == "unregistered-worktree-like-path" ]]; then
+      target_repo_root="${target_category#*$'\t'}"
+      printf '%s\n' "$target_repo_root"
+      return 0
+    fi
+  fi
 
   target_repo_root="$(worktree_root_for_path "$path" || true)"
   if [[ -z "$target_repo_root" ]]; then
@@ -543,6 +701,17 @@ approval_category_for_target() {
   local base_dir="$1"
   local target_root="$2"
   local base_repo_root
+  local target_category
+  local category
+
+  target_category="$(target_worktree_category "$target_root" "$base_dir" || true)"
+  if [[ -n "$target_category" ]]; then
+    category="${target_category%%$'\t'*}"
+    if [[ "$category" == "unregistered-worktree-like-path" ]]; then
+      printf '%s\n' "unregistered worktree-like path"
+      return
+    fi
+  fi
 
   base_repo_root="$(repo_root_for "$base_dir")"
   if [[ -n "$base_repo_root" ]]; then
@@ -560,6 +729,53 @@ approval_category_for_target() {
   fi
 
   printf '%s\n' "primary worktree"
+}
+
+require_approval_for_shell_patch_targets() {
+  local command="$1"
+  local base_dir="${2:-$cwd}"
+  local path
+  local target_path
+  local target_category
+  local category
+  local target
+  local base_repo_root
+
+  base_repo_root="$(repo_root_for "$base_dir")"
+  if [[ -n "$base_repo_root" ]]; then
+    base_repo_root="$(canonical_path "$base_repo_root")"
+  fi
+
+  while IFS= read -r path; do
+    [[ -n "$path" ]] || continue
+
+    target_path="$(resolve_git_path "$path" "$base_dir")"
+    target_category="$(target_worktree_category "$target_path" "$base_dir" || true)"
+    if [[ -z "$target_category" ]]; then
+      continue
+    fi
+
+    category="${target_category%%$'\t'*}"
+    target="${target_category#*$'\t'}"
+
+    if [[ "$path" == ../* || "$path" == */../* ]]; then
+      require_approval "$(approval_reason "cross-boundary" "$target_path")"
+    fi
+
+    case "$category" in
+      primary-worktree)
+        require_approval "$(approval_reason "$(approval_category_for_target "$base_dir" "$target")" "$target")"
+        ;;
+      unregistered-worktree-like-path)
+        require_approval "$(approval_reason_for_classified_target "$category" "$target")"
+        ;;
+      registered-linked-worktree)
+        if [[ -n "$base_repo_root" && "$target" != "$base_repo_root" ]]; then
+          require_approval "$(approval_reason "cross-boundary" "$target")"
+        fi
+        ;;
+    esac
+  done < <(shell_patch_target_paths "$command")
 }
 
 command_referenced_main_worktree_root() {
@@ -1439,6 +1655,23 @@ Rerun with explicit user approval if intentional.
 MSG
 }
 
+approval_reason_for_classified_target() {
+  local category="$1"
+  local target="$2"
+
+  case "$category" in
+    primary-worktree)
+      approval_reason "primary worktree" "$target"
+      ;;
+    unregistered-worktree-like-path)
+      approval_reason "unregistered worktree-like path" "$target"
+      ;;
+    *)
+      approval_reason "$category" "$target"
+      ;;
+  esac
+}
+
 approval_category_for_base() {
   local base_dir="${1:-$cwd}"
 
@@ -1470,6 +1703,8 @@ if is_shell_tool; then
   if is_linked_worktree "$command_cwd" && has_shell_control_syntax "$command" && has_shell_path_indirection "$command"; then
     deny "$(block_reason "$(primary_worktree_root_for_current_repo "$command_cwd")")"
   fi
+
+  require_approval_for_shell_patch_targets "$command" "$command_cwd"
 
   if referenced_root="$(command_referenced_main_worktree_root "$command" "$command_cwd")"; then
     if is_read_only_command "$command"; then
@@ -1558,9 +1793,31 @@ fi
 if is_direct_write_tool || is_mcp_write_tool; then
   found_target=0
   while IFS= read -r target; do
+    target_path="$(resolve_git_path "$target" "$cwd")"
+    registry_base="$cwd"
+    target_repo_root="$(worktree_root_for_path "$target_path" || true)"
+    if [[ -n "$target_repo_root" ]]; then
+      registry_base="$target_repo_root"
+    fi
+
     found_target=1
-    if target_repo_root="$(approval_required_worktree_root_for_target "$target" "$cwd")"; then
-      require_approval "$(approval_reason "$(approval_category_for_target "$cwd" "$target_repo_root")" "$target_repo_root")"
+    if target_category="$(target_worktree_category "$target_path" "$registry_base")"; then
+      category="${target_category%%$'\t'*}"
+      target_repo_root="${target_category#*$'\t'}"
+      if base_repo_root="$(repo_root_for "$cwd")"; then
+        base_repo_root="$(canonical_path "$base_repo_root")"
+        if [[ "$base_repo_root" != "$target_repo_root" ]] && is_linked_worktree "$cwd"; then
+          require_approval "$(approval_reason "cross-boundary" "$target_repo_root")"
+        fi
+      fi
+
+      case "$category" in
+        registered-linked-worktree)
+          ;;
+        *)
+          require_approval "$(approval_reason_for_classified_target "$category" "$target_repo_root")"
+          ;;
+      esac
     fi
   done < <(tool_target_paths)
 

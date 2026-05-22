@@ -7,6 +7,9 @@ TEST_ROOT=""
 PRIMARY_REPO=""
 LINKED_WORKTREE=""
 SECOND_LINKED_WORKTREE=""
+NESTED_LINKED_WORKTREE=""
+FAKE_WORKTREE_DIR=""
+EXTERNAL_LINKED_WORKTREE=""
 SPACE_PRIMARY_REPO=""
 SPACE_LINKED_WORKTREE=""
 SPACE_LINKED_GIT_DIR=""
@@ -25,6 +28,9 @@ setup_git_fixture() {
   PRIMARY_REPO="$TEST_ROOT/primary"
   LINKED_WORKTREE="$TEST_ROOT/linked"
   SECOND_LINKED_WORKTREE="$TEST_ROOT/linked-second"
+  NESTED_LINKED_WORKTREE="$PRIMARY_REPO/.worktrees/nested-linked"
+  FAKE_WORKTREE_DIR="$PRIMARY_REPO/.worktrees/plain-dir"
+  EXTERNAL_LINKED_WORKTREE="$TEST_ROOT/external-linked"
   SPACE_PRIMARY_REPO="$TEST_ROOT/space primary"
   SPACE_LINKED_WORKTREE="$TEST_ROOT/space linked"
   OUTSIDE_DIR="$TEST_ROOT/outside"
@@ -38,6 +44,9 @@ setup_git_fixture() {
   git -C "$PRIMARY_REPO" commit -m "test: seed fixture" >/dev/null
   git -C "$PRIMARY_REPO" worktree add "$LINKED_WORKTREE" -b fixture-worktree >/dev/null
   git -C "$PRIMARY_REPO" worktree add "$SECOND_LINKED_WORKTREE" -b fixture-second-worktree >/dev/null
+  mkdir -p "$PRIMARY_REPO/.worktrees" "$FAKE_WORKTREE_DIR"
+  git -C "$PRIMARY_REPO" worktree add "$NESTED_LINKED_WORKTREE" -b fixture-nested-worktree >/dev/null
+  git -C "$PRIMARY_REPO" worktree add "$EXTERNAL_LINKED_WORKTREE" -b fixture-external-worktree >/dev/null
 
   git init "$SPACE_PRIMARY_REPO" >/dev/null
   git -C "$SPACE_PRIMARY_REPO" config user.email "codex@example.test"
@@ -53,13 +62,15 @@ run_hook_json() {
   local cwd="$1"
   local tool_name="$2"
   local tool_input="$3"
+  local payload
 
-  jq -cn --arg cwd "$cwd" --arg tool_name "$tool_name" --argjson tool_input "$tool_input" '{
+  payload="$(jq -cn --arg cwd "$cwd" --arg tool_name "$tool_name" --argjson tool_input "$tool_input" '{
     hook_event_name: "PreToolUse",
     tool_name: $tool_name,
     cwd: $cwd,
     tool_input: $tool_input
-  }' | bash "$HOOK"
+  }')"
+  bash "$HOOK" <<<"$payload"
 }
 
 run_hook_json_with_tool_workdir() {
@@ -67,8 +78,9 @@ run_hook_json_with_tool_workdir() {
   local tool_workdir="$2"
   local tool_name="$3"
   local tool_input="$4"
+  local payload
 
-  jq -cn \
+  payload="$(jq -cn \
     --arg cwd "$cwd" \
     --arg tool_workdir "$tool_workdir" \
     --arg tool_name "$tool_name" \
@@ -77,7 +89,8 @@ run_hook_json_with_tool_workdir() {
       tool_name: $tool_name,
       cwd: $cwd,
       tool_input: ($tool_input + {workdir: $tool_workdir})
-    }' | bash "$HOOK"
+    }')"
+  bash "$HOOK" <<<"$payload"
 }
 
 run_hook_json_with_home() {
@@ -85,13 +98,15 @@ run_hook_json_with_home() {
   local cwd="$2"
   local tool_name="$3"
   local tool_input="$4"
+  local payload
 
-  jq -cn --arg cwd "$cwd" --arg tool_name "$tool_name" --argjson tool_input "$tool_input" '{
+  payload="$(jq -cn --arg cwd "$cwd" --arg tool_name "$tool_name" --argjson tool_input "$tool_input" '{
     hook_event_name: "PreToolUse",
     tool_name: $tool_name,
     cwd: $cwd,
     tool_input: $tool_input
-  }' | HOME="$home" bash "$HOOK"
+  }')"
+  HOME="$home" bash "$HOOK" <<<"$payload"
 }
 
 assert_denied_json() {
@@ -263,7 +278,13 @@ assert_approval_required_command "$OUTSIDE_DIR" "printf 'blocked\n' >\"$PRIMARY_
 assert_approval_required_command "$OUTSIDE_DIR" "printf 'blocked\n' >>$PRIMARY_REPO/redirect-append-generated.txt" "primary worktree"
 assert_approval_required_command_with_home "$TEST_ROOT" "$OUTSIDE_DIR" 'touch "$HOME/primary/env-generated.txt"' "primary worktree"
 assert_allowed_json "$LINKED_WORKTREE" "apply_patch" "$(jq -cn '{cmd: "*** Begin Patch\n*** Add File: repo.txt\n+allowed\n*** End Patch\n"}')"
+assert_allowed_json "$OUTSIDE_DIR" "apply_patch" "$(jq -cn --arg file_path "$NESTED_LINKED_WORKTREE/direct-absolute.txt" '{cmd: "*** Begin Patch\n*** Add File: \($file_path)\n+allowed\n*** End Patch\n"}')"
+assert_allowed_json "$NESTED_LINKED_WORKTREE" "apply_patch" "$(jq -cn '{cmd: "*** Begin Patch\n*** Add File: direct-relative.txt\n+allowed\n*** End Patch\n"}')"
+assert_approval_required_json "$OUTSIDE_DIR" "apply_patch" "$(jq -cn --arg file_path "$FAKE_WORKTREE_DIR/direct-fake.txt" '{cmd: "*** Begin Patch\n*** Add File: \($file_path)\n+blocked\n*** End Patch\n"}')" "unregistered worktree-like path"
 assert_allowed_json "$LINKED_WORKTREE" "Write" "$(jq -cn --arg file_path "$LINKED_WORKTREE/generated.txt" '{file_path: $file_path, content: "allowed"}')"
+assert_allowed_json "$NESTED_LINKED_WORKTREE" "Write" "$(jq -cn --arg file_path "$NESTED_LINKED_WORKTREE/generated.txt" '{file_path: $file_path, content: "allowed"}')"
+assert_allowed_command "$OUTSIDE_DIR" "git -C \"$EXTERNAL_LINKED_WORKTREE\" add README.md"
+assert_approval_required_json "$PRIMARY_REPO" "Write" "$(jq -cn --arg file_path "$FAKE_WORKTREE_DIR/generated.txt" '{file_path: $file_path, content: "blocked"}')" "unregistered worktree-like path"
 assert_approval_required_json "$LINKED_WORKTREE" "Write" "$(jq -cn --arg file_path "$SECOND_LINKED_WORKTREE/generated.txt" '{file_path: $file_path, content: "blocked"}')" "cross-boundary"
 assert_allowed_command_with_tool_workdir "$PRIMARY_REPO" "$LINKED_WORKTREE" "git add README.md"
 assert_allowed_command "$LINKED_WORKTREE" "git add README.md"
@@ -274,6 +295,30 @@ assert_allowed_command "$LINKED_WORKTREE" "npm test"
 assert_allowed_command "$LINKED_WORKTREE" "gh pr create --repo owner/repo --head feature --title 'Test PR' --body 'Test body'"
 assert_allowed_command "$PRIMARY_REPO" "git -C $LINKED_WORKTREE add README.md"
 assert_allowed_command "$PRIMARY_REPO" "git -C $LINKED_WORKTREE commit -m 'test: linked worktree commit'"
+assert_allowed_command_with_tool_workdir "$PRIMARY_REPO" "$NESTED_LINKED_WORKTREE" "apply_patch <<'PATCH'
+*** Begin Patch
+*** Add File: shell-apply-patch.txt
++allowed
+*** End Patch
+PATCH"
+assert_allowed_command_with_tool_workdir "$PRIMARY_REPO" "$NESTED_LINKED_WORKTREE" "git apply <<'PATCH'
+diff --git a/git-apply.txt b/git-apply.txt
+new file mode 100644
+index 0000000..30d8405
+--- /dev/null
++++ b/git-apply.txt
+@@ -0,0 +1 @@
++allowed
+PATCH"
+assert_approval_required_command "$NESTED_LINKED_WORKTREE" "git apply <<'PATCH'
+diff --git a/../primary/git-apply-cross-boundary.txt b/../primary/git-apply-cross-boundary.txt
+new file mode 100644
+index 0000000..30d8405
+--- /dev/null
++++ b/../primary/git-apply-cross-boundary.txt
+@@ -0,0 +1 @@
++blocked
+PATCH" "cross-boundary"
 assert_approval_required_command "$LINKED_WORKTREE" "git reset --hard HEAD~1" "destructive"
 assert_approval_required_command "$LINKED_WORKTREE" "git clean -fd" "destructive"
 assert_approval_required_command "$LINKED_WORKTREE" "git branch -D old-branch" "destructive"
