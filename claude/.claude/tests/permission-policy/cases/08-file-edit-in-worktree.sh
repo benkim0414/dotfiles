@@ -4,7 +4,7 @@
 set -uo pipefail
 source "$TEST_HOME/helpers.sh"
 
-WT=/Users/ben/workspace/dotfiles/.claude/worktrees/claude-permissions-hardening
+WT="$(git -C "$TEST_HOME" rev-parse --show-toplevel 2>/dev/null || echo /tmp/dotfiles-wt)"
 assert_file_silent "$WT/claude/.claude/settings.base.json" "$WT"
 assert_file_silent "$WT/claude/.claude/hooks/git-safety.sh"  "$WT"
 assert_file_silent "$WT/claude/.claude/lib/permission-policy.sh" "$WT"
