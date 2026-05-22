@@ -68,6 +68,26 @@ If a call returns `-32602 missing tool_name`, you forgot `tool_name` --
 the empty inputSchema is misleading you. Pass `tool_name` even though
 it is not declared.
 
+### Version pin
+
+`mcp-add` pins `mcp-compressor` to 0.22.0 via
+`uvx --from mcp-compressor==0.22.0`. 0.23.0 (PyPI 2026-05-21) regressed
+required-argument passthrough in `compressed-tools` mode - the backend
+receives `input_value={}` and rejects every call carrying required
+arguments. Reproduced against `mcp-atlassian` (`jira_get_issue`,
+`jira_get_user_profile`) on 2026-05-22.
+
+To test a newer release without editing `mcp-add`:
+
+```sh
+MCP_COMPRESSOR_VERSION=0.24.0 mcp-add <name> -- <cmd>
+```
+
+To bump the default after upstream fixes the regression, change the
+constant in `bin/.local/bin/mcp-add` and re-run the regeneration
+procedure documented in
+`docs/superpowers/specs/2026-05-22-atlassian-mcp-fix-design.md`.
+
 ## Git Workflow
 
 All work happens on isolated worktree branches. Hooks enforce worktree
