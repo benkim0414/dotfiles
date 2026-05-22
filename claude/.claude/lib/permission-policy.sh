@@ -75,7 +75,22 @@ check_bash() {
 # outside the current worktree, or persistence/shell-init files.
 check_file_edit() {
   local path="$1" wt_root="${2:-}"
-  # Implemented in later tasks.
+
+  # Edits to live ~/.claude/ go through the symlink to the dotfiles source.
+  # Flag them so the user routes the change through the dotfiles repo
+  # (settings.base.json + claude-sync) rather than mutating live config in
+  # ways that get clobbered on next regenerate, or bypass the worktree flow.
+  # The dotfiles source path (/Users/ben/workspace/dotfiles/...) does not
+  # match this prefix and is implicitly allowed.
+  if [[ "$path" == /Users/ben/.claude/* ]]; then
+    if [[ -n "$wt_root" && "$path" == "$wt_root"/* ]]; then
+      :
+    else
+      printf 'Edit to live ~/.claude/ outside the dotfiles repo -- edit settings.base.json or stowed source instead'
+      return 0
+    fi
+  fi
+
   printf ''
 }
 
