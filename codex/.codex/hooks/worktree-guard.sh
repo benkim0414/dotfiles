@@ -1754,6 +1754,22 @@ worktree_command_target_path() {
   return 1
 }
 
+git_words_have_force_flag() {
+  local input_name="$1"
+  local -n git_words="$input_name"
+  local word
+
+  for word in "${git_words[@]}"; do
+    case "$word" in
+      -f|--force)
+        return 0
+        ;;
+    esac
+  done
+
+  return 1
+}
+
 is_allowed_worktree_branch_delete() {
   local input_name="$1"
   local base_dir="${2:-$cwd}"
@@ -1809,6 +1825,7 @@ is_allowed_worktree_lifecycle_git_command() {
 
   case "$subcommand" in
     worktree)
+      git_words_have_force_flag lifecycle_words && return 1
       case "${lifecycle_words[2]:-}" in
         add)
           target="$(worktree_command_target_path lifecycle_words 3 || true)"
