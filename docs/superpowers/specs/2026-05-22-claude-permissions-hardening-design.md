@@ -300,6 +300,125 @@ claude/.claude/
   (versus being treated as advisory). Need to verify with a live test
   during plan execution.
 
+## Verified semantics (2026-05-22)
+
+Source: docs.claude.com pages fetched 2026-05-22 via
+`mcp__plugin_context-mode_context-mode__ctx_fetch_and_index`:
+
+- `https://docs.claude.com/en/docs/claude-code/hooks` (titled "Hooks
+  reference"; the `/hooks-reference` slug returns 404)
+- `https://docs.claude.com/en/docs/claude-code/settings`
+- `https://docs.claude.com/en/docs/claude-code/permissions`
+- `https://docs.claude.com/en/docs/claude-code/permission-modes`
+- `https://docs.claude.com/en/docs/claude-code/auto-mode-config`
+
+### Hook permissionDecision precedence
+
+- `permissionDecision: "ask"` from PreToolUse: surfaces an interactive
+  confirm prompt. The docs do **not** explicitly state what happens
+  when the same call also matches a settings `allow` rule; the only
+  directional statement is the inverse, that settings deny/ask still
+  bind regardless of hook return. See "Gate decision" below.
+- Overrides `defaultMode: "auto"`: not explicitly stated. By
+  implication (hooks describe "the permission prompt displayed to the
+  user" with `[User]`/`[Project]`/`[Plugin]`/`[Local]` labels and no
+  carve-out for auto mode), an `ask` hook decision should surface a
+  prompt. Needs live smoke test in implementation phase.
+- Multiple PreToolUse hooks for same call: most-restrictive wins, fixed
+  precedence `deny > defer > ask > allow`. So `git-safety.sh` returning
+  empty alongside `permission-policy.sh` returning `ask` resolves to
+  `ask`.
+- `permissionDecision: "deny"`: highest precedence among hook returns;
+  "prevents the tool call".
+
+Exact wording from the hooks page:
+
+> `permissionDecision` — `"allow"` skips the permission prompt.
+> `"deny"` prevents the tool call. `"ask"` prompts the user to
+> confirm. `"defer"` exits gracefully so the tool can be resumed
+> later. Deny and ask rules are still evaluated regardless of what the
+> hook returns.
+
+> When multiple PreToolUse hooks return different decisions, precedence
+> is `deny > defer > ask > allow`. When a hook returns `"ask"`, the
+> permission prompt displayed to the user includes a label identifying
+> where the hook came from: for example, `[User]`, `[Project]`,
+> `[Plugin]`, or `[Local]`.
+
+### Settings precedence
+
+Order (highest to lowest): **`deny` -> `ask` -> `allow`**. First
+matching rule wins. From the permissions page:
+
+> Rules are evaluated in order: **deny -> ask -> allow**. The first
+> matching rule wins, so deny rules always take precedence.
+
+Implication for the design: if the same glob appears in both `allow`
+and `ask`, the `ask` rule wins. Moving the MCP write wildcards
+(`mcp__*__*create*` etc.) into base `ask` correctly shadows any
+remaining `mcp__*` entry in an overlay's `allow`.
+
+### Auto-mode classifier vs hooks
+
+The auto-mode classifier runs **after** the settings allow/deny check.
+From the permission-modes page, "How the classifier evaluates
+actions":
+
+> Each action goes through a fixed decision order. The first matching
+> step wins:
+> 1. Actions matching your allow or deny rules resolve immediately
+> 2. Read-only actions and file edits in your working directory are
+>    auto-approved, except writes to protected paths
+> 3. Everything else goes to the classifier
+
+The docs do not explicitly slot PreToolUse hooks into this list. The
+hooks page treats hook output as a parallel decision channel
+(`permissionDecision` produces "the permission prompt displayed to the
+user"). PreToolUse runs **before a tool call executes** and "can block
+it" — language consistent with hooks executing before the settings
+allow/deny resolution, not after. But the docs do not state this
+ordering in one sentence.
+
+Also from the permission-modes page, relevant to broad `Bash` allow:
+
+> On entering auto mode, broad allow rules that grant arbitrary code
+> execution are dropped: Blanket `Bash(*)` or `PowerShell(*)`;
+> Wildcarded interpreters like `Bash(python*)`; Package-manager run
+> commands; Agent allow rules. Narrow rules like `Bash(npm test)`
+> carry over.
+
+So `Bash` as a bare allow entry is dropped under auto mode. The
+classifier guards the unmatched space. This reduces but does not
+eliminate the value of the hook: narrow allow rules still bypass the
+classifier, and the hook catches semantic patterns the classifier may
+miss (canonicalised secret paths, exfil pipelines, claude-self-edit
+shapes outside the worktree).
+
+### Gate decision
+
+The docs are **clear** on three of the four sub-questions and
+**ambiguous** on the fourth (hook `ask` versus settings `allow` for
+the same call). Reading the available statements together — hooks are
+described as producing prompts with source labels, no carve-out for
+auto mode, deny/ask settings still bind regardless of hook return —
+the most defensible interpretation is:
+
+- Settings `allow` does **not** shadow a hook's `ask` return; the hook
+  is a parallel decision channel and the most-restrictive outcome
+  wins.
+
+This interpretation matches the documented design intent (hooks give
+"richer control" than settings rules) but is not stated verbatim.
+
+**Decision: PROCEED to plan, with a hard gate in the implementation
+plan.** First implementation step after the hook is wired up must be
+a live smoke test: a Bash command matching both an `allow` entry
+(e.g., `Bash`) and the hook's `ask` pattern (e.g., `cat
+$HOME/.ssh/id_rsa`) must produce an interactive prompt. If it does
+not — i.e. the allow shadows the hook — the design has to be revised
+to move risky shapes into settings `ask`/`deny` exclusively and the
+hook becomes advisory only.
+
 ## Next step
 
 Hand off to `superpowers:writing-plans` to produce the step-by-step
