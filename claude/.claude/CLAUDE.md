@@ -42,6 +42,32 @@ Fall back to Glob/Grep when:
 Never automate `qmd collection add`, `qmd embed`, or `qmd update` --
 indexing is always a manual user action.
 
+## MCP servers wrapped by mcp-compressor
+
+Four servers in `~/.claude.json` (atlassian, qmd, sequential-thinking,
+slack) are proxied through `uvx mcp-compressor`. The compressor exposes
+only two dispatcher tools per server -- `<server>_get_tool_schema` and
+`<server>_invoke_tool` -- with an empty advertised inputSchema. The
+schema is wrong; the dispatcher actually requires arguments.
+
+To call any tool on these servers, supply the dispatcher args
+explicitly:
+
+- `<server>_get_tool_schema(tool_name="real_tool_name")` -- returns the
+  real input schema for that backend tool.
+- `<server>_invoke_tool(tool_name="real_tool_name", arguments={...})`
+  -- invokes it. `arguments` is an inline object, NOT a JSON string,
+  NOT flat keys at the dispatcher level, NOT `params` / `kwargs` /
+  `input` / `name`.
+
+The list of real tools available behind each dispatcher is in the
+dispatcher's own tool description (`Available tools are: <tool>...`).
+Read the description before the first call; do not probe arg shapes.
+
+If a call returns `-32602 missing tool_name`, you forgot `tool_name` --
+the empty inputSchema is misleading you. Pass `tool_name` even though
+it is not declared.
+
 ## Git Workflow
 
 All work happens on isolated worktree branches. Hooks enforce worktree
