@@ -117,6 +117,7 @@ assert_file_contains "$CONFIG" "command = '$EXPECTED_HOOK_PATH context-mode hook
 assert_file_contains "$CONFIG" "command = '$EXPECTED_HOOK_PATH context-mode hook codex stop'"
 assert_file_contains "$CONFIG" 'command = '\''bash "$HOME/.codex/hooks/atomic-commits.sh"'\'''
 assert_file_contains "$CONFIG" 'command = '\''bash "$HOME/.codex/hooks/worktree-guard.sh"'\'''
+assert_file_contains "$CONFIG" "goals = true"
 
 [[ "$(readlink "$CODEX_HOME/config.toml")" == "$DOTFILES/codex/.codex/config.toml" ]]
 [[ "$(readlink "$CODEX_HOME/hooks/atomic-commits.sh")" == "$DOTFILES/codex/.codex/hooks/atomic-commits.sh" ]]

@@ -58,6 +58,8 @@ ruby, perl, or sh.
 """
 
 [features]
+# Enable durable /goal workflows for long-running tasks with clear stopping conditions.
+goals = true
 # Keep command hooks explicit in the checked-in base config.
 hooks = true
 
