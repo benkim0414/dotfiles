@@ -45,7 +45,7 @@ setup_git_fixture() {
   git -C "$PRIMARY_REPO" worktree add "$LINKED_WORKTREE" -b fixture-worktree >/dev/null
   git -C "$PRIMARY_REPO" worktree add "$SECOND_LINKED_WORKTREE" -b fixture-second-worktree >/dev/null
   mkdir -p "$PRIMARY_REPO/.worktrees" "$FAKE_WORKTREE_DIR"
-  git -C "$PRIMARY_REPO" worktree add "$NESTED_LINKED_WORKTREE" -b fixture-nested-worktree >/dev/null
+  git -C "$PRIMARY_REPO" worktree add "$NESTED_LINKED_WORKTREE" -b worktree-nested-linked >/dev/null
   git -C "$PRIMARY_REPO" worktree add "$EXTERNAL_LINKED_WORKTREE" -b fixture-external-worktree >/dev/null
 
   git init "$SPACE_PRIMARY_REPO" >/dev/null
@@ -529,15 +529,16 @@ assert_allowed_command "$PRIMARY_REPO" "touch .worktrees/nested-linked/generated
 assert_allowed_command "$PRIMARY_REPO" "git worktree remove .worktrees/nested-linked"
 assert_allowed_command "$PRIMARY_REPO" "git checkout main"
 assert_allowed_command "$PRIMARY_REPO" "git switch main"
-assert_allowed_command "$PRIMARY_REPO" "git merge fixture-nested-worktree"
-assert_allowed_command "$PRIMARY_REPO" "git branch -d fixture-nested-worktree"
+assert_allowed_command "$PRIMARY_REPO" "git merge worktree-nested-linked"
+assert_allowed_command "$PRIMARY_REPO" "git branch -d worktree-nested-linked"
 assert_approval_required_command "$PRIMARY_REPO" "git worktree remove --force .worktrees/nested-linked" "primary worktree"
 git -C "$PRIMARY_REPO" branch integration
 git -C "$PRIMARY_REPO" checkout integration >/dev/null
-assert_approval_required_command "$PRIMARY_REPO" "git merge fixture-nested-worktree" "primary worktree"
+assert_approval_required_command "$PRIMARY_REPO" "git merge worktree-nested-linked" "primary worktree"
 git -C "$PRIMARY_REPO" checkout main >/dev/null
 git -C "$PRIMARY_REPO" worktree remove .worktrees/nested-linked
-assert_allowed_command "$PRIMARY_REPO" "git branch -d fixture-nested-worktree"
+assert_allowed_command "$PRIMARY_REPO" "git branch -d worktree-nested-linked"
+assert_approval_required_command "$PRIMARY_REPO" "git branch -d unrelated-worktree-cleanup" "primary worktree"
 assert_allowed_command "$PRIMARY_REPO" "rg -n fixture README.md"
 assert_allowed_command "$OUTSIDE_DIR" "git -C ../primary status --short"
 assert_allowed_command "$LINKED_WORKTREE" "git -C ../primary status --short"
@@ -557,7 +558,7 @@ assert_approval_required_command "$PRIMARY_REPO" "git branch --delete feature" "
 assert_approval_required_command "$PRIMARY_REPO" "git branch -f feature HEAD" "primary worktree"
 assert_approval_required_command "$PRIMARY_REPO" "git branch --force feature HEAD" "primary worktree"
 assert_approval_required_command "$PRIMARY_REPO" "git branch -d main" "primary worktree"
-assert_approval_required_command "$PRIMARY_REPO" "git branch -D fixture-nested-worktree" "primary worktree"
+assert_approval_required_command "$PRIMARY_REPO" "git branch -D worktree-nested-linked" "primary worktree"
 assert_approval_required_command "$PRIMARY_REPO" "git reset --hard HEAD" "primary worktree"
 assert_approval_required_command "$PRIMARY_REPO" "git rebase HEAD~1" "primary worktree"
 assert_approval_required_command "$PRIMARY_REPO" "git push --force origin main" "primary worktree"

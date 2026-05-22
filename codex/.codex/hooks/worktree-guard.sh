@@ -1804,7 +1804,7 @@ is_allowed_worktree_branch_delete() {
   [[ "$saw_delete" -eq 1 && -n "$branch" ]] || return 1
   protected_branch_name "$branch" && return 1
   [[ -n "$active_branch" && "$branch" == "$active_branch" ]] && return 1
-  registered_worktree_branch "$branch" "$base_dir" || [[ "$branch" == *worktree* ]]
+  registered_worktree_branch "$branch" "$base_dir" || [[ "$branch" == worktree-* ]]
 }
 
 is_allowed_worktree_lifecycle_git_command() {
