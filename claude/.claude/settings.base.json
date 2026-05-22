@@ -36,8 +36,7 @@
       "TaskStop",
       "TaskUpdate",
       "CronList",
-      "mcp__sequential-thinking__*",
-      "mcp__qmd__*"
+      "mcp__*"
     ],
     "deny": [
       "Read(**/.env)",
