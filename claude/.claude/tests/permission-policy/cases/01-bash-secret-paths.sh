@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Lib-level: shell-expanded secret paths the regex-deny list misses must be flagged.
 set -uo pipefail
-source "$(dirname "$(readlink -f "$0" 2>/dev/null || realpath "$0")")/../helpers.sh"
+source "$TEST_HOME/helpers.sh"
 
 # Positive: must flag
 assert_bash_flagged 'cat $HOME/.ssh/id_rsa'

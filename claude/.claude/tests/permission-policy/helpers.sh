@@ -60,6 +60,13 @@ assert_url_silent() {
 
 # --- Hook-integration helpers ---------------------------------------------
 
+# Hook-integration helpers — gated so lib-only tests don't blow up under set -u
+# when $HOOK is not yet defined or the file doesn't exist.
+require_hook() {
+  : "${HOOK:?integration helper requires HOOK; set it in run.sh or your case}"
+  [[ -f "$HOOK" ]] || { echo "  missing hook: $HOOK" >&2; exit 1; }
+}
+
 pretooluse_json() {
   local tool="$1" key="$2" value="$3"
   jq -cn --arg t "$tool" --arg k "$key" --arg v "$value" \
@@ -67,11 +74,13 @@ pretooluse_json() {
 }
 
 run_hook() {
+  require_hook
   local envelope="$1"
   printf '%s' "$envelope" | bash "$HOOK"
 }
 
 assert_hook_asks() {
+  require_hook
   local envelope="$1" want_substring="$2"
   local out
   out=$(run_hook "$envelope")
@@ -84,7 +93,12 @@ assert_hook_asks() {
     || { echo "  hook reason missing '$want_substring': reason='$reason'" >&2; exit 1; }
 }
 
+# "Silent" = empty stdout. The Task 13 hook is built to emit nothing when no
+# pattern matches; if the hook later starts emitting envelopes on the silent
+# path (e.g., telemetry), update this assertion to check
+# `permissionDecision == "" || permissionDecision == null` instead.
 assert_hook_silent() {
+  require_hook
   local envelope="$1"
   local out
   out=$(run_hook "$envelope")
