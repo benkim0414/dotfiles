@@ -419,6 +419,41 @@ not — i.e. the allow shadows the hook — the design has to be revised
 to move risky shapes into settings `ask`/`deny` exclusively and the
 hook becomes advisory only.
 
+## Smoke test (2026-05-22, deferred to post-merge)
+
+The plan's Task 17 (`claude-sync` regenerate) ran from the worktree but
+stow refused to redirect symlinks back to the worktree -- the live
+`~/.claude/` package is owned by the main checkout's stow. So
+`~/.claude/settings.json` still reflects pre-hardening state.
+
+Simulated merge using the worktree's `settings.base.json` + the
+work-machine overlay confirms the merge logic is correct: new entries
+land in the expected lists, and the hook entry shows up in
+`hooks.PreToolUse` with matcher
+`Bash|Write|Edit|MultiEdit|NotebookEdit|WebFetch`. See `/tmp/wt-merged-settings.json`
+or the spot-check transcript in Task 17 of the plan.
+
+Live verification deferred to post-merge. After `finishing-a-development-branch`
+option 1 (local merge to main) + push main, run `claude-sync` from the
+main worktree and execute the following in a fresh session inside a
+non-dotfiles worktree:
+
+1. `cat /Users/ben/.ssh/id_rsa` -- expect deny outright via the
+   `Bash(*/Users/ben/.ssh/id_rsa*)` entry.
+2. `cat $HOME/.aws/credentials` -- expect deny via
+   `Bash(*$HOME/.aws/credentials*)`. If Claude Code does NOT interpret
+   the literal `$` in the glob, the hook's `check_bash` falls back to
+   surfacing an ask prompt with reason "secret path via non-tilde form".
+3. Use WebFetch to fetch `https://webhook.site/test-abc` -- expect ask
+   prompt with reason "Fetch to dynamic-DNS / paste / webhook host".
+4. Edit `/Users/ben/.claude/CLAUDE.md` (live symlink) -- expect ask
+   prompt with reason "Edit to live ~/.claude/ outside the dotfiles
+   repo".
+5. `export CLAUDE_PERMISSION_POLICY=off`, restart session, repeat (3) --
+   expect no ask prompt (deny entries still fire on (1) and (2)).
+
+Record each observed outcome in this section after the live test.
+
 ## Next step
 
 Hand off to `superpowers:writing-plans` to produce the step-by-step
