@@ -71,9 +71,10 @@ requesting-code-review          (re-invoke after fixes until clean)
 ce-compound                     (capture learnings -> docs/solutions/)
     ↓
 finishing-a-development-branch
-   ├─ no-pr default: option 1 (local merge -> push main)
-   └─ PR mode:       compound-engineering:ce-commit-push-pr +
-                     compound-engineering:ce-resolve-pr-feedback
+   ├─ PR mode (default):    option 2 (push + gh pr create)
+   │                        receiving-code-review (reactive on feedback)
+   │                        user merges via gh pr merge --merge
+   └─ no-pr mode (opt-in):  option 1 (local merge -> push main)
 ```
 
 Full integration details: `~/.claude/docs/superpowers-workflow.md`
@@ -149,25 +150,36 @@ docs(docs): <description>                        # universal container (S1)
 feat(<component>): change X and Y                # "and" = two changes -> split
 ```
 
-### No-pr mode (default)
+### PR mode (default)
+
+After implementation + `requesting-code-review` is clean +
+`ce-compound` has documented the solution: invoke
+`finishing-a-development-branch`, pick option 2 (push +
+`gh pr create`). The skill pushes the feature branch and opens the PR.
+
+After PR creation:
+
+- External reviewer feedback (if any) -> `receiving-code-review` ->
+  fix -> push -> loop until clean.
+- No external review -> proceed to merge.
+
+Merge:
+
+- YOU MUST use merge commits: `gh pr merge --merge`. Never squash,
+  never rebase.
+- After merge: `ExitWorktree("keep")` to return to main.
+
+### No-pr mode (opt-in)
+
+Enable per repo by setting
+`"env": {"CLAUDE_GIT_WORKFLOW": "no-pr"}` in that repo's
+`.claude/settings.local.json`. The hook reads the env var; no other
+config required. This dotfiles repo is the documented example.
 
 After implementation + `requesting-code-review` is clean +
 `ce-compound` has documented the solution: invoke
 `finishing-a-development-branch`, pick option 1 (local merge). Then
 push main. No PR created.
-
-### PR mode (opt-in)
-
-When a PR is needed:
-
-- `compound-engineering:ce-commit-push-pr` -- commit, push, and open
-  the PR with an adaptive value-first description (replaces older
-  `/pr:create`).
-- `compound-engineering:ce-resolve-pr-feedback` -- address review
-  threads (replaces older `/pr:address`).
-- After merge: `ExitWorktree("keep")` to return to main.
-- YOU MUST use merge commits (`gh pr merge --merge`), never squash or
-  rebase.
 
 ### Worktree exit
 

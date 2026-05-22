@@ -22,9 +22,10 @@ requesting-code-review         ← dispatch superpowers:code-reviewer subagent
 ce-compound                    ← document learnings
     ↓                             → docs/solutions/<...>.md
 finishing-a-development-branch ← integrate
-   ├─ no-pr default: option 1 (local merge → push main)
-   └─ PR mode:       compound-engineering:ce-commit-push-pr
-                     compound-engineering:ce-resolve-pr-feedback
+   ├─ PR mode (default):    option 2 (push + gh pr create)
+   │                        receiving-code-review (reactive on feedback)
+   │                        user merges via gh pr merge --merge
+   └─ no-pr mode (opt-in):  option 1 (local merge → push main)
 ```
 
 ### Artifact placement
@@ -109,6 +110,6 @@ fix has reusable lessons worth capturing.
   doc merges to main with the feature commits.
 - `finishing-a-development-branch` runs tests first; never proceeds if
   tests fail. Option 1 = local merge, option 2 = PR via `gh pr create`,
-  option 3 = keep as-is, option 4 = discard. Prefer option 1 for no-pr
-  mode; for PR mode, use `ce-commit-push-pr` instead of option 2 for
-  richer descriptions.
+  option 3 = keep as-is, option 4 = discard. Use option 2 in PR mode
+  (default); use option 1 in no-pr mode (opt-in). External PR-review
+  feedback is handled reactively by `receiving-code-review`.
