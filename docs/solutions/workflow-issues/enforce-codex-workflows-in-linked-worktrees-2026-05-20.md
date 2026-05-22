@@ -1,7 +1,7 @@
 ---
 title: "Enforce Codex workflows in linked git worktrees"
 date: "2026-05-20"
-last_updated: "2026-05-20"
+last_updated: "2026-05-22"
 category: "workflow-issues"
 module: "dotfiles/codex"
 problem_type: "workflow_issue"
@@ -11,6 +11,7 @@ applies_when:
   - "Codex workflows may create artifacts or code changes from a primary checkout"
   - "Superpowers or Compound Engineering automation needs consistent worktree isolation"
   - "Hook-level enforcement must prevent shell and MCP bypasses"
+  - "Registered linked worktrees must remain writable when Codex hook payloads omit shell workdir"
 related_components:
   - "tooling"
   - "assistant"
@@ -23,7 +24,7 @@ tags:
   - "superpowers"
   - "workflow-enforcement"
   - "mcp"
-  - "security-review"
+  - "transcript"
 ---
 
 # Enforce Codex workflows in linked git worktrees
@@ -46,6 +47,15 @@ repository's primary checkout from any origin.
 Session history search found no relevant prior sessions for this specific
 problem, so the documented guidance comes from the implemented branch and review
 findings.
+
+A later live guard test exposed a narrower integration bug in the same safety
+boundary. Registered linked worktrees were correctly reported by Git, but shell
+`apply_patch` and `git apply` invocations still arrived at the `PreToolUse` hook
+with `cwd` set to the primary checkout and no visible `workdir` in
+`tool_input`. Direct `apply_patch` writes were allowed, while equivalent shell
+writes were incorrectly treated as primary-checkout mutations. The missing
+workdir was present only in the Codex session transcript entry referenced by the
+hook payload's `transcript_path` and `tool_use_id`.
 
 ## Guidance
 
@@ -74,6 +84,18 @@ The guard should:
 - Prefer the effective tool workdir from the hook payload when Codex provides
   one, because the hook process `cwd` can differ from the shell command's
   requested execution directory.
+- Treat `transcript_path` plus `tool_use_id` as a guarded fallback for shell
+  tool workdir recovery when the live hook payload omits `workdir`. The matching
+  session transcript `function_call.arguments` can contain the actual Codex
+  tool `workdir` even when `PreToolUse` only exposes `cwd` and
+  `tool_input.command`.
+- Scope transcript recovery to `$HOME/.codex/sessions` before reading it. The
+  transcript is useful metadata, but it should not become a general file-read
+  primitive controlled by arbitrary hook JSON.
+- Classify registered worktrees from `git worktree list --porcelain`, not from
+  directory names. A real linked worktree under `.worktrees/` is trusted; a
+  plain directory such as `.worktrees/plain-dir` is only worktree-like and must
+  still require approval.
 - Canonicalize paths before deciding whether a target is inside a primary
   checkout or linked worktree.
 - Allow read-only inspection commands in a primary checkout.
@@ -144,6 +166,15 @@ controls which index Git mutates; a command whose `--work-tree` points at a
 linked worktree but whose `--git-dir` points at the primary checkout is still a
 primary-worktree mutation.
 
+The live Codex shell payload can be even thinner than the synthetic tests. In
+the observed failure, the hook payload contained only `cwd` and
+`tool_input.command`; the requested shell `workdir` was absent from
+`tool_input`, top-level fields, `arguments`, `params`, and `input`. The matching
+session transcript entry still recorded the original `exec_command` arguments,
+including the linked worktree path. Recovering that workdir before classifying
+the command lets the existing registered-worktree checks make the correct allow
+or approval decision.
+
 ## When to Apply
 
 - Use this pattern when Codex or other agents should keep a stable primary
@@ -155,6 +186,8 @@ primary-worktree mutation.
   arbitrary downstream repositories.
 - Use it when hook payload metadata can contain both a session/root directory
   and a tool-specific execution directory.
+- Use it when live Codex `Bash`/`exec_command` hook payloads omit `workdir` but
+  include `transcript_path` and `tool_use_id`.
 - Use it when Git commands may use explicit target selectors such as `-C`,
   `--work-tree`, or `--git-dir`.
 - Do not treat this as a hostile-code sandbox. It is a workflow safety guard for
@@ -185,6 +218,48 @@ linked worktree:
 git add README.md docs/github-issues.md
 git -C "/path/with spaces/repo/.worktrees/feature" add README.md
 git --git-dir "/path/repo/.git/worktrees/feature" add README.md
+apply_patch <<'PATCH'
+*** Begin Patch
+*** Add File: linked-generated.txt
++ok
+*** End Patch
+PATCH
+git apply <<'PATCH'
+diff --git a/linked-generated.txt b/linked-generated.txt
+new file mode 100644
+--- /dev/null
++++ b/linked-generated.txt
+@@ -0,0 +1 @@
++ok
+PATCH
+```
+
+When the live hook payload omits the shell workdir, recover it from the Codex
+transcript before classifying:
+
+```json
+{
+  "cwd": "/repo",
+  "tool_name": "Bash",
+  "tool_input": {
+    "command": "apply_patch <<'PATCH'\n...\nPATCH"
+  },
+  "transcript_path": "$HOME/.codex/sessions/2026/05/22/rollout.jsonl",
+  "tool_use_id": "call_..."
+}
+```
+
+The transcript entry for the same `tool_use_id` contains the serialized tool
+arguments:
+
+```json
+{
+  "payload": {
+    "type": "function_call",
+    "arguments": "{\"cmd\":\"apply_patch <<'PATCH'\\n...\",\"workdir\":\"/repo/.worktrees/feature\"}",
+    "call_id": "call_..."
+  }
+}
 ```
 
 Allow scratch writes that do not target any Git repository:
@@ -261,6 +336,12 @@ Regression tests should include both allowed and denied cases for:
 - Git mutation: branch creation, forced branch updates, output-writing flags
 - Effective tool workdir fields: `workdir`, `cwd`, or
   `current_working_directory` when present in the hook payload
+- Transcript workdir fallback: `cwd` points at the primary checkout, the hook
+  payload omits every direct workdir field, and the matching transcript
+  `function_call.arguments` records a registered linked worktree `workdir`
+- Registered worktree lookup: direct `apply_patch`, shell `apply_patch`, and
+  `git apply` are allowed inside a `git worktree list --porcelain` registered
+  worktree, while `.worktrees/plain-dir` remains approval-required
 - Git target selectors: `git -C`, `--work-tree`, `--git-dir`, quoted paths with
   spaces, mismatched primary git dirs, and matching linked git dirs
 - Command flags that mutate: `sed -i`, `find -delete`, `find -fprint`,
@@ -276,6 +357,7 @@ Regression tests should include both allowed and denied cases for:
 - [Superpowers + compound-engineering workflow reorganization](superpowers-workflow-reorg-2026-05-19.md)
 - [Configure context-mode for Codex CLI](../tooling-decisions/configure-context-mode-for-codex-cli-2026-05-17.md)
 - [Inherit scoped Codex approvals in subagents](inherit-scoped-codex-approvals-in-subagents-2026-05-19.md)
+- [Codex worktree guard registered worktrees design](../../superpowers/specs/2026-05-21-codex-worktree-guard-registered-worktrees-design.md)
 - Implementation: `codex/.codex/hooks/worktree-guard.sh`
 - Wiring: `codex/.codex/config.base.toml`, `bin/.local/bin/codex-sync`
 - Tests: `codex/.codex/tests/test-worktree-guard-hook.sh`,

@@ -114,6 +114,70 @@ run_hook_json_with_top_level_workdir() {
   bash "$HOOK" <<<"$payload"
 }
 
+run_hook_json_with_arguments_workdir() {
+  local cwd="$1"
+  local tool_workdir="$2"
+  local tool_name="$3"
+  local tool_input="$4"
+  local payload
+
+  payload="$(jq -cn \
+    --arg cwd "$cwd" \
+    --arg tool_workdir "$tool_workdir" \
+    --arg tool_name "$tool_name" \
+    --argjson tool_input "$tool_input" '{
+      hook_event_name: "PreToolUse",
+      tool_name: $tool_name,
+      cwd: $cwd,
+      arguments: ($tool_input + {workdir: $tool_workdir})
+    }')"
+  bash "$HOOK" <<<"$payload"
+}
+
+run_hook_json_with_transcript_workdir() {
+  local home="$1"
+  local cwd="$2"
+  local tool_workdir="$3"
+  local tool_name="$4"
+  local tool_input="$5"
+  local payload
+  local transcript_dir
+  local transcript_path
+  local tool_use_id="call_workdir_from_transcript"
+  local arguments
+
+  transcript_dir="$home/.codex/sessions/2026/05/22"
+  transcript_path="$transcript_dir/rollout-test.jsonl"
+  mkdir -p "$transcript_dir"
+  arguments="$(jq -cn --argjson tool_input "$tool_input" --arg workdir "$tool_workdir" '$tool_input + {workdir: $workdir}')"
+  jq -cn \
+    --arg call_id "$tool_use_id" \
+    --arg arguments "$arguments" '{
+      type: "response_item",
+      payload: {
+        type: "function_call",
+        name: "exec_command",
+        arguments: $arguments,
+        call_id: $call_id
+      }
+    }' >"$transcript_path"
+
+  payload="$(jq -cn \
+    --arg cwd "$cwd" \
+    --arg tool_name "$tool_name" \
+    --arg transcript_path "$transcript_path" \
+    --arg tool_use_id "$tool_use_id" \
+    --argjson tool_input "$tool_input" '{
+      hook_event_name: "PreToolUse",
+      tool_name: $tool_name,
+      cwd: $cwd,
+      transcript_path: $transcript_path,
+      tool_use_id: $tool_use_id,
+      tool_input: $tool_input
+    }')"
+  HOME="$home" bash "$HOOK" <<<"$payload"
+}
+
 run_hook_json_with_home() {
   local home="$1"
   local cwd="$2"
@@ -220,6 +284,43 @@ assert_allowed_command_with_top_level_workdir() {
     fi
   fi
   echo "ok allowed $command with top-level workdir=$tool_workdir and cwd=$cwd"
+}
+
+assert_allowed_command_with_arguments_workdir() {
+  local cwd="$1"
+  local tool_workdir="$2"
+  local command="$3"
+  local output
+
+  output="$(run_hook_json_with_arguments_workdir "$cwd" "$tool_workdir" "functions.exec_command" "$(jq -cn --arg cmd "$command" '{cmd: $cmd}')")"
+  if [[ -n "$output" ]]; then
+    jq -e . >/dev/null <<<"$output"
+    if jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null <<<"$output"; then
+      echo "expected allowed but denied: $command with arguments workdir=$tool_workdir and cwd=$cwd" >&2
+      echo "$output" >&2
+      return 1
+    fi
+  fi
+  echo "ok allowed $command with arguments workdir=$tool_workdir and cwd=$cwd"
+}
+
+assert_allowed_command_with_transcript_workdir() {
+  local home="$1"
+  local cwd="$2"
+  local tool_workdir="$3"
+  local command="$4"
+  local output
+
+  output="$(run_hook_json_with_transcript_workdir "$home" "$cwd" "$tool_workdir" "Bash" "$(jq -cn --arg command "$command" '{command: $command}')")"
+  if [[ -n "$output" ]]; then
+    jq -e . >/dev/null <<<"$output"
+    if jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null <<<"$output"; then
+      echo "expected allowed but denied: $command with transcript workdir=$tool_workdir and cwd=$cwd" >&2
+      echo "$output" >&2
+      return 1
+    fi
+  fi
+  echo "ok allowed $command with transcript workdir=$tool_workdir and cwd=$cwd"
 }
 
 assert_denied_json_with_home() {
@@ -346,6 +447,18 @@ PATCH"
 assert_allowed_command_with_top_level_workdir "$PRIMARY_REPO" "$NESTED_LINKED_WORKTREE" "apply_patch <<'PATCH'
 *** Begin Patch
 *** Add File: shell-apply-patch-top-level.txt
++allowed
+*** End Patch
+PATCH"
+assert_allowed_command_with_arguments_workdir "$PRIMARY_REPO" "$NESTED_LINKED_WORKTREE" "apply_patch <<'PATCH'
+*** Begin Patch
+*** Add File: shell-apply-patch-arguments.txt
++allowed
+*** End Patch
+PATCH"
+assert_allowed_command_with_transcript_workdir "$TEST_ROOT/home" "$PRIMARY_REPO" "$NESTED_LINKED_WORKTREE" "apply_patch <<'PATCH'
+*** Begin Patch
+*** Add File: shell-apply-patch-transcript.txt
 +allowed
 *** End Patch
 PATCH"

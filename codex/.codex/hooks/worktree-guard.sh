@@ -56,6 +56,36 @@ canonical_path() {
 
 cwd="$(canonical_path "$cwd")"
 
+transcript_tool_workdir() {
+  local transcript_path
+  local tool_use_id
+  local sessions_root
+
+  transcript_path="$(jq -r '.transcript_path // empty' <<<"$input" 2>/dev/null || true)"
+  tool_use_id="$(jq -r '.tool_use_id // empty' <<<"$input" 2>/dev/null || true)"
+
+  if [[ -z "$transcript_path" || -z "$tool_use_id" || ! -f "$transcript_path" ]]; then
+    return 1
+  fi
+
+  sessions_root="$(canonical_path "$HOME/.codex/sessions")"
+  transcript_path="$(canonical_path "$transcript_path")"
+  if ! path_is_inside "$transcript_path" "$sessions_root"; then
+    return 1
+  fi
+
+  jq -r --arg tool_use_id "$tool_use_id" '
+    select(
+      .type == "response_item" and
+      .payload.type == "function_call" and
+      .payload.call_id == $tool_use_id
+    )
+    | .payload.arguments
+    | try fromjson catch empty
+    | .workdir // .cwd // .current_working_directory // empty
+  ' "$transcript_path" 2>/dev/null | tail -n 1
+}
+
 effective_cwd() {
   local tool_workdir
 
@@ -63,10 +93,22 @@ effective_cwd() {
     .tool_input.workdir //
     .tool_input.cwd //
     .tool_input.current_working_directory //
+    .arguments.workdir //
+    .arguments.cwd //
+    .arguments.current_working_directory //
+    .params.workdir //
+    .params.cwd //
+    .params.current_working_directory //
+    .input.workdir //
+    .input.cwd //
+    .input.current_working_directory //
     .workdir //
     .current_working_directory //
     empty
   ' <<<"$input" 2>/dev/null || true)"
+  if [[ -z "$tool_workdir" ]]; then
+    tool_workdir="$(transcript_tool_workdir || true)"
+  fi
   if [[ -n "$tool_workdir" && -d "$tool_workdir" ]]; then
     canonical_path "$tool_workdir"
     return
@@ -288,6 +330,18 @@ tool_target_path() {
     .tool_input.path //
     .tool_input.target_file //
     .tool_input.filename //
+    .arguments.file_path //
+    .arguments.path //
+    .arguments.target_file //
+    .arguments.filename //
+    .params.file_path //
+    .params.path //
+    .params.target_file //
+    .params.filename //
+    .input.file_path //
+    .input.path //
+    .input.target_file //
+    .input.filename //
     empty
   ' <<<"$input" 2>/dev/null || true
 }
@@ -309,12 +363,30 @@ apply_patch_target_paths() {
     jq -r '
       if (.tool_input | type) == "string" then
         .tool_input
+      elif (.arguments | type) == "string" then
+        .arguments
+      elif (.params | type) == "string" then
+        .params
+      elif (.input | type) == "string" then
+        .input
       else
         [
           .tool_input.cmd?,
           .tool_input.command?,
           .tool_input.patch?,
-          .tool_input.content?
+          .tool_input.content?,
+          .arguments.cmd?,
+          .arguments.command?,
+          .arguments.patch?,
+          .arguments.content?,
+          .params.cmd?,
+          .params.command?,
+          .params.patch?,
+          .params.content?,
+          .input.cmd?,
+          .input.command?,
+          .input.patch?,
+          .input.content?
         ]
         | .[]
         | select(type == "string" and length > 0)
@@ -418,7 +490,29 @@ tool_target_paths() {
 }
 
 command_text() {
-  jq -r '.tool_input.command // .tool_input.cmd // .tool_input.code // .tool_input.script // .tool_input.shell // ""' <<<"$input" 2>/dev/null || true
+  jq -r '
+    .tool_input.command //
+    .tool_input.cmd //
+    .tool_input.code //
+    .tool_input.script //
+    .tool_input.shell //
+    .arguments.command //
+    .arguments.cmd //
+    .arguments.code //
+    .arguments.script //
+    .arguments.shell //
+    .params.command //
+    .params.cmd //
+    .params.code //
+    .params.script //
+    .params.shell //
+    .input.command //
+    .input.cmd //
+    .input.code //
+    .input.script //
+    .input.shell //
+    ""
+  ' <<<"$input" 2>/dev/null || true
 }
 
 mcp_executor_command_texts() {
@@ -428,9 +522,27 @@ mcp_executor_command_texts() {
       .tool_input.cmd?,
       .tool_input.code?,
       .tool_input.script?,
-      .tool_input.shell?
+      .tool_input.shell?,
+      .arguments.command?,
+      .arguments.cmd?,
+      .arguments.code?,
+      .arguments.script?,
+      .arguments.shell?,
+      .params.command?,
+      .params.cmd?,
+      .params.code?,
+      .params.script?,
+      .params.shell?,
+      .input.command?,
+      .input.cmd?,
+      .input.code?,
+      .input.script?,
+      .input.shell?
     ]
     + (.tool_input.commands? // [] | map(.command?))
+    + (.arguments.commands? // [] | map(.command?))
+    + (.params.commands? // [] | map(.command?))
+    + (.input.commands? // [] | map(.command?))
     | .[]
     | select(type == "string" and length > 0)
   ' <<<"$input" 2>/dev/null || true
