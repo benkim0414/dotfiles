@@ -117,6 +117,12 @@ check_file_edit() {
 # suspect-host / local-path patterns.
 check_web_fetch() {
   local url="$1"
-  # Implemented in later tasks.
+
+  # Suspect hosts: dynamic-DNS, paste, webhook receivers.
+  if [[ "$url" =~ ^https?://([^/]*\.)?(requestbin\.com|webhook\.site|pipedream\.net|ngrok\.io|trycloudflare\.com)([/:?]|$) ]]; then
+    printf 'Fetch to dynamic-DNS / paste / webhook host'
+    return 0
+  fi
+
   printf ''
 }
