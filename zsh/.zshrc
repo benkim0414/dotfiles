@@ -86,7 +86,17 @@ eval "$(mise activate zsh)"
 [ -r ~/.openclaw/.env ] && set -a && . ~/.openclaw/.env && set +a
 
 # Aliases
-[ -r ~/.zsh_aliases ] && source ~/.zsh_aliases
+_zsh_aliases="${ZDOTDIR:-$HOME}/.zsh_aliases"
+[ -r "$_zsh_aliases" ] && source "$_zsh_aliases"
+unset _zsh_aliases
+
+if (( $+commands[kubectl] )); then
+  source <(kubectl completion zsh)
+  if (( ! $+functions[__start_kubectl] && $+functions[_kubectl] )); then
+    __start_kubectl() { _kubectl "$@" }
+  fi
+  compdef __start_kubectl k
+fi
 
 sz() { source ~/.zshrc }
 
