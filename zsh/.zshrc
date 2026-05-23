@@ -36,15 +36,17 @@ setopt NO_HASH_CMDS              # Disable command hashing (needed for mise)
 setopt NO_HASH_DIRS              # Disable directory hashing (needed for mise)
 unsetopt BEEP                    # No error beep
 
-bindkey -e
-bindkey "^a" beginning-of-line
-bindkey "^e" end-of-line
-bindkey "^p" history-search-backward
-bindkey "^n" history-search-forward
-bindkey "^[[A" history-search-backward
-bindkey "^[[B" history-search-forward
-bindkey "^[[C" forward-char
-bindkey "^[[D" backward-char
+bindkey -v
+KEYTIMEOUT=1
+
+bindkey -M viins "^a" beginning-of-line
+bindkey -M viins "^e" end-of-line
+bindkey -M viins "^p" history-search-backward
+bindkey -M viins "^n" history-search-forward
+bindkey -M viins "^[[A" history-search-backward
+bindkey -M viins "^[[B" history-search-forward
+bindkey -M viins "^[[C" forward-char
+bindkey -M viins "^[[D" backward-char
 
 autoload -Uz compinit
 compinit -C
