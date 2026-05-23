@@ -85,24 +85,8 @@ eval "$(mise activate zsh)"
 # Per-machine env (gitignored on each machine, sourced if present)
 [ -r ~/.openclaw/.env ] && set -a && . ~/.openclaw/.env && set +a
 
-alias vi="nvim"
-alias vim="nvim"
-
-alias ld="eza -lD"
-alias lf="eza -lf --color=always | grep -v /"
-alias lh="eza -dl .* --group-directories-first"
-alias ls="eza -a --color=always --group-directories-first"
-alias lt="eza -al --sort=modified"
-
-alias lg="lazygit"
-
-# Claude Code
-alias cc="claude"
-alias cca="claude --permission-mode auto"
-alias ccc="claude --continue"
-alias ccr="claude --resume"
-alias ccw="claude --worktree --tmux"
-alias ccp="claude --print"
+# Aliases
+[ -r ~/.zsh_aliases ] && source ~/.zsh_aliases
 
 sz() { source ~/.zshrc }
 

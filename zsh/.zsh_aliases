@@ -1,0 +1,22 @@
+# Editor
+alias vi="nvim"
+alias vim="nvim"
+
+# Listing
+alias ld="eza -lD"
+alias lf="eza -lf --color=always | grep -v /"
+alias lh="eza -dl .* --group-directories-first"
+alias ls="eza -a --color=always --group-directories-first"
+alias lt="eza -al --sort=modified"
+
+# Git
+alias lg="lazygit"
+
+# Claude Code
+alias cc="claude"
+alias ccc="claude --continue"
+alias ccr="claude --resume"
+alias ccp="claude --print"
+
+# Kubernetes
+alias k="kubectl"
