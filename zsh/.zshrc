@@ -92,10 +92,11 @@ unset _zsh_aliases
 
 if (( $+commands[kubectl] )); then
   source <(kubectl completion zsh)
-  if (( ! $+functions[__start_kubectl] && $+functions[_kubectl] )); then
-    __start_kubectl() { _kubectl "$@" }
+  if (( $+functions[__start_kubectl] )); then
+    compdef __start_kubectl k
+  elif (( $+functions[_kubectl] )); then
+    compdef _kubectl k
   fi
-  compdef __start_kubectl k
 fi
 
 sz() { source ~/.zshrc }
