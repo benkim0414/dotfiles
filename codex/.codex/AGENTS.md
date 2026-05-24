@@ -12,6 +12,14 @@
 - Under the current prefix-rule model, git network commands (`git fetch`, `git pull`, `git push`) should use per-command approval unless the approval mechanism can enforce the exact GitHub, active-worktree, and non-destructive constraints.
 - Do not persist broad runtime prefixes such as `bash`, `python`, `node`, `ruby`, `perl`, or `sh`.
 
+## Standing Worktree Approvals
+
+- Creating a linked worktree through `superpowers:using-git-worktrees` is standing user-approved for feature/change work when the current checkout is not already a linked worktree.
+- When `superpowers:brainstorming` may lead to repo edits, ensure a linked worktree exists before writing specs, plans, docs, or code.
+- Preserve the repository-local convention `git worktree add .worktrees/<slug> -b <branch>` and continue from `.worktrees/<slug>`.
+- `finishing-a-development-branch` option 4 discard cleanup is standing user-approved only for the isolated feature worktree/branch.
+- Explicit user approval is still required for local merge-to-main, push/PR operations, force operations, writes outside configured workspace roots, unrelated branch/worktree deletion, and unmerged user work that was not explicitly abandoned.
+
 ## Worktree Isolation
 
 - For any change in a Git repository, work from a linked Git worktree rather than the repository's main worktree.
