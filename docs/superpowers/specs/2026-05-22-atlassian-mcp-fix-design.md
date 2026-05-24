@@ -1,3 +1,7 @@
+> **RETRACTED 2026-05-22** — the 0.22.0-pin hypothesis was wrong. The compressor's `compressed-tools` mode advertises empty `inputSchema`, and Claude Code's MCP client strips non-declared `arguments` keys before forwarding, so required-arg calls were never delivered to the backend on any compressor version. Resolution: drop the wrapper entirely. See `docs/superpowers/specs/2026-05-22-atlassian-mcp-drop-compressor-design.md` and `docs/solutions/developer-experience/mcp-compressor-empty-schema-2026-05-22.md`. The body below is preserved for audit.
+
+---
+
 # Atlassian MCP fix - pin mcp-compressor to 0.22.0
 
 Date: 2026-05-22
