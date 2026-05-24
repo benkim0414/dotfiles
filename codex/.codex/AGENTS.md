@@ -20,6 +20,12 @@
 - `finishing-a-development-branch` option 4 discard cleanup is standing user-approved only after the user has selected discard, and only for removing the confirmed isolated feature worktree/branch.
 - Explicit user approval is still required for local merge-to-main, push/PR operations outside the existing auto-review allowance, force operations, writes outside configured workspace roots, unrelated branch/worktree deletion, uncommitted changes, and unmerged user work that was not explicitly abandoned.
 
+## Default Implementation Workflow
+
+- When a Superpowers implementation plan is ready to execute, always use `superpowers:subagent-driven-development`.
+- Do not offer `superpowers:executing-plans`, inline execution, or a choice between subagents and the main agent unless the user explicitly asks for an alternative or subagents are unavailable.
+- If a loaded plugin skill suggests asking the user to choose an execution mode, treat this standing instruction as the user's preselection of subagent-driven development.
+
 ## Worktree Isolation
 
 - For any change in a Git repository, work from a linked Git worktree rather than the repository's main worktree.
