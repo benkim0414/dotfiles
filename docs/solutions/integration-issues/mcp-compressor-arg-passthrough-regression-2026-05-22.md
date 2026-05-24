@@ -1,5 +1,7 @@
 ---
-title: "mcp-compressor 0.23.0 regressed required-argument passthrough on wrapped MCP servers"
+title: "[RETRACTED] mcp-compressor 0.23.0 regressed required-argument passthrough on wrapped MCP servers"
+status: retracted
+superseded_by: "docs/solutions/developer-experience/mcp-compressor-empty-schema-2026-05-22.md"
 date: 2026-05-22
 category: integration-issues
 module: claude
@@ -23,6 +25,10 @@ tags:
   - version-pin
   - regression
   - claude-code
+---
+
+> **RETRACTED 2026-05-22** — attributes the failure to a 0.23.0 regression. Later bisect (0.10.0 through 0.23.0) showed every available release exhibits the same `input_value={}` symptom via Claude, because the root cause is the empty-schema dispatcher pattern, not a version-specific change. See `docs/solutions/developer-experience/mcp-compressor-empty-schema-2026-05-22.md`.
+
 ---
 
 # mcp-compressor 0.23.0 regressed required-argument passthrough on wrapped MCP servers
