@@ -104,14 +104,18 @@ enforces that contract.
 Verify a wrapper's dispatcher schema *before* adopting it, by running:
 
 ```sh
-echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"probe","version":"0"}}}' \
-  | <the wrapped command>
-echo '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' \
-  | <the wrapped command>
+{
+  printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"probe","version":"0"}}}'
+  printf '%s\n' '{"jsonrpc":"2.0","method":"notifications/initialized","params":{}}'
+  printf '%s\n' '{"jsonrpc":"2.0","id":2,"method":"tools/list"}'
+} | <the wrapped command>
 ```
 
-If the dispatcher tools return `{"type":"object","properties":{}}`, the
-wrapper will not work through Claude Code for required-arg calls.
+Both messages must travel down the same stdio stream — two separate
+`echo | cmd` pipelines spawn fresh sessions and the second never sees
+the first's `initialize` handshake. If the dispatcher tools return
+`{"type":"object","properties":{}}`, the wrapper will not work through
+Claude Code for required-arg calls.
 
 ## Related
 
