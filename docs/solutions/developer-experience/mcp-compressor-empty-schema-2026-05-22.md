@@ -59,22 +59,31 @@ needs to actually invoke a backend tool with required parameters.
 Stdio bisect script (Python). Launch each compressor version directly,
 send `initialize` plus a `tools/call` invoking
 `jira_get_user_profile(user_identifier="x@example.com")`, observe the
-backend's response payload. Useful argument-shape variants to try:
+backend's response payload. Argument-shape variants to exercise (the
+full matrix described in
+`docs/superpowers/specs/2026-05-22-atlassian-mcp-drop-compressor-design.md`):
 
-1. Nested: `arguments={"tool_name": ..., "arguments": {...}}`
-2. Flat: `arguments={"tool_name": ..., "user_identifier": ...}`
-3. Wrapper: `arguments={"tool_name": ..., "tool_input": {...}}`
-4. JSON-string: `arguments={"tool_name": ..., "arguments": "{...}"}`
+1. Nested `arguments`: `{"tool_name": ..., "arguments": {"user_identifier": ...}}`
+2. Flat at dispatcher level: `{"tool_name": ..., "user_identifier": ...}`
+3. `tool_input` wrapper: `{"tool_name": ..., "tool_input": {"user_identifier": ...}}`
+4. `input` wrapper: `{"tool_name": ..., "input": {"user_identifier": ...}}`
+5. `kwargs` wrapper: `{"tool_name": ..., "kwargs": {"user_identifier": ...}}`
+6. `params` wrapper: `{"tool_name": ..., "params": {"user_identifier": ...}}`
+7. JSON-string `arguments`: `{"tool_name": ..., "arguments": "{\"user_identifier\":...}"}`
 
 If the backend responds with a domain-specific error (e.g. "Could not
 resolve email") the arguments reached it. If the backend responds with
 `Missing required argument [input_value={}]`, the wrapper dropped them.
 
 In `mcp-compressor` 0.22.0 only variant 3 (`tool_input`) reached the
-backend. In 0.10.0 both 2 (flat) and 3 (`tool_input` was actually
-parsed as nested-by-different-key) worked. The compressor's
-expectations shifted across versions; the empty `inputSchema`
-guarantees that no caller can hit them through Claude Code.
+backend; every other variant returned `input_value={}`. In 0.10.0
+variants 2 (flat) and 3 (`tool_input`) both reached the backend, and
+0.10.0's failure error format ("2 validation errors", echoing
+`input_value={'arguments': {...}}`) revealed that the unrecognised
+`arguments` wrapper was being passed through to the backend as a
+literal key, rather than unwrapped. The compressor's expectations
+shifted across versions; the empty `inputSchema` guarantees that no
+caller can hit them through Claude Code.
 
 ## Resolution
 
