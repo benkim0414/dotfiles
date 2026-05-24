@@ -1,3 +1,7 @@
+> **RETRACTED 2026-05-22** — the hint instructed callers to pass `arguments` as the magic key. Raw stdio bisect later proved the magic key is actually `tool_input`, but Claude Code strips both before they reach the compressor (empty `inputSchema` + strict validator). The CLAUDE.md hint that this spec produced has been removed. See `docs/superpowers/specs/2026-05-22-atlassian-mcp-drop-compressor-design.md` and `docs/solutions/developer-experience/mcp-compressor-empty-schema-2026-05-22.md`.
+
+---
+
 # mcp-compressor dispatcher hint
 
 Date: 2026-05-22

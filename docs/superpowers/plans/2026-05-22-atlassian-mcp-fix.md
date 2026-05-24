@@ -1,3 +1,7 @@
+> **RETRACTED 2026-05-22** — implements the retracted 0.22.0-pin design. See `docs/superpowers/plans/2026-05-22-atlassian-mcp-drop-compressor.md` for the corrected plan.
+
+---
+
 # Atlassian MCP fix Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
