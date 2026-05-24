@@ -7,8 +7,10 @@ Up/Ctrl-P or Ctrl-R. Commands entered inside tmux also do not reliably persist
 for later shells.
 
 The existing zsh configuration already sets a shared history file and enables
-`INC_APPEND_HISTORY` and `SHARE_HISTORY`, so the fix should strengthen zsh's
-history lifecycle rather than introduce tmux-specific history behavior.
+both `INC_APPEND_HISTORY` and `SHARE_HISTORY`. zsh treats those options as
+overlapping history-sharing models, so the fix should use one explicit model:
+append commands immediately, then manually import appended history before each
+prompt.
 
 ## Goals
 
@@ -33,12 +35,13 @@ Update `zsh/.zshrc` near the current history settings:
 1. Ensure the history directory exists before zsh tries to read or write
    `HISTFILE`.
 2. Keep the existing history size and file path.
-3. Use zsh history options that append commands immediately and share history
-   between interactive shells.
+3. Keep immediate appends with `INC_APPEND_HISTORY` and turn off
+   `SHARE_HISTORY` so manual imports are the only history-import path.
 4. Add a small `precmd` hook that imports appended history before each prompt.
 
 The `precmd` hook should use zsh's `fc -RI` builtin command so it stays
-dependency-free.
+dependency-free. It should only import when `HISTFILE` is readable, avoiding
+startup noise before the first history entry creates the file.
 The intended behavior is that a fresh tmux pane starts with the existing
 history file loaded, and active panes refresh their in-memory history as other
 shells append commands.
