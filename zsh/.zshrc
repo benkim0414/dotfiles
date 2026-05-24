@@ -1,4 +1,5 @@
 HISTFILE="${XDG_STATE_HOME:-$HOME/.local/state}/zsh/history"
+mkdir -p "${HISTFILE:h}"
 HISTSIZE=50000
 SAVEHIST=50000
 
@@ -24,6 +25,12 @@ setopt HIST_REDUCE_BLANKS        # Remove unnecessary blanks
 setopt HIST_VERIFY               # Don't execute immediately on history expansion
 setopt INC_APPEND_HISTORY        # Add commands to history immediately
 setopt SHARE_HISTORY             # Share history between sessions
+
+autoload -Uz add-zsh-hook
+_import_appended_history() {
+  fc -RI
+}
+add-zsh-hook precmd _import_appended_history
 
 setopt COMBINING_CHARS           # Handle combining Unicode characters correctly
 setopt COMPLETE_IN_WORD          # Complete from both ends of word
