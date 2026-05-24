@@ -175,7 +175,7 @@ captures:
   before forwarding `arguments`.
 - Investigation method: raw stdio bisect (spawn
   `uvx --from mcp-compressor==X.Y.Z mcp-compressor … -- <backend>`,
-  send `initialize` + `tools/call`, observe payload). Six arg-shape
+  send `initialize` + `tools/call`, observe payload). Seven arg-shape
   variants per version; `tool_input` was the magic key that worked in
   raw stdio.
 - Resolution: drop compressor for affected servers. Pin and
