@@ -157,9 +157,12 @@ Add a "RETRACTED" header section at the top of:
 - `docs/superpowers/plans/2026-05-22-atlassian-mcp-fix.md`
 - `docs/superpowers/specs/2026-05-22-mcp-compressor-dispatcher-hint-design.md`
 - `docs/solutions/developer-experience/mcp-compressor-dispatcher-hint-2026-05-22.md`
+- `docs/solutions/integration-issues/mcp-compressor-arg-passthrough-regression-2026-05-22.md`
 
 Each header points to this spec and the new learning doc. Body of the
 old docs is preserved so the historical reasoning stays auditable.
+For solution docs with YAML frontmatter, the header is inserted after
+the closing `---` so the frontmatter parser still resolves cleanly.
 
 ### Part 6 — Write the learning doc
 
@@ -199,6 +202,8 @@ captures:
   — prepend RETRACTED header.
 - `docs/solutions/developer-experience/mcp-compressor-dispatcher-hint-2026-05-22.md`
   — prepend RETRACTED header.
+- `docs/solutions/integration-issues/mcp-compressor-arg-passthrough-regression-2026-05-22.md`
+  — prepend RETRACTED header (after frontmatter).
 - `docs/solutions/developer-experience/mcp-compressor-empty-schema-2026-05-22.md`
   — new learning doc.
 - (External, not in repo) `~/.claude/projects/-Users-ben-workspace-dotfiles/memory/reference_atlassian_dispatcher_bug.md`
