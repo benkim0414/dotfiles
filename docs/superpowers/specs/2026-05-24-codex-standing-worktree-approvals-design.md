@@ -17,7 +17,8 @@ changes, but they do not state that these specific actions are pre-approved.
 
 ## Goals
 
-- Make the preference Codex-only.
+- Store the preference in Codex's instruction file without touching
+  `CLAUDE.md`.
 - Tell Codex to run `superpowers:using-git-worktrees` before repo-editing
   brainstorming or implementation work when the current checkout is not already
   a linked worktree.
@@ -38,8 +39,9 @@ changes, but they do not state that these specific actions are pre-approved.
 
 ## Approach
 
-Update `codex/.codex/AGENTS.md` because it is the Codex-facing instruction file
-that already documents the approval contract and worktree isolation behavior.
+Update `codex/.codex/AGENTS.md` because it is the instruction file that already
+documents Codex's approval contract and worktree isolation behavior. Do not edit
+`CLAUDE.md`.
 
 Add a small standing-approval clarification near the existing approval and
 worktree sections:
@@ -72,8 +74,7 @@ approval.
 
 Verification should cover:
 
-- The updated `codex/.codex/AGENTS.md` contains the Codex-only standing approval
-  language.
+- The updated `codex/.codex/AGENTS.md` contains the standing approval language.
 - The language preserves the existing requirement for explicit approval on
   local merge-to-main, push/PR, destructive operations outside the isolated
   worktree, and unmerged user work.
