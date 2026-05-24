@@ -42,6 +42,8 @@ setup_git_fixture() {
   printf 'fixture\n' >"$PRIMARY_REPO/README.md"
   git -C "$PRIMARY_REPO" add README.md
   git -C "$PRIMARY_REPO" commit -m "test: seed fixture" >/dev/null
+  git -C "$PRIMARY_REPO" remote add origin "$TEST_ROOT/origin.git"
+  git -C "$PRIMARY_REPO" remote add upstream "$TEST_ROOT/upstream.git"
   git -C "$PRIMARY_REPO" worktree add "$LINKED_WORKTREE" -b fixture-worktree >/dev/null
   git -C "$PRIMARY_REPO" worktree add "$SECOND_LINKED_WORKTREE" -b fixture-second-worktree >/dev/null
   mkdir -p "$PRIMARY_REPO/.worktrees" "$FAKE_WORKTREE_DIR"
@@ -237,6 +239,38 @@ assert_approval_required_json() {
   echo "ok approval required $tool_name in $cwd"
 }
 
+assert_approval_required_json_with_tool_workdir() {
+  local cwd="$1"
+  local tool_workdir="$2"
+  local tool_name="$3"
+  local tool_input="$4"
+  local expected_reason="$5"
+  local output
+
+  output="$(run_hook_json_with_tool_workdir "$cwd" "$tool_workdir" "$tool_name" "$tool_input")"
+  assert_approval_required_output "$output" "$expected_reason"
+  echo "ok approval required $tool_name in $cwd with workdir=$tool_workdir"
+}
+
+assert_allowed_json_with_tool_workdir() {
+  local cwd="$1"
+  local tool_workdir="$2"
+  local tool_name="$3"
+  local tool_input="$4"
+  local output
+
+  output="$(run_hook_json_with_tool_workdir "$cwd" "$tool_workdir" "$tool_name" "$tool_input")"
+  if [[ -n "$output" ]]; then
+    jq -e . >/dev/null <<<"$output"
+    if jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null <<<"$output"; then
+      echo "expected allowed but denied: $tool_name in $cwd with workdir=$tool_workdir" >&2
+      echo "$output" >&2
+      return 1
+    fi
+  fi
+  echo "ok allowed $tool_name in $cwd with workdir=$tool_workdir"
+}
+
 assert_approval_required_json_with_home() {
   local home="$1"
   local cwd="$2"
@@ -408,6 +442,8 @@ assert_approval_required_json "$PRIMARY_REPO" "mcp__context_mode__.ctx_execute" 
 assert_approval_required_json "$OUTSIDE_DIR" "mcp__context_mode__.ctx_execute" "$(jq -cn --arg code "touch \"$PRIMARY_REPO/mcp-quoted-generated.txt\"" '{language: "shell", code: $code}')" "primary worktree"
 assert_approval_required_json_with_home "$TEST_ROOT" "$OUTSIDE_DIR" "mcp__context_mode__.ctx_execute" "$(jq -cn '{language: "shell", code: "touch \"$HOME/primary/mcp-env-generated.txt\""}')" "primary worktree"
 assert_approval_required_json "$LINKED_WORKTREE" "mcp__context_mode__.ctx_execute" "$(jq -cn '{language: "shell", code: "touch ../primary/mcp-relative-generated.txt"}')" "cross-boundary"
+assert_approval_required_json_with_tool_workdir "$LINKED_WORKTREE" "$PRIMARY_REPO" "mcp__context_mode__.ctx_execute" "$(jq -cn '{language: "shell", code: "touch mcp-workdir-primary-generated.txt"}')" "primary worktree"
+assert_approval_required_json "$LINKED_WORKTREE" "mcp__context_mode__.ctx_execute" "$(jq -cn --arg primary "$PRIMARY_REPO" '{language: "shell", code: "touch mcp-cwd-primary-generated.txt", cwd: $primary}')" "primary worktree"
 assert_denied_json "$LINKED_WORKTREE" "mcp__context_mode__.ctx_execute" "$(jq -cn '{language: "shell", code: "p=../primary; touch \"$p/mcp-indirect-generated.txt\""}')"
 assert_approval_required_json "$LINKED_WORKTREE" "mcp__context_mode__.ctx_execute" "$(jq -cn '{language: "shell", code: "cd ../primary; touch mcp-cd-generated.txt"}')" "cross-boundary"
 assert_approval_required_json "$OUTSIDE_DIR" "mcp__context_mode__.ctx_batch_execute" "$(jq -cn --arg command "touch \"$PRIMARY_REPO/mcp-batch-generated.txt\"" '{commands: [{label: "write", command: $command}], queries: ["write"]}')" "primary worktree"
@@ -415,7 +451,14 @@ assert_approval_required_json "$LINKED_WORKTREE" "mcp__context_mode__.ctx_batch_
 assert_allowed_json "$LINKED_WORKTREE" "mcp__context_mode__.ctx_batch_execute" "$(jq -cn '{commands: [{label: "status", command: "git -C ../primary status --short"}], queries: ["status"]}')"
 assert_allowed_json "$PRIMARY_REPO" "mcp__context_mode__.ctx_batch_execute" "$(jq -cn '{commands: [{label: "status", command: "git status --short"}], queries: ["status"]}')"
 assert_approval_required_json "$PRIMARY_REPO" "mcp__context_mode__.ctx_execute" "$(jq -cn '{language: "shell", code: "git pull --force"}')" "primary worktree"
+git -C "$PRIMARY_REPO" update-ref refs/remotes/origin/main HEAD
+git -C "$PRIMARY_REPO" config branch.main.remote origin
+git -C "$PRIMARY_REPO" config branch.main.merge refs/heads/main
 assert_allowed_json "$PRIMARY_REPO" "mcp__context_mode__.ctx_execute" "$(jq -cn '{language: "shell", code: "git pull --ff-only"}')"
+assert_allowed_json_with_tool_workdir "$LINKED_WORKTREE" "$PRIMARY_REPO" "mcp__context_mode__.ctx_execute" "$(jq -cn '{language: "shell", code: "git pull --ff-only"}')"
+assert_approval_required_json_with_tool_workdir "$LINKED_WORKTREE" "$PRIMARY_REPO" "mcp__context_mode__.ctx_execute" "$(jq -cn '{language: "shell", code: "git pull --force"}')" "primary worktree"
+assert_approval_required_json "$LINKED_WORKTREE" "mcp__context_mode__.ctx_execute" "$(jq -cn --arg work_tree "$PRIMARY_REPO" '{language: "shell", code: "git --work-tree \"\($work_tree)\" pull --ff-only origin main"}')" "cross-boundary"
+assert_approval_required_json "$PRIMARY_REPO" "mcp__context_mode__.ctx_execute" "$(jq -cn --arg git_dir "$SPACE_LINKED_GIT_DIR" --arg work_tree "$PRIMARY_REPO" '{language: "shell", code: "git --git-dir=\"\($git_dir)\" --work-tree=\"\($work_tree)\" pull --ff-only origin main"}')" "primary worktree"
 assert_approval_required_command "$OUTSIDE_DIR" "printf 'blocked\n' >\"$PRIMARY_REPO/redirect-quoted-generated.txt\"" "primary worktree"
 assert_approval_required_command "$OUTSIDE_DIR" "printf 'blocked\n' >>$PRIMARY_REPO/redirect-append-generated.txt" "primary worktree"
 assert_approval_required_command_with_home "$TEST_ROOT" "$OUTSIDE_DIR" 'touch "$HOME/primary/env-generated.txt"' "primary worktree"
@@ -524,6 +567,9 @@ assert_allowed_command "$PRIMARY_REPO" "git -C $PRIMARY_REPO diff -- README.md"
 assert_allowed_command "$PRIMARY_REPO" "git ls-files"
 assert_allowed_command "$PRIMARY_REPO" "git branch --show-current"
 assert_allowed_command "$PRIMARY_REPO" "git -C $PRIMARY_REPO branch --show-current"
+git -C "$PRIMARY_REPO" update-ref refs/remotes/origin/main HEAD
+git -C "$PRIMARY_REPO" config branch.main.remote origin
+git -C "$PRIMARY_REPO" config branch.main.merge refs/heads/main
 assert_allowed_command "$PRIMARY_REPO" "git pull"
 assert_allowed_command "$PRIMARY_REPO" "git pull --ff-only"
 assert_allowed_command "$PRIMARY_REPO" "git pull --rebase"
@@ -532,6 +578,42 @@ assert_allowed_command "$PRIMARY_REPO" "git pull origin main"
 assert_allowed_command "$PRIMARY_REPO" "git pull --ff-only origin main"
 assert_allowed_command "$PRIMARY_REPO" "git pull --rebase origin main"
 assert_allowed_command "$OUTSIDE_DIR" "git -C $PRIMARY_REPO pull --ff-only"
+assert_approval_required_command "$LINKED_WORKTREE" "git --work-tree \"$PRIMARY_REPO\" pull --ff-only origin main" "cross-boundary"
+git -C "$PRIMARY_REPO" config --unset-all branch.main.remote || true
+git -C "$PRIMARY_REPO" config --unset-all branch.main.merge || true
+assert_approval_required_command "$PRIMARY_REPO" "git pull" "primary worktree"
+assert_approval_required_command "$PRIMARY_REPO" "git pull --ff-only" "primary worktree"
+assert_approval_required_command "$PRIMARY_REPO" "git pull --rebase" "primary worktree"
+assert_approval_required_command "$PRIMARY_REPO" "git pull origin" "primary worktree"
+assert_allowed_command "$PRIMARY_REPO" "git pull origin main"
+git -C "$PRIMARY_REPO" branch primary-feature
+git -C "$PRIMARY_REPO" checkout primary-feature >/dev/null
+git -C "$PRIMARY_REPO" update-ref refs/remotes/origin/primary-feature HEAD
+git -C "$PRIMARY_REPO" config branch.primary-feature.remote origin
+git -C "$PRIMARY_REPO" config branch.primary-feature.merge refs/heads/primary-feature
+assert_approval_required_command "$PRIMARY_REPO" "git pull" "primary worktree"
+assert_approval_required_command "$PRIMARY_REPO" "git pull --ff-only" "primary worktree"
+assert_approval_required_command "$PRIMARY_REPO" "git pull --rebase" "primary worktree"
+assert_approval_required_command "$PRIMARY_REPO" "git pull origin primary-feature" "primary worktree"
+git -C "$PRIMARY_REPO" checkout main >/dev/null
+git -C "$PRIMARY_REPO" update-ref refs/remotes/origin/feature HEAD
+git -C "$PRIMARY_REPO" config branch.main.remote origin
+git -C "$PRIMARY_REPO" config branch.main.merge refs/heads/feature
+assert_approval_required_command "$PRIMARY_REPO" "git pull" "primary worktree"
+assert_approval_required_command "$PRIMARY_REPO" "git pull --ff-only" "primary worktree"
+assert_approval_required_command "$PRIMARY_REPO" "git pull --rebase" "primary worktree"
+assert_approval_required_command "$PRIMARY_REPO" "git pull origin" "primary worktree"
+assert_allowed_command "$PRIMARY_REPO" "git pull origin main"
+git -C "$PRIMARY_REPO" update-ref refs/remotes/upstream/main HEAD
+git -C "$PRIMARY_REPO" config branch.main.remote upstream
+git -C "$PRIMARY_REPO" config branch.main.merge refs/heads/main
+assert_approval_required_command "$PRIMARY_REPO" "git pull" "primary worktree"
+assert_approval_required_command "$PRIMARY_REPO" "git pull --ff-only" "primary worktree"
+assert_approval_required_command "$PRIMARY_REPO" "git pull --rebase" "primary worktree"
+assert_approval_required_command "$PRIMARY_REPO" "git pull origin" "primary worktree"
+assert_allowed_command "$PRIMARY_REPO" "git pull origin main"
+git -C "$PRIMARY_REPO" config branch.main.remote origin
+git -C "$PRIMARY_REPO" config branch.main.merge refs/heads/main
 assert_approval_required_command "$PRIMARY_REPO" "git pull origin feature" "primary worktree"
 assert_approval_required_command "$PRIMARY_REPO" "git pull upstream main" "primary worktree"
 assert_approval_required_command "$PRIMARY_REPO" "git pull --all" "primary worktree"

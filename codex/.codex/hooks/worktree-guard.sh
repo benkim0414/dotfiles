@@ -570,37 +570,71 @@ command_text() {
   ' <<<"$input" 2>/dev/null || true
 }
 
-mcp_executor_command_texts() {
-  jq -r '
-    [
-      .tool_input.command?,
-      .tool_input.cmd?,
-      .tool_input.code?,
-      .tool_input.script?,
-      .tool_input.shell?,
-      .arguments.command?,
-      .arguments.cmd?,
-      .arguments.code?,
-      .arguments.script?,
-      .arguments.shell?,
-      .params.command?,
-      .params.cmd?,
-      .params.code?,
-      .params.script?,
-      .params.shell?,
-      .input.command?,
-      .input.cmd?,
-      .input.code?,
-      .input.script?,
-      .input.shell?
-    ]
-    + (.tool_input.commands? // [] | map(.command?))
-    + (.arguments.commands? // [] | map(.command?))
-    + (.params.commands? // [] | map(.command?))
-    + (.input.commands? // [] | map(.command?))
-    | .[]
-    | select(type == "string" and length > 0)
+mcp_executor_command_records() {
+  jq -c '
+    def object_cwd($object):
+      $object.workdir? // $object.cwd? // $object.current_working_directory? // null;
+
+    def top_level_workdir:
+      .workdir? // .current_working_directory? // null;
+
+    def command_records_from_object($object; $fallback_cwd):
+      [
+        $object.command?,
+        $object.cmd?,
+        $object.code?,
+        $object.script?,
+        $object.shell?
+      ]
+      | .[]
+      | select(type == "string" and length > 0)
+      | {command: ., cwd: (object_cwd($object) // $fallback_cwd // "")};
+
+    def command_records_from_commands($commands; $fallback_cwd):
+      $commands[]?
+      | select(type == "object")
+      | . as $command_object
+      | $command_object.command?
+      | select(type == "string" and length > 0)
+      | {command: ., cwd: (object_cwd($command_object) // $fallback_cwd // "")};
+
+    top_level_workdir as $top_workdir
+    | (
+      (.tool_input? // empty) as $tool_input
+      | object_cwd($tool_input) as $tool_input_cwd
+      | command_records_from_object($tool_input; $top_workdir),
+        command_records_from_commands(($tool_input.commands? // []); ($tool_input_cwd // $top_workdir))
+    ),
+    (
+      (.arguments? // empty) as $arguments
+      | object_cwd($arguments) as $arguments_cwd
+      | command_records_from_object($arguments; $top_workdir),
+        command_records_from_commands(($arguments.commands? // []); ($arguments_cwd // $top_workdir))
+    ),
+    (
+      (.params? // empty) as $params
+      | object_cwd($params) as $params_cwd
+      | command_records_from_object($params; $top_workdir),
+        command_records_from_commands(($params.commands? // []); ($params_cwd // $top_workdir))
+    ),
+    (
+      (.input? // empty) as $input_object
+      | object_cwd($input_object) as $input_cwd
+      | command_records_from_object($input_object; $top_workdir),
+        command_records_from_commands(($input_object.commands? // []); ($input_cwd // $top_workdir))
+    )
   ' <<<"$input" 2>/dev/null || true
+}
+
+mcp_executor_command_record_cwd() {
+  local record_cwd="$1"
+
+  if [[ -n "$record_cwd" && -d "$record_cwd" ]]; then
+    canonical_path "$record_cwd"
+    return
+  fi
+
+  canonical_path "$cwd"
 }
 
 shell_words() {
@@ -1706,6 +1740,12 @@ active_branch_for() {
   git -C "$dir" branch --show-current 2>/dev/null || true
 }
 
+active_branch_upstream_for() {
+  local dir="${1:-$cwd}"
+
+  git -C "$dir" rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null || true
+}
+
 path_is_single_primary_worktrees_child() {
   local path="$1"
   local base_dir="${2:-$cwd}"
@@ -1771,6 +1811,82 @@ git_words_have_force_flag() {
   done
 
   return 1
+}
+
+is_allowed_primary_checkout_pull_command() {
+  local command="$1"
+  local base_dir="${2:-$cwd}"
+  local -a words
+  local -a pull_words
+  local active_branch
+  local saw_ff_only=0
+  local saw_rebase=0
+  local remote=""
+  local branch=""
+  local upstream
+  local i
+  local word
+
+  is_linked_worktree "$base_dir" && return 1
+  has_shell_control_syntax "$command" && return 1
+  has_shell_path_indirection "$command" && return 1
+
+  shell_words "$command" words || return 1
+  for word in "${words[@]}"; do
+    case "$word" in
+      --work-tree|--work-tree=*|--git-dir|--git-dir=*)
+        return 1
+        ;;
+    esac
+  done
+
+  git_lifecycle_words "$command" pull_words || return 1
+  [[ "${pull_words[1]:-}" == "pull" ]] || return 1
+
+  active_branch="$(active_branch_for "$base_dir")"
+  [[ "$active_branch" == "main" ]] || return 1
+
+  i=2
+  while (( i < ${#pull_words[@]} )); do
+    word="${pull_words[i]}"
+    case "$word" in
+      --ff-only)
+        saw_ff_only=1
+        ;;
+      --rebase)
+        saw_rebase=1
+        ;;
+      --force|-f|--all|--tags|--prune)
+        return 1
+        ;;
+      --)
+        return 1
+        ;;
+      -*)
+        return 1
+        ;;
+      *)
+        if [[ -z "$remote" ]]; then
+          remote="$word"
+        elif [[ -z "$branch" ]]; then
+          branch="$word"
+        else
+          return 1
+        fi
+        ;;
+    esac
+    i=$((i + 1))
+  done
+
+  [[ "$saw_ff_only" -eq 1 && "$saw_rebase" -eq 1 ]] && return 1
+  [[ -z "$remote" || "$remote" == "origin" ]] || return 1
+  [[ -z "$branch" || "$branch" == "main" ]] || return 1
+  if [[ -z "$branch" ]]; then
+    upstream="$(active_branch_upstream_for "$base_dir")"
+    [[ "$upstream" == "origin/main" ]] || return 1
+  fi
+
+  return 0
 }
 
 is_allowed_worktree_branch_delete() {
@@ -2132,6 +2248,10 @@ if is_shell_tool; then
     exit 0
   fi
 
+  if is_allowed_primary_checkout_pull_command "$command" "$command_cwd"; then
+    exit 0
+  fi
+
   if is_allowed_registered_worktree_touch_command "$command" "$command_cwd"; then
     exit 0
   fi
@@ -2178,9 +2298,15 @@ if is_mcp_executor_tool; then
   found_command=0
   all_commands_read_only=1
 
-  while IFS= read -r command; do
-    command_cwd="$cwd"
-    if git_selected_cwd="$(git_command_cwd "$command" "$cwd")"; then
+  while IFS= read -r command_record; do
+    command="$(jq -r '.command // empty' <<<"$command_record" 2>/dev/null || true)"
+    if [[ -z "$command" ]]; then
+      continue
+    fi
+
+    command_base_cwd="$(mcp_executor_command_record_cwd "$(jq -r '.cwd // empty' <<<"$command_record" 2>/dev/null || true)")"
+    command_cwd="$command_base_cwd"
+    if git_selected_cwd="$(git_command_cwd "$command" "$command_base_cwd")"; then
       command_cwd="$git_selected_cwd"
     fi
 
@@ -2189,7 +2315,18 @@ if is_mcp_executor_tool; then
       deny "$(block_reason "$(primary_worktree_root_for_current_repo "$command_cwd")")"
     fi
 
+    if ! is_read_only_git_command "$command"; then
+      if git_command_has_mismatched_git_dir "$command" "$command_base_cwd"; then
+        target_root="$(command_referenced_main_worktree_root "$command" "$command_base_cwd" || primary_worktree_root_for_current_repo "$command_base_cwd" || repo_root_for "$command_base_cwd" || printf '%s' "$command_base_cwd")"
+        require_approval "$(approval_reason "$(approval_category_for_base "$command_base_cwd")" "$target_root")"
+      fi
+    fi
+
     if is_allowed_worktree_lifecycle_git_command "$command" "$command_cwd"; then
+      continue
+    fi
+
+    if is_allowed_primary_checkout_pull_command "$command" "$command_cwd"; then
       continue
     fi
 
@@ -2199,7 +2336,7 @@ if is_mcp_executor_tool; then
 
     if referenced_root="$(command_referenced_main_worktree_root "$command" "$command_cwd")"; then
       if ! is_read_only_command "$command"; then
-        require_approval "$(approval_reason "$(approval_category_for_target "$cwd" "$referenced_root")" "$referenced_root")"
+        require_approval "$(approval_reason "$(approval_category_for_target "$command_base_cwd" "$referenced_root")" "$referenced_root")"
       fi
     fi
 
@@ -2208,8 +2345,16 @@ if is_mcp_executor_tool; then
       if is_destructive_shell_command "$command"; then
         require_approval "$(approval_reason "destructive" "$command_cwd")"
       fi
+
+      command_repo_root="$(repo_root_for "$command_cwd")"
+      if [[ -n "$command_repo_root" ]]; then
+        command_repo_root="$(canonical_path "$command_repo_root")"
+        if ! is_linked_worktree "$command_cwd"; then
+          require_approval "$(approval_reason "primary worktree" "$command_repo_root")"
+        fi
+      fi
     fi
-  done < <(mcp_executor_command_texts)
+  done < <(mcp_executor_command_records)
 
   if [[ "$found_command" -eq 1 && "$all_commands_read_only" -eq 1 ]]; then
     exit 0
