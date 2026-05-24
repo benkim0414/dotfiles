@@ -43,17 +43,19 @@ cleanup in `codex/.codex/AGENTS.md`, without editing `CLAUDE.md`.
   - Use the existing repository-local convention:
     `git worktree add .worktrees/<slug> -b <branch>`.
   - `finishing-a-development-branch` option 4 discard cleanup is standing
-    user-approved only for the isolated feature worktree/branch.
+    user-approved only after the user has selected discard, and only for the
+    confirmed isolated feature worktree/branch.
 
 - [ ] **Step 3: Preserve approval boundaries**
 
   Ensure the text still says explicit approval is required for:
 
   - local merge-to-main;
-  - push/PR;
+  - push/PR paths outside the existing auto-review allowance;
   - force operations;
   - writes outside configured workspace roots;
   - unrelated branch/worktree deletion;
+  - uncommitted changes;
   - unmerged user work that was not explicitly abandoned.
 
 - [ ] **Step 4: Verify the diff**
@@ -93,7 +95,8 @@ cleanup in `codex/.codex/AGENTS.md`, without editing `CLAUDE.md`.
   - `.worktrees/<slug>`;
   - `finishing-a-development-branch`;
   - option 4 discard cleanup;
-  - explicit approval for local merge-to-main and push/PR.
+  - explicit approval for local merge-to-main and push/PR paths outside the
+    existing auto-review allowance.
 
 - [ ] **Step 2: Confirm `CLAUDE.md` is untouched**
 

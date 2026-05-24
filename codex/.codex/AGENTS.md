@@ -17,8 +17,8 @@
 - Creating a linked worktree through `superpowers:using-git-worktrees` is standing user-approved for feature/change work when the current checkout is not already a linked worktree.
 - When `superpowers:brainstorming` may lead to repo edits, ensure a linked worktree exists before writing specs, plans, docs, or code.
 - Preserve the repository-local convention `git worktree add .worktrees/<slug> -b <branch>` and continue from `.worktrees/<slug>`.
-- `finishing-a-development-branch` option 4 discard cleanup is standing user-approved only for the isolated feature worktree/branch.
-- Explicit user approval is still required for local merge-to-main, push/PR operations, force operations, writes outside configured workspace roots, unrelated branch/worktree deletion, and unmerged user work that was not explicitly abandoned.
+- `finishing-a-development-branch` option 4 discard cleanup is standing user-approved only after the user has selected discard, and only for removing the confirmed isolated feature worktree/branch.
+- Explicit user approval is still required for local merge-to-main, push/PR operations outside the existing auto-review allowance, force operations, writes outside configured workspace roots, unrelated branch/worktree deletion, uncommitted changes, and unmerged user work that was not explicitly abandoned.
 
 ## Worktree Isolation
 

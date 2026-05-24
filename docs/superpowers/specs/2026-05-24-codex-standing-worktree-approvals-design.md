@@ -25,9 +25,11 @@ changes, but they do not state that these specific actions are pre-approved.
 - Treat creation of a repository-local linked worktree under `.worktrees/<slug>`
   as standing user-approved.
 - Treat `finishing-a-development-branch` option 4 discard cleanup as standing
-  user-approved when it only removes the isolated feature worktree/branch.
-- Keep sensitive operations protected: local merge-to-main, push/PR, force
-  operations, destructive cleanup outside the isolated worktree, and removal of
+  user-approved after the user selects discard, and only when it removes the
+  confirmed isolated feature worktree/branch.
+- Keep sensitive operations protected: local merge-to-main, push/PR paths
+  outside the existing auto-review allowance, force operations, destructive
+  cleanup outside the isolated worktree, uncommitted changes, and removal of
   unmerged user work still require explicit approval.
 
 ## Non-Goals
@@ -54,10 +56,12 @@ worktree sections:
    plans, docs, or code.
 3. The approved location remains the repository convention:
    `.worktrees/<slug>`.
-4. `finishing-a-development-branch` option 4 is pre-approved only for cleanup of
-   the isolated feature worktree/branch.
+4. `finishing-a-development-branch` option 4 is pre-approved only after the
+   user selects discard, and only for cleanup of the confirmed isolated feature
+   worktree/branch.
 5. The standing approval does not cover unrelated worktrees, unrelated branches,
-   unmerged work not explicitly abandoned by the user, merge-to-main, push/PR,
+   uncommitted changes, unmerged work not explicitly abandoned by the user,
+   merge-to-main, push/PR paths outside the existing auto-review allowance,
    force operations, or writes outside the configured workspace roots.
 
 ## Error Handling
@@ -66,9 +70,9 @@ If worktree creation fails because of sandbox restrictions, Codex should follow
 the normal `using-git-worktrees` fallback: request escalation or report the
 blocker rather than editing the primary checkout.
 
-If discard cleanup finds uncommitted changes, an unmerged branch, or a target
-outside the current isolated worktree, Codex should stop and ask for explicit
-approval.
+If discard cleanup finds uncommitted changes, unmerged work, a force-delete
+requirement, or a target outside the confirmed isolated worktree, Codex should
+stop and ask for explicit approval.
 
 ## Testing
 
@@ -76,7 +80,8 @@ Verification should cover:
 
 - The updated `codex/.codex/AGENTS.md` contains the standing approval language.
 - The language preserves the existing requirement for explicit approval on
-  local merge-to-main, push/PR, destructive operations outside the isolated
-  worktree, and unmerged user work.
+  local merge-to-main, push/PR paths outside the existing auto-review allowance,
+  destructive operations outside the isolated worktree, uncommitted changes,
+  and unmerged user work.
 - Git diff shows only the intended Codex instruction/spec/plan changes for this
   workflow update.
