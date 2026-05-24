@@ -1,5 +1,7 @@
 ---
-title: "mcp-compressor 0.23.0 regressed required-argument passthrough on wrapped MCP servers"
+title: "[RETRACTED] mcp-compressor 0.23.0 regressed required-argument passthrough on wrapped MCP servers"
+status: retracted
+superseded_by: "docs/solutions/developer-experience/mcp-compressor-empty-schema-2026-05-22.md"
 date: 2026-05-22
 category: integration-issues
 module: claude

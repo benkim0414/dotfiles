@@ -1,7 +1,31 @@
 ---
-module: mcp-compressor
-tags: [mcp, compressor, claude-code, schema-validation, debugging]
-problem_type: integration-issue
+title: "mcp-compressor compressed-tools mode is incompatible with Claude Code for required-arg tools"
+date: 2026-05-22
+category: developer-experience
+module: claude
+problem_type: integration_issue
+component: tooling
+severity: high
+applies_when:
+  - "Wrapping an MCP backend with uvx mcp-compressor in transform mode compressed-tools"
+  - "Calling required-arg tools on the wrapped server through Claude Code"
+  - "Backend reports pydantic 'Missing required argument [input_value={}]'"
+symptoms:
+  - "Every required-arg dispatcher call returns input_value={} regardless of argument shape"
+  - "get_tool_schema calls succeed (no backend forwarding) but invoke_tool calls fail"
+root_cause: empty_inputschema_strict_validator
+resolution_type: drop_wrapper
+related_components:
+  - mcp-compressor
+  - claude-code
+  - mcp-atlassian
+tags:
+  - mcp
+  - mcp-compressor
+  - claude-code
+  - schema-validation
+  - debugging
+  - stdio-bisect
 ---
 
 # mcp-compressor compressed-tools mode is incompatible with Claude Code for required-arg tools

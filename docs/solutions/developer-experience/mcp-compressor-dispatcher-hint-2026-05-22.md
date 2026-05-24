@@ -1,5 +1,7 @@
 ---
-title: "MCP servers wrapped by mcp-compressor need an explicit dispatcher arg-shape hint"
+title: "[RETRACTED] MCP servers wrapped by mcp-compressor need an explicit dispatcher arg-shape hint"
+status: retracted
+superseded_by: "docs/solutions/developer-experience/mcp-compressor-empty-schema-2026-05-22.md"
 date: 2026-05-22
 category: developer-experience
 module: claude
