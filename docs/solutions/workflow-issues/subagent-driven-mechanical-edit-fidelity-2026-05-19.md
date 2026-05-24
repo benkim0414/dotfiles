@@ -1,13 +1,14 @@
 ---
 title: "Mechanical edits from a detailed plan: prefer orchestrator-direct over subagent dispatch"
 date: "2026-05-19"
+last_updated: "2026-05-24"
 category: "workflow-issues"
 module: "dotfiles/claude"
 problem_type: "workflow_issue"
 component: "development_workflow"
 severity: "medium"
 applies_when:
-  - "Executing a writing-plans output via subagent-driven-development"
+  - "Executing a writing-plans output via subagent-driven-development in Claude Code without a standing user preference for mandatory subagent execution"
   - "A task is small and mechanical (regex tweak, single block deletion, comment update, line insertion) and the plan already contains the exact final code"
   - "The same logical file will be touched by multiple consecutive tasks"
 related_components:
@@ -42,6 +43,13 @@ When you are about to dispatch a plan task to an implementer subagent, ask three
 If all three are "yes," do the edit directly with `Edit` / `Write` from the orchestrator. Run the test suite the plan specifies after each edit. Commit per the plan's commit message. The two-stage review pattern is preserved as a final pass over the full diff at the end of the plan, not per task.
 
 Reserve subagents for tasks that are genuinely creative or where the plan's code is incomplete: a new hook file, a schema redesign, a non-trivial helper, or anywhere the implementer must make a design judgment.
+
+For Codex, this historical exception does not override the standing default in
+`codex/.codex/AGENTS.md`: Superpowers implementation plans use
+`superpowers:subagent-driven-development` unless the user explicitly asks for
+an alternative or subagents are unavailable. Treat this doc as Claude Code
+incident guidance and edit-fidelity context, not as permission to bypass the
+Codex subagent-driven default.
 
 ## Why This Matters
 
@@ -118,6 +126,8 @@ Bash("bash run.sh && git add ... && git commit -m '...'")
 The `Edit` tool's exact-match requirement is the key safety mechanism: an orchestrator that holds the file's exact content in context can guarantee the old_string is unambiguous, which the implementer subagent — working from a fresh read of a freshly-pulled version — cannot.
 
 ## Related
+
+- `docs/solutions/conventions/default-subagent-driven-superpowers-execution.md` -- current Codex convention that preselects `superpowers:subagent-driven-development` for Superpowers implementation plans.
 
 - [Superpowers + compound-engineering workflow reorganization](../workflow-issues/superpowers-workflow-reorg-2026-05-19.md) — same plugin matrix and skill chain that defines `subagent-driven-development`
 - `~/.claude/docs/superpowers-workflow.md` — canonical skill chain that this learning amends
