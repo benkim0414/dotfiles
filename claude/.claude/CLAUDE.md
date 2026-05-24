@@ -42,51 +42,24 @@ Fall back to Glob/Grep when:
 Never automate `qmd collection add`, `qmd embed`, or `qmd update` --
 indexing is always a manual user action.
 
-## MCP servers wrapped by mcp-compressor
+## MCP servers (atlassian, qmd, sequential-thinking, slack)
 
-Four servers in `~/.claude.json` (atlassian, qmd, sequential-thinking,
-slack) are proxied through `uvx mcp-compressor`. The compressor exposes
-only two dispatcher tools per server -- `<server>_get_tool_schema` and
-`<server>_invoke_tool` -- with an empty advertised inputSchema. The
-schema is wrong; the dispatcher actually requires arguments.
+These four `~/.claude.json` servers run as raw backends. An earlier
+attempt to wrap them with `uvx mcp-compressor` (transform mode
+`compressed-tools`) was reverted on 2026-05-22 because the compressor
+advertises empty `inputSchema` for its dispatcher tools and Claude
+Code's MCP client strips non-declared keys from `arguments` before
+forwarding, so every required-arg call reached the backend with `{}`.
+Symptom was a pydantic `Missing required argument [input_value={}]`
+error from `mcp-atlassian`. Root cause is structural, not version-
+specific. See
+`docs/superpowers/specs/2026-05-22-atlassian-mcp-drop-compressor-design.md`
+and
+`docs/solutions/developer-experience/mcp-compressor-empty-schema-2026-05-22.md`.
 
-To call any tool on these servers, supply the dispatcher args
-explicitly:
-
-- `<server>_get_tool_schema(tool_name="real_tool_name")` -- returns the
-  real input schema for that backend tool.
-- `<server>_invoke_tool(tool_name="real_tool_name", arguments={...})`
-  -- invokes it. `arguments` is an inline object, NOT a JSON string,
-  NOT flat keys at the dispatcher level, NOT `params` / `kwargs` /
-  `input` / `name`.
-
-The list of real tools available behind each dispatcher is in the
-dispatcher's own tool description (`Available tools are: <tool>...`).
-Read the description before the first call; do not probe arg shapes.
-
-If a call returns `-32602 missing tool_name`, you forgot `tool_name` --
-the empty inputSchema is misleading you. Pass `tool_name` even though
-it is not declared.
-
-### Version pin
-
-`mcp-add` pins `mcp-compressor` to 0.22.0 via
-`uvx --from mcp-compressor==0.22.0`. 0.23.0 (PyPI 2026-05-21) regressed
-required-argument passthrough in `compressed-tools` mode - the backend
-receives `input_value={}` and rejects every call carrying required
-arguments. Reproduced against `mcp-atlassian` (`jira_get_issue`,
-`jira_get_user_profile`) on 2026-05-22.
-
-To test a newer release without editing `mcp-add`:
-
-```sh
-MCP_COMPRESSOR_VERSION=0.24.0 mcp-add <name> -- <cmd>
-```
-
-To bump the default after upstream fixes the regression, change the
-constant in `bin/.local/bin/mcp-add` and re-run the regeneration
-procedure documented in
-`docs/superpowers/specs/2026-05-22-atlassian-mcp-fix-design.md`.
+The repo no longer carries the `mcp-add` wrapper helper. Add new MCP
+servers with `claude mcp add --scope user <name> -- <command>`
+directly.
 
 ## Git Workflow
 
