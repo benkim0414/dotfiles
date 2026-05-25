@@ -65,6 +65,13 @@ User-scope defaults (in `claude/.claude/settings.base.json`):
   prompt path. Includes context-mode, qmd, sequential-thinking,
   Atlassian, Slack, Linear, Notion, claude.ai integrations, future
   servers.
+- Two destructive context-mode tools are walked back into `ask` so
+  they prompt despite the broad `mcp__*` allow:
+  `mcp__plugin_context-mode_context-mode__ctx_purge` (wipes the FTS5
+  knowledge base, irreversible) and
+  `mcp__plugin_context-mode_context-mode__ctx_upgrade` (pulls, builds,
+  and installs from GitHub). `ask` overrides `allow` per Claude Code
+  precedence.
 
 Per-repo overrides live in `.claude/settings.local.json` (gitignored).
 Add `permissions.ask` or `permissions.deny` rules there for sensitive
