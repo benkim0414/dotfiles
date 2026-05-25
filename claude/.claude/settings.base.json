@@ -197,7 +197,9 @@
       "mcp__*__*deploy*",
       "mcp__*__*apply*",
       "mcp__*__*patch*",
-      "mcp__*__*write*"
+      "mcp__*__*write*",
+      "mcp__plugin_context-mode_context-mode__ctx_purge",
+      "mcp__plugin_context-mode_context-mode__ctx_upgrade"
     ]
   },
   "hooks": {
