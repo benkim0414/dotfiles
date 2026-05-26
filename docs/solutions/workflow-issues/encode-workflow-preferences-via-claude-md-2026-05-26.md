@@ -1,6 +1,7 @@
 ---
 title: "Encode recurring workflow preferences via CLAUDE.md directives plus auto-memory, not via skill-file edits"
 date: "2026-05-26"
+last_updated: "2026-05-26"
 category: "workflow-issues"
 module: "dotfiles/claude"
 problem_type: "workflow_issue"
@@ -57,26 +58,41 @@ plugin cache:
    hard-coding a specific skill name, and always keep a stated
    override path.
 
-   Example pattern (from this repo, commit `d85353f`):
+   Example pattern (from this repo, broadened in commit `a275ccb`
+   after the initial `d85353f` shipped a narrower form):
 
    ```markdown
    ### Execution handoff after `writing-plans`
 
    When `superpowers:writing-plans` finishes saving the plan and
    reaches its "Execution Handoff" section, do NOT prompt the user
-   with the "Which approach?" question. Auto-invoke whichever option
-   the skill marks as recommended (currently
-   `superpowers:subagent-driven-development`). Announce the choice in
-   one line ("Auto-invoking `subagent-driven-development` per user
-   preference") and proceed.
+   with the "Which approach?" question. Pick the most appropriate
+   execution path yourself and announce the choice in one line,
+   then proceed.
 
-   Override: if the user explicitly asks for inline execution or
-   names `superpowers:executing-plans` in the same turn, honour that
-   request instead.
+   Decision rule:
+
+   1. Default: superpowers:subagent-driven-development (the
+      skill's recommended option).
+   2. Exception — orchestrator-direct: when the plan contains the
+      exact final code and tasks are mechanical edits, execute
+      inline from the orchestrator without dispatching subagents
+      (per feedback_subagent_mechanical_edits).
+   3. Exception — superpowers:executing-plans: if you would
+      otherwise have judged inline batch execution a better fit.
+
+   Override: explicit user request for a different path in the
+   same turn still wins.
    ```
 
    Two recognition cues — the section name and the prompt text —
    give the directive resilience to single-anchor renames upstream.
+   A three-path decision rule (default / orchestrator-direct /
+   executing-plans) covers all execution shapes Claude would
+   reasonably choose, not just the two listed in the skill's prompt.
+   This avoids the false dichotomy of "subagent-driven vs
+   executing-plans" silently forcing subagent dispatch on a
+   mechanical-edit plan that should bypass dispatch entirely.
 
 2. **Write a matching `feedback`-typed auto-memory file** under
    `~/.claude/projects/<sanitised-project-path>/memory/` and add a
@@ -113,6 +129,16 @@ Tracking "whichever option the skill marks as recommended" rather
 than the literal skill name is a small extra hedge: it means the
 directive does not need a follow-up edit if the upstream skill
 swaps which option carries the `(recommended)` label.
+
+Equally important: the directive must not silently force one of the
+two options the skill prompts about. Other auto-memory entries (in
+this repo, `feedback_subagent_mechanical_edits`) can authorise a
+third path — orchestrator-direct — that the skill prompt never
+mentions. A "pick the most appropriate execution path" framing
+delegates the choice to existing judgment rules without re-litigating
+each prompt; a narrow "default to subagent-driven" framing would
+override those rules and revert mechanical edits to slower subagent
+dispatch.
 
 ## When to Apply
 
