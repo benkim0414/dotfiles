@@ -98,6 +98,19 @@ finishing-a-development-branch
 
 Full integration details: `~/.claude/docs/superpowers-workflow.md`
 
+### Execution handoff after `writing-plans`
+
+When `superpowers:writing-plans` finishes saving the plan and reaches its
+"Execution Handoff" section, do NOT prompt the user with the "Which
+approach?" question. Auto-invoke whichever option the skill marks as
+recommended (currently `superpowers:subagent-driven-development`).
+Announce the choice in one line ("Auto-invoking
+`subagent-driven-development` per user preference") and proceed.
+
+Override: if the user explicitly asks for inline execution or names
+`superpowers:executing-plans` in the same turn, honour that request
+instead.
+
 ### Commit rules
 
 #### Atomicity
