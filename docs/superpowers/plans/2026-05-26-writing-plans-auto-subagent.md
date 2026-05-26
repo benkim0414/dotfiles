@@ -326,3 +326,26 @@ In a separate session, run brainstorm → writing-plans and explicitly say "use 
 - The plan deliberately has no automated tests. Markdown directives cannot be unit-tested. The behavioural verification in Task 5 is the only validation, and it requires a fresh session.
 - Do not edit the cached skill file at
   `~/.claude/plugins/cache/superpowers-marketplace/superpowers/<version>/skills/writing-plans/SKILL.md`. The spec explicitly rules this out — plugin upgrades would overwrite any edit there.
+
+---
+
+## Post-design scope expansion (2026-05-26)
+
+After Tasks 1-4 of this plan executed and verification passed, the
+user flagged that the directive must also cover the orchestrator-
+direct path (per `feedback_subagent_mechanical_edits`), not just the
+two options the writing-plans skill prompts about. The CLAUDE.md
+directive was rewritten as a three-path decision rule (default
+subagent-driven, exception orchestrator-direct, exception
+executing-plans), with matching updates to the auto-memory file and
+the `docs/solutions/` learning doc. See:
+
+- CLAUDE.md broaden commit: `a275ccb`
+- Solution-doc broaden commit: `68b8a0b`
+- Memory file: `~/.claude/projects/-Users-ben-workspace-dotfiles/memory/feedback_writing_plans_auto_subagent.md` (rewritten 2026-05-26)
+- Spec amendment: same date, "Post-design scope expansion" section.
+
+Task 5 (post-merge fresh-session behavioural verification) remains
+deferred; its check expands to confirm that orchestrator-direct
+edits also happen without the "Which approach?" prompt when the plan
+fits that path.

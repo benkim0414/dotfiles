@@ -125,3 +125,29 @@ Behavioural, not automated. Verification steps:
   no-op (harmless).
 - User changes their mind about wanting the prompt. Remove the
   CLAUDE.md note and the feedback memory file; behaviour reverts.
+
+## Post-design scope expansion (2026-05-26)
+
+After the initial design landed, the user pointed out a case the
+narrow directive failed to cover: plans that should be executed
+orchestrator-direct per the existing
+`feedback_subagent_mechanical_edits` auto-memory, rather than via
+`subagent-driven-development` or `executing-plans`. A directive that
+"auto-invokes whichever option the skill marks as recommended"
+silently forces one of the two options the skill prompts about and
+overrides the mechanical-edits memory.
+
+The directive was broadened to a three-path decision rule:
+
+1. Default — `superpowers:subagent-driven-development` (skill's
+   recommended option).
+2. Exception — orchestrator-direct, when the plan contains the exact
+   final code and tasks are mechanical edits (mirrors
+   `feedback_subagent_mechanical_edits`).
+3. Exception — `superpowers:executing-plans`, when inline batch
+   execution is the better fit (e.g., tightly-coupled tasks).
+
+User-override behaviour is unchanged. Live in CLAUDE.md commit
+`a275ccb`, memory file rewrite of the same date, and the
+`docs/solutions/workflow-issues/encode-workflow-preferences-via-claude-md-2026-05-26.md`
+learning doc.
