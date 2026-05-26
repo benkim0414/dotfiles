@@ -102,14 +102,35 @@ Full integration details: `~/.claude/docs/superpowers-workflow.md`
 
 When `superpowers:writing-plans` finishes saving the plan and reaches its
 "Execution Handoff" section, do NOT prompt the user with the "Which
-approach?" question. Auto-invoke whichever option the skill marks as
-recommended (currently `superpowers:subagent-driven-development`).
-Announce the choice in one line ("Auto-invoking
-`subagent-driven-development` per user preference") and proceed.
+approach?" question. Pick the most appropriate execution path yourself
+and announce the choice in one line, then proceed.
 
-Override: if the user explicitly asks for inline execution or names
-`superpowers:executing-plans` in the same turn, honour that request
-instead.
+Decision rule:
+
+1. **Default:** `superpowers:subagent-driven-development` — the option
+   the skill itself marks as recommended. Use this when tasks are
+   meaningfully independent and dispatching subagents adds value.
+2. **Exception — orchestrator-direct:** When the plan contains the
+   exact final code and the tasks are mechanical edits (regex tweaks,
+   single-block deletions, comment updates, line insertions),
+   execute the edits inline from the orchestrator without dispatching
+   subagents. This follows the existing
+   `feedback_subagent_mechanical_edits` auto-memory; subagent
+   round-trips on mechanical edits add latency and edit-fidelity
+   risk without adding value.
+3. **Exception — `superpowers:executing-plans`:** If you would
+   otherwise have judged the inline-execution skill a better fit for
+   the plan shape (e.g., tightly-coupled tasks that benefit from
+   batched checkpoints rather than per-task review), invoke that
+   instead.
+
+Announce the chosen path in one line such as `Auto-invoking
+subagent-driven-development per user preference.` or `Mechanical
+edits — executing from orchestrator per feedback_subagent_mechanical_edits.`
+
+Override: if the user explicitly names a different execution path in
+the same turn (e.g. "use executing-plans for this one", "dispatch
+subagents", "do it inline"), honour that request instead.
 
 ### Commit rules
 
