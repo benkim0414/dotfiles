@@ -50,7 +50,7 @@ collect_markers() {
   done
 }
 
-# Switch to a pane (works across tmux sessions).
+# Switch to a pane (works across tmux sessions and windows).
 # Queries tmux directly for the session name to handle sessions with colons.
 switch_to_pane() {
   local pane_id="$1" marker="$2"
@@ -60,6 +60,7 @@ switch_to_pane() {
   if [[ -n "$session" ]]; then
     tmux switch-client -t "$session" 2>/dev/null || true
   fi
+  tmux select-window -t "$pane_id" 2>/dev/null || true
   tmux select-pane -t "$pane_id" 2>/dev/null || true
 
   rm -f "$marker"
