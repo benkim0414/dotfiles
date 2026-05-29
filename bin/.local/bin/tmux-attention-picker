@@ -146,12 +146,13 @@ _normalize_codex_title() {
   _normalized_title="$title"
 }
 
-# Switch to a pane (works across tmux sessions).
+# Switch to a pane (works across tmux sessions and windows).
 switch_to_pane() {
   local pane_id="$1"
   local session
   session=$(tmux display-message -t "$pane_id" -p '#{session_name}' 2>/dev/null || true)
   [[ -n "$session" ]] && tmux switch-client -t "$session" 2>/dev/null || true
+  tmux select-window -t "$pane_id" 2>/dev/null || true
   tmux select-pane -t "$pane_id" 2>/dev/null || true
 }
 
