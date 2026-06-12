@@ -61,17 +61,16 @@ User-scope defaults (in `claude/.claude/settings.base.json`):
 - `defaultMode: "auto"` -- new sessions open in auto mode. A classifier
   judges unmatched tool calls; explicit `allow` entries skip the
   classifier. Requires Opus 4.6+ / Sonnet 4.6+ (Opus 4.7 in use).
-- `permissions.allow: ["mcp__*", ...]` -- all MCP server tools skip the
-  prompt path. Includes context-mode, qmd, sequential-thinking,
-  Atlassian, Slack, Linear, Notion, claude.ai integrations, future
-  servers.
-- Two destructive context-mode tools are walked back into `ask` so
-  they prompt despite the broad `mcp__*` allow:
+- MCP tools are not pre-approved in `allow` (bare `mcp__*` is invalid
+  there -- only `deny`/`ask` accept bare wildcards). Under
+  `defaultMode: "auto"` the classifier judges each unmatched MCP call.
+- `ask` rules still gate MCP mutations: the `mcp__*__*create*`,
+  `*delete*`, `*update*`, `*write*` (etc.) globs, plus two destructive
+  context-mode tools --
   `mcp__plugin_context-mode_context-mode__ctx_purge` (wipes the FTS5
   knowledge base, irreversible) and
   `mcp__plugin_context-mode_context-mode__ctx_upgrade` (pulls, builds,
-  and installs from GitHub). `ask` overrides `allow` per Claude Code
-  precedence.
+  and installs from GitHub).
 
 Per-repo overrides live in `.claude/settings.local.json` (gitignored).
 Add `permissions.ask` or `permissions.deny` rules there for sensitive
