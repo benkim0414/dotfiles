@@ -92,7 +92,7 @@ Local settings override base on a per-key basis (arrays concatenate).
 ### Semantic policy hook
 
 `~/.claude/hooks/permission-policy.sh` runs on PreToolUse for
-`Bash|Write|Edit|MultiEdit|NotebookEdit|WebFetch`. It catches risky
+`Bash|Write|Edit|NotebookEdit|WebFetch`. It catches risky
 shapes that the regex `allow`/`deny`/`ask` lists cannot express:
 
 - shell-expanded secret paths (`$HOME/.ssh/*`, absolute `/Users/ben/.ssh/*`)
