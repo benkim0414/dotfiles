@@ -31,10 +31,7 @@ guidance=""
 # --- Pattern: deleted CWD / path does not exist ---
 if [[ "$error_lower" == *"path"*"does not exist"* ]] ||
    [[ "$error_lower" == *"no such file or directory"* && "$TOOL_NAME" == "Bash" ]]; then
-  repo_hint=""
-  if [[ "$PWD" =~ ^(.*)/\.claude/worktrees/ ]]; then
-    repo_hint="${BASH_REMATCH[1]}"
-  fi
+  repo_hint=$(cwd_repo_hint)
   if [[ -n "$repo_hint" ]]; then
     guidance="The working directory no longer exists (likely a deleted worktree). The user must type at the Claude Code prompt: ! cd \"${repo_hint}\" -- then retry."
   else

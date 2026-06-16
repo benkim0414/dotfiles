@@ -12,10 +12,7 @@ SESSION_ID=$(parse_session_id "$INPUT")
 
 # --- CWD health check ---
 if [[ ! -d "$PWD" ]]; then
-  repo_hint=""
-  if [[ "$PWD" =~ ^(.*)/\.claude/worktrees/ ]]; then
-    repo_hint="${BASH_REMATCH[1]}"
-  fi
+  repo_hint=$(cwd_repo_hint)
   msg="WARNING: Current directory no longer exists: $PWD."
   if [[ -n "$repo_hint" ]]; then
     ctx="CWD no longer exists: $PWD. The worktree was deleted. User must type at Claude Code prompt: ! cd \"$repo_hint\""

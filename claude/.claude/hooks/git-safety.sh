@@ -16,10 +16,11 @@ INPUT=$(cat)
 # rarer case where the directory exists but is in an inconsistent state.
 # When stuck in a deleted CWD, the user must escape via: ! cd <project-root>
 if [[ ! -d "$PWD" ]]; then
-  repo_hint=""
-  if [[ "$PWD" =~ ^(.*)/\.claude/worktrees/ ]]; then
-    repo_hint="${BASH_REMATCH[1]}"
-  fi
+  # Cold path (deleted CWD): lazily source session.sh for cwd_repo_hint so the
+  # hot path (~90% of Bash calls) stays lib-free.
+  # shellcheck source=../lib/session.sh
+  source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../lib/session.sh"
+  repo_hint=$(cwd_repo_hint)
   {
     echo "BLOCKED: Shell CWD no longer exists: $PWD"
     echo ""

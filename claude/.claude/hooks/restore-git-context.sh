@@ -11,10 +11,7 @@ source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${
 
 # CWD health check -- mirror SessionStart's deleted-worktree recovery.
 if [[ ! -d "$PWD" ]]; then
-  repo_hint=""
-  if [[ "$PWD" =~ ^(.*)/\.claude/worktrees/ ]]; then
-    repo_hint="${BASH_REMATCH[1]}"
-  fi
+  repo_hint=$(cwd_repo_hint)
   ctx="Post-compaction context: CWD no longer exists: $PWD."
   if [[ -n "$repo_hint" ]]; then
     ctx+=" Worktree deleted. User must type at Claude Code prompt: ! cd \"$repo_hint\""

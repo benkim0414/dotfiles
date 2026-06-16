@@ -85,3 +85,14 @@ check_worktree_pending() {
   echo "  Emergency escape: rm \"${pf}\"" >&2
   exit 2
 }
+
+# --- Worktree / CWD detection ---
+
+# Echo the parent repo path when PWD is (or was) under a .claude/worktrees/
+# directory; echo nothing otherwise. Used to build the "! cd <repo>" recovery
+# hint when a worktree CWD has been deleted.
+cwd_repo_hint() {
+  if [[ "$PWD" =~ ^(.*)/\.claude/worktrees/ ]]; then
+    printf '%s' "${BASH_REMATCH[1]}"
+  fi
+}
