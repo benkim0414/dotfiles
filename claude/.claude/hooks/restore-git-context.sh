@@ -39,12 +39,12 @@ CTX=""
 # Detect linked worktree vs main working tree.
 if [[ "$(worktree_kind)" == "linked" ]]; then
   CTX="Post-compaction context: worktree session active (branch: ${BRANCH}). Isolation confirmed; edits are safe."
-  if [[ "${CLAUDE_GIT_WORKFLOW:-}" == "no-pr" ]]; then
+  if workflow_no_pr; then
     CTX+=" MODE: no-pr -- before ExitWorktree, run requesting-code-review until clean, then ce-compound."
   fi
 else
   CTX="Post-compaction context: main worktree (branch: ${BRANCH}). Call EnterWorktree() before any edits."
-  if [[ "${CLAUDE_GIT_WORKFLOW:-}" == "no-pr" ]]; then
+  if workflow_no_pr; then
     CTX+=" MODE: no-pr -- run requesting-code-review until clean, then ce-compound, then finishing-a-development-branch option 1. Reference: ~/.claude/docs/superpowers-workflow.md."
   fi
 fi

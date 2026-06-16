@@ -45,6 +45,8 @@ fi
 COMMAND=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // ""')
 
 # Per-repo opt-out of PR workflow.
+# Canonical gate: workflow_no_pr in lib/session.sh. Inlined here so the hot
+# path (~90% of Bash calls) never sources a lib.
 NO_PR=false
 [[ "${CLAUDE_GIT_WORKFLOW:-}" == "no-pr" ]] && NO_PR=true
 

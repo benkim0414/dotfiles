@@ -113,3 +113,12 @@ worktree_kind() {
     printf 'main'
   fi
 }
+
+# --- Workflow mode ---
+
+# Return 0 when the session runs in no-pr workflow mode, 1 otherwise.
+# Single source for the CLAUDE_GIT_WORKFLOW env-var name and its "no-pr"
+# contract; a future rename or added mode changes only this function.
+workflow_no_pr() {
+  [[ "${CLAUDE_GIT_WORKFLOW:-}" == "no-pr" ]]
+}
