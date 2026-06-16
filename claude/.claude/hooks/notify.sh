@@ -5,7 +5,7 @@
 # Event:   Notification and PreToolUse
 # Matcher: AskUserQuestion|ExitPlanMode (PreToolUse); all Notification events
 # Exit:    0 always.
-# Async:   yes — must never slow down Claude Code.
+# Async:   yes — must never block Claude Code.
 #
 # Called from two hook contexts; detects its context via hook_event_name:
 #   Notification   -- permission_prompt, idle_prompt, elicitation_dialog
