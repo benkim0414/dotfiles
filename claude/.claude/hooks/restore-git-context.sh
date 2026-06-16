@@ -33,13 +33,11 @@ if [[ "$(git rev-parse --is-bare-repository 2>/dev/null)" == "true" ]]; then
 fi
 
 BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)
-GIT_ABS_DIR=$(git rev-parse --absolute-git-dir 2>/dev/null || true)
-GIT_COMMON_DIR=$(cd "$(git rev-parse --git-common-dir 2>/dev/null)" 2>/dev/null && pwd || true)
 
 CTX=""
 
 # Detect linked worktree vs main working tree.
-if [[ -n "$GIT_ABS_DIR" && -n "$GIT_COMMON_DIR" && "$GIT_ABS_DIR" != "$GIT_COMMON_DIR" ]]; then
+if [[ "$(worktree_kind)" == "linked" ]]; then
   CTX="Post-compaction context: worktree session active (branch: ${BRANCH}). Isolation confirmed; edits are safe."
   if [[ "${CLAUDE_GIT_WORKFLOW:-}" == "no-pr" ]]; then
     CTX+=" MODE: no-pr -- before ExitWorktree, run requesting-code-review until clean, then ce-compound."

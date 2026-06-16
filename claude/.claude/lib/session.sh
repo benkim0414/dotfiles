@@ -96,3 +96,20 @@ cwd_repo_hint() {
     printf '%s' "${BASH_REMATCH[1]}"
   fi
 }
+
+# Echo the worktree kind for the current directory:
+#   linked  -- inside a linked (git worktree add) working tree
+#   main    -- inside the primary working tree
+#   none    -- not in a git repo, or a bare repo
+worktree_kind() {
+  git rev-parse --git-dir >/dev/null 2>&1 || { printf 'none'; return; }
+  [[ "$(git rev-parse --is-bare-repository 2>/dev/null)" == "true" ]] && { printf 'none'; return; }
+  local abs common
+  abs=$(git rev-parse --absolute-git-dir 2>/dev/null || true)
+  common=$(cd "$(git rev-parse --git-common-dir 2>/dev/null)" 2>/dev/null && pwd || true)
+  if [[ -n "$abs" && -n "$common" && "$abs" != "$common" ]]; then
+    printf 'linked'
+  else
+    printf 'main'
+  fi
+}

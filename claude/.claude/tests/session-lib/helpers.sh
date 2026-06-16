@@ -4,7 +4,12 @@ set -uo pipefail
 
 : "${LIB:?LIB must be set by run.sh}"
 
-CASE_TMP="$(mktemp -d -t session-lib-test.XXXXXX)"
+# Resolve to the physical path: on macOS mktemp lives under /var -> /private/var
+# symlink. worktree_kind compares `git rev-parse --absolute-git-dir` (physical)
+# against `cd <git-common-dir> && pwd` (logical); a symlinked temp root makes
+# the two differ and misreports a main repo as linked. Pinning the fixture to a
+# physical path keeps the comparison honest without altering the helper.
+CASE_TMP="$(cd "$(mktemp -d -t session-lib-test.XXXXXX)" && pwd -P)"
 cleanup() { rm -rf "$CASE_TMP"; }
 trap cleanup EXIT
 
