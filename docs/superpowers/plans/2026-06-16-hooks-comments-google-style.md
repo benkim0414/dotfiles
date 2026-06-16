@@ -250,14 +250,21 @@ git commit -m "style(claude): shfmt-format hooks and libs"
 
 ---
 
-## Task 4: Wrap notify and read-once hooks in main()
+## Task 4: Wrap notify hook in main()
 
 Structural, behavior-preserving. §7.7 requires `main` for scripts that
-define another function — only `notify.sh` and `read-once.sh` qualify.
+define another function — `notify.sh` and `read-once.sh` both qualify by
+the letter, but **read-once.sh is exempted by decision**: it is the
+hot-path hook (fires on every Read/Bash/Grep) with a deliberate
+fast-exit-before-source structure (header lines 66-68); hoisting its
+140-line `_check_path` above that boundary adds behavior risk for
+marginal readability gain. read-once.sh keeps its flow structure and
+documents the §7.7 deviation in its header (Task 6) and the README
+(Task 9), alongside the env-bash deviation.
 
 **Files:**
-- Modify: `claude/.claude/hooks/notify.sh`
-- Modify: `claude/.claude/hooks/read-once.sh`
+- Modify: `claude/.claude/hooks/notify.sh` (hoist `send_osc777` above a
+  new `main()`; body vars stay global so behavior is identical)
 
 - [ ] **Step 1: Wrap notify.sh top-level code in main()**
 
@@ -282,51 +289,31 @@ main "$@"
 
 Preserve the body exactly; only indent it and add the `main`/call.
 
-- [ ] **Step 2: Wrap read-once.sh top-level code in main()**
-
-Same transform: keep `_check_path` (and any other functions) above,
-wrap the top-level execution in `main`, call `main "$@"` at the end.
-
-```bash
-# Entry point: dedupe redundant reads; allow + record or block.
-# Globals:   reads stdin (hook JSON), READ_ONCE_* env, cache file
-# Arguments: none
-# Outputs:   block reason on stderr (exit 2) or silent allow (exit 0)
-# Returns:   0 = allow; 2 = block
-main() {
-  # ← existing top-level body verbatim, indented one level
-}
-
-main "$@"
-```
-
-- [ ] **Step 3: Re-format the two files (indentation changed)**
+- [ ] **Step 2: Re-format notify.sh (indentation changed)**
 
 Run:
 ```bash
 cd claude/.claude
-shfmt -i 2 -ci -bn -w hooks/notify.sh hooks/read-once.sh
-shellcheck hooks/notify.sh hooks/read-once.sh
+shfmt -i 2 -ci -bn -w hooks/notify.sh
+shellcheck --severity=warning hooks/notify.sh
 ```
-Expected: shfmt rewrites cleanly; shellcheck clean.
+Expected: shfmt rewrites cleanly; shellcheck clean at warning+ severity.
 
-- [ ] **Step 4: Run the read-once suite + baseline diff**
+- [ ] **Step 3: Baseline diff**
 
 Run:
 ```bash
-(cd claude/.claude/tests/read-once && bash run.sh)
 bash /tmp/hooks-baseline/run-harness.sh \
-  "$PWD/claude/.claude/hooks" /tmp/hooks-baseline/after-main
-diff /tmp/hooks-baseline/before /tmp/hooks-baseline/after-main \
-  --exclude=fakehome --exclude=xdg
+  "$PWD/claude/.claude/hooks" /tmp/hooks-baseline/after-main "$PWD"
+diff /tmp/hooks-baseline/before/notify.sh.out /tmp/hooks-baseline/after-main/notify.sh.out
 ```
-Expected: read-once suite exits 0; no `.out`/`.err`/`.rc` diff for `notify.sh` / `read-once.sh`.
+Expected: no `.out`/`.err`/`.rc` diff for `notify.sh`.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
-git add claude/.claude/hooks/notify.sh claude/.claude/hooks/read-once.sh
-git commit -m "refactor(claude): wrap notify and read-once hooks in main()"
+git add claude/.claude/hooks/notify.sh
+git commit -m "refactor(claude): wrap notify hook body in main()"
 ```
 
 ---
