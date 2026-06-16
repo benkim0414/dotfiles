@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# PreToolUse hook (matchers: Write, Edit, MultiEdit, NotebookEdit):
+# PreToolUse hook (matchers: Write, Edit, NotebookEdit):
 # Block file-editing tools until EnterWorktree() has been called this session.
 # Only applies to paths inside the git working tree; writes to external paths
 # (e.g. ~/.claude/plans/, /tmp/) are always allowed.

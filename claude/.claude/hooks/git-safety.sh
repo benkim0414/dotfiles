@@ -2,7 +2,7 @@
 # PreToolUse hook (matcher: Bash): guard for git-related Bash tool calls.
 # Enforces git-main-guard and commit-guard with a single jq invocation.
 # Worktree isolation is handled by the dedicated worktree-guard.sh hook
-# (matcher: Write|Edit|MultiEdit|NotebookEdit).
+# (matcher: Write|Edit|NotebookEdit).
 # Exit 0 = allow (stdout → context). Exit 2 = block (stderr → Claude).
 set -euo pipefail
 
@@ -50,7 +50,7 @@ NO_PR=false
 # =====================================================================
 # Git guards — only relevant for git add/commit/push/merge/rebase/cherry-pick
 # =====================================================================
-# NOTE: Worktree isolation for file-editing tools (Write, Edit, MultiEdit,
+# NOTE: Worktree isolation for file-editing tools (Write, Edit,
 # NotebookEdit) is enforced by the dedicated worktree-guard.sh hook.
 # This hook only enforces git-command guards (no commit/push/merge on main).
 
