@@ -1,15 +1,19 @@
 #!/usr/bin/env bash
-# Permission-policy lib for the PreToolUse permission-policy.sh hook.
-# Source this file; do not execute it directly.
+# permission-policy.sh — matchers for the PreToolUse permission-policy.sh hook.
+#                        Source this file; do not execute it directly.
 #
-# Public API:
-#   check_bash <command>                 -- emit reason or empty
-#   check_file_edit <path> <wt_root>     -- emit reason or empty
-#   check_web_fetch <url>                -- emit reason or empty
+# Public API (each prints a non-empty "ask" reason on match, empty otherwise):
+#   check_bash <command>                 -- risky bash shapes
+#   check_file_edit <path> <wt_root>     -- sensitive file edits
+#   check_web_fetch <url>                -- exfil / suspect-host URLs
 
 # --- check_bash -----------------------------------------------------------
-# Inspect a bash command string and return a non-empty reason if any
-# risky-shape pattern matches; empty otherwise.
+# Inspect a bash command for risky shapes the static deny/ask lists miss:
+# shell-expanded secret paths, rm -rf bypass forms, curl|sh, chained rm -rf,
+# and base64/tar/gpg|curl exfil pipelines.
+# Arguments: $1 command string
+# Outputs:   a reason string on match; empty string otherwise
+# Returns:   0 always
 # shellcheck disable=SC2016  # intentional literal $HOME / ${HOME} matching
 check_bash() {
   local cmd="$1"
@@ -59,9 +63,12 @@ check_bash() {
 }
 
 # --- check_file_edit ------------------------------------------------------
-# Inspect a file_path (canonicalized internally) plus the worktree root and
-# return a non-empty reason if the edit targets safety-critical claude config
-# outside the current worktree, or persistence/shell-init files.
+# Flag edits to safety-critical live ~/.claude/ config outside the current
+# worktree, or to shell-init / persistence files. Edits via the dotfiles
+# source path (e.g. zsh/.zshrc inside the repo) do not match and stay silent.
+# Arguments: $1 file path, $2 worktree root (optional)
+# Outputs:   a reason string on match; empty string otherwise
+# Returns:   0 always
 check_file_edit() {
   local path="$1" wt_root="${2:-}"
 
@@ -107,8 +114,12 @@ check_file_edit() {
 }
 
 # --- check_web_fetch ------------------------------------------------------
-# Inspect a URL string and return a non-empty reason if it matches exfil /
-# suspect-host / local-path patterns.
+# Flag a URL that matches exfil / suspect-host / local-path patterns:
+# dynamic-DNS/paste/webhook hosts, oversized or base64-shaped query strings,
+# or URLs that embed a local filesystem path / shell var.
+# Arguments: $1 URL string
+# Outputs:   a reason string on match; empty string otherwise
+# Returns:   0 always
 # shellcheck disable=SC2016  # intentional literal $HOME / ${HOME} matching
 check_web_fetch() {
   local url="$1"

@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
-# Shared cache helpers for read-once.sh.
-# Source this file after setting globals: CACHE CACHE_DIR TTL NOW SESSION_ID
+# read-once-cache.sh — JSONL cache helpers for hooks/read-once.sh.
+#
+# Source this file after setting globals: CACHE CACHE_DIR TTL NOW SESSION_ID.
 
 # Append a JSONL entry to CACHE for ABS with the given ranges array.
-# Args: abs mtime ranges (JSON array string) [denies]
-# denies defaults to 0 (counter reset on every rc_record call).
+# The denies counter resets on every rc_record call (defaults to 0).
+# Globals:   CACHE, NOW (read)
+# Arguments: $1 abs path, $2 mtime, $3 ranges (JSON array string), $4 denies (optional)
+# Outputs:   none (appends a line to $CACHE)
 rc_record() {
   local abs="$1" mtime="$2" ranges="$3" denies="${4:-0}"
   jq -cn \
@@ -17,12 +20,14 @@ rc_record() {
     >>"$CACHE" 2>/dev/null || true
 }
 
-# Look up ABS in the JSONL cache and emit tab-separated:
-#   STATUS<TAB>P_MTIME<TAB>P_TS<TAB>COVERED<TAB>EXTENDED<TAB>P_DENIES
-# STATUS=NEW when no prior entry, HIT otherwise.
-# EXTENDED is the prior ranges array extended with the new [offset,limit].
-# P_DENIES is the deny counter for the latest entry, 0 if absent.
-# Uses /dev/null when CACHE does not exist (jq sees an empty stream → NEW).
+# Look up ABS in the JSONL cache and report coverage of the requested range.
+# STATUS=NEW when no prior entry, HIT otherwise. EXTENDED is the prior ranges
+# array extended with the new [offset,limit]. P_DENIES is the latest entry's
+# deny counter (0 if absent). Reads /dev/null when CACHE is missing (jq sees an
+# empty stream -> NEW).
+# Globals:   CACHE (read)
+# Arguments: $1 abs path, $2 offset, $3 limit
+# Outputs:   tab-separated STATUS<TAB>P_MTIME<TAB>P_TS<TAB>COVERED<TAB>EXTENDED<TAB>P_DENIES
 rc_lookup() {
   local abs="$1" offset="$2" limit="$3"
   local cache_file="${CACHE:-/dev/null}"
@@ -45,10 +50,10 @@ rc_lookup() {
   ' "$cache_file" 2>/dev/null || true
 }
 
-# Write the permissionDecision=deny JSON to stdout.
-# Args: abs age_seconds size_bytes [denies]
-# denies is the count of prior denies on this (session, path); the wording
-# escalates through ranks as it grows (see T13).
+# Build the permissionDecision=deny JSON, escalating the wording by prior
+# deny count (rank 0 reminder -> rank 6+ retry-loop + operator escape).
+# Arguments: $1 abs path, $2 age seconds, $3 size bytes, $4 prior denies (optional)
+# Outputs:   the deny JSON envelope on stdout
 rc_deny() {
   local abs="$1" age="$2" size="$3" denies="${4:-0}"
   local tokens
@@ -73,9 +78,12 @@ rc_deny() {
   }'
 }
 
-# rc_recent_touch ABS [WINDOW_SECONDS]
-# Returns 0 (and prints the touch ts) if abs was touched within WINDOW seconds
-# of NOW; returns 1 otherwise. Default window: 30s.
+# Report whether ABS was touched within WINDOW seconds of NOW (touch-bypass
+# detection feeds off the per-session touch-events sidecar).
+# Globals:   CACHE_DIR, SESSION_ID, NOW (read)
+# Arguments: $1 abs path, $2 window seconds (optional, default 30)
+# Outputs:   the most recent touch ts on stdout when within window
+# Returns:   0 if touched within window, 1 otherwise
 rc_recent_touch() {
   local abs="$1" window="${2:-30}"
   local sidecar="${CACHE_DIR}/touch-events-${SESSION_ID}.jsonl"
@@ -92,7 +100,9 @@ rc_recent_touch() {
 }
 
 # Compute a stable filename slug from an absolute path (for snapshot storage).
-# GNU sha1sum → BSD shasum → GNU md5sum → BSD md5, last resort base64 truncated.
+# Tries GNU sha1sum -> BSD shasum -> GNU md5sum -> BSD md5, last resort base64.
+# Arguments: $1 abs path
+# Outputs:   a filesystem-safe slug on stdout
 rc_path_slug() {
   local abs="$1"
   printf '%s' "$abs" | sha1sum 2>/dev/null | cut -c1-40 && return
