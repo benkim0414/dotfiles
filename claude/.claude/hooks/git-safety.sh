@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
-# PreToolUse hook (matcher: Bash): guard for git-related Bash tool calls.
-# Enforces git-main-guard and commit-guard with a single jq invocation.
-# Worktree isolation is handled by the dedicated worktree-guard.sh hook
-# (matcher: Write|Edit|NotebookEdit).
-# Exit 0 = allow (stdout → context). Exit 2 = block (stderr → Claude).
+# git-safety.sh — guard git Bash calls: main-branch + commit scope/atomicity.
+#
+# Event:   PreToolUse
+# Matcher: Bash
+# Exit:    0 = allow (warnings → stdout/context); 2 = block (stderr → Claude)
+#
+# Enforces git-main-guard (no commit/push/merge on main) and commit-guard
+# (atomicity + commit-scope signals via lib/commit-scope.sh) with a single jq
+# invocation. Worktree isolation for file edits is handled by the dedicated
+# worktree-guard.sh hook (matcher: Write|Edit|NotebookEdit).
 set -euo pipefail
 
 # --- Read stdin once; fast-exit for non-git commands ---

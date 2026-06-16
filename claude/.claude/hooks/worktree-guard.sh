@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
-# PreToolUse hook (matchers: Write, Edit, NotebookEdit):
-# Block file-editing tools until EnterWorktree() has been called this session.
+# worktree-guard.sh — block file edits until EnterWorktree() this session.
+#
+# Event:   PreToolUse
+# Matcher: Write|Edit|NotebookEdit
+# Exit:    0 = allow; 2 = block (stderr shown to Claude as error)
+#
 # Only applies to paths inside the git working tree; writes to external paths
-# (e.g. ~/.claude/plans/, /tmp/) are always allowed.
-# Exit 0 = allow. Exit 2 = block (stderr shown to Claude as error).
+# (e.g. ~/.claude/plans/, /tmp/) are always allowed. Delegates the block
+# decision + self-healing to check_worktree_pending in lib/session.sh.
 set -euo pipefail
 
 # Fast exit: no sessions need worktrees → nothing to block.

@@ -1,5 +1,16 @@
 #!/usr/bin/env bash
-# PreToolUse hook (matchers: Read, NotebookRead, mcp__qmd__get, Bash, Grep):
+# read-once.sh — block redundant reads already in this session's context.
+#
+# Event:   PreToolUse
+# Matcher: Read|NotebookRead|mcp__qmd__get|Bash|Grep
+# Exit:    0 = allow (and record a fresh cache entry); deny JSON = block.
+#
+# Style:   intentionally has NO main() wrapper despite defining _check_path
+#          (a Google §7.7 deviation). The per-tool fast-exits run BEFORE the
+#          lib source as a hot-path optimization (see "Hot path" below);
+#          hoisting _check_path above that boundary would defeat it. See
+#          hooks/README.md.
+#
 # Block redundant reads when the same file+range is already in this session's
 # context. Based on the community "read-once" pattern (Boucle, egorfedorov).
 # Extended to catch Bash file-read commands and Grep content-mode on cached files.

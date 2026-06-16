@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
-# PreToolUse hook: semantic permission policy. Reads stdin JSON, dispatches by
-# tool_name, emits {permissionDecision: "ask"} JSON when a lib check fires.
-# Exit 0 silent = allow. Never emits deny.
+# permission-policy.sh — semantic permission policy; dispatch by tool_name.
 #
-# Disable with: CLAUDE_PERMISSION_POLICY=off (returns 0 immediately).
+# Event:   PreToolUse
+# Matcher: Bash|Write|Edit|NotebookEdit|WebFetch
+# Exit:    0 always — silent = allow, or emits {permissionDecision:"ask"} JSON
+#          when a lib check fires. Never emits deny. Off: CLAUDE_PERMISSION_POLICY=off
+#
+# Reads stdin JSON and delegates to the matcher functions in
+# lib/permission-policy.sh (check_bash / check_file_edit / check_web_fetch).
 set -uo pipefail
 
 # Honor disable env var. Positioned before all I/O and lib sourcing so a
