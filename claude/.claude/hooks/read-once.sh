@@ -1,5 +1,16 @@
 #!/usr/bin/env bash
-# PreToolUse hook (matchers: Read, NotebookRead, mcp__qmd__get, Bash, Grep):
+# read-once.sh — block redundant reads already in this session's context.
+#
+# Event:   PreToolUse
+# Matcher: Read|NotebookRead|mcp__qmd__get|Bash|Grep
+# Exit:    0 = allow (and record a fresh cache entry); deny JSON = block.
+#
+# Style:   intentionally has NO main() wrapper despite defining _check_path
+#          (a Google §7.7 deviation). The per-tool fast-exits run BEFORE the
+#          lib source as a hot-path optimization (see "Hot path" below);
+#          hoisting _check_path above that boundary would defeat it. See
+#          hooks/README.md.
+#
 # Block redundant reads when the same file+range is already in this session's
 # context. Based on the community "read-once" pattern (Boucle, egorfedorov).
 # Extended to catch Bash file-read commands and Grep content-mode on cached files.
@@ -109,7 +120,7 @@ if [[ "${READ_ONCE_DISABLE:-0}" == "1" ]]; then
       --arg path "$FILE_PATH" \
       --arg cwd "$PWD" \
       '{ts:$ts,session_id:$sid,tool:$tool,command:$cmd,path:$path,cwd:$cwd,event:"read_once_bypass"}' \
-      >> "$_log_file" 2>/dev/null || true
+      >>"$_log_file" 2>/dev/null || true
   } &
   disown
   exit 0
@@ -128,35 +139,42 @@ if [[ "$TOOL_NAME" == "Bash" ]]; then
   _touch_re='^[[:space:]]*(sudo[[:space:]]+)?touch([[:space:]]|$)'
   if [[ "$COMMAND" =~ $_touch_re ]]; then
     _t_rest="${COMMAND#*touch}"
-    read -ra _t_tokens <<< "$_t_rest" || true
+    read -ra _t_tokens <<<"$_t_rest" || true
     _t_skip=0
     declare -a _touched_paths=()
     for _t in "${_t_tokens[@]}"; do
-      if (( _t_skip )); then _t_skip=0; continue; fi
+      if ((_t_skip)); then
+        _t_skip=0
+        continue
+      fi
       [[ "$_t" == "--" ]] && continue
-      if [[ "$_t" =~ ^-[tdr]$ ]]; then _t_skip=1; continue; fi
+      if [[ "$_t" =~ ^-[tdr]$ ]]; then
+        _t_skip=1
+        continue
+      fi
       [[ "$_t" =~ ^- ]] && continue
-      _t="${_t#[\'\"]}"; _t="${_t%[\'\"]}"
+      _t="${_t#[\'\"]}"
+      _t="${_t%[\'\"]}"
       [[ -n "$_t" ]] && _touched_paths+=("$_t")
     done
 
-    if (( ${#_touched_paths[@]} > 0 )); then
+    if ((${#_touched_paths[@]} > 0)); then
       CACHE_DIR="${XDG_RUNTIME_DIR:-$HOME/.cache}/claude"
       mkdir -p "$CACHE_DIR" 2>/dev/null || true
       _sidecar="${CACHE_DIR}/touch-events-${SESSION_ID}.jsonl"
       _ts="${EPOCHSECONDS:-$(date +%s)}"
       for _p in "${_touched_paths[@]}"; do
         _abs=$(realpath -m "$_p" 2>/dev/null \
-              || grealpath -m "$_p" 2>/dev/null \
-              || readlink -f "$_p" 2>/dev/null || echo "$_p")
+          || grealpath -m "$_p" 2>/dev/null \
+          || readlink -f "$_p" 2>/dev/null || echo "$_p")
         jq -cn --arg path "$_abs" --argjson ts "$_ts" \
           '{path:$path,ts:$ts,event:"touch_invalidate"}' \
-          >> "$_sidecar" 2>/dev/null || true
+          >>"$_sidecar" 2>/dev/null || true
       done
       if [[ -f "$_sidecar" ]]; then
-        _lines=$(wc -l < "$_sidecar" 2>/dev/null || echo 0)
-        if (( _lines > 100 )); then
-          tail -n 100 "$_sidecar" > "${_sidecar}.tmp" \
+        _lines=$(wc -l <"$_sidecar" 2>/dev/null || echo 0)
+        if ((_lines > 100)); then
+          tail -n 100 "$_sidecar" >"${_sidecar}.tmp" \
             && mv "${_sidecar}.tmp" "$_sidecar"
         fi
       fi
@@ -167,18 +185,19 @@ if [[ "$TOOL_NAME" == "Bash" ]]; then
       if [[ -f "$CACHE" ]]; then
         for _p in "${_touched_paths[@]}"; do
           _abs=$(realpath -m "$_p" 2>/dev/null \
-                || grealpath -m "$_p" 2>/dev/null \
-                || readlink -f "$_p" 2>/dev/null || echo "$_p")
+            || grealpath -m "$_p" 2>/dev/null \
+            || readlink -f "$_p" 2>/dev/null || echo "$_p")
           _row=$(jq -rs --arg p "$_abs" '
             [.[] | select(.path == $p)] | last
             | if . == null then "" else "\(.mtime) \(.ts)" end
           ' "$CACHE" 2>/dev/null) || _row=""
           [[ -n "$_row" ]] || continue
-          _cached_mtime="${_row% *}"; _cached_ts="${_row#* }"
+          _cached_mtime="${_row% *}"
+          _cached_ts="${_row#* }"
           _disk_mtime=$(stat -c %Y "$_p" 2>/dev/null \
-                       || stat -f %m "$_p" 2>/dev/null || echo 0)
+            || stat -f %m "$_p" 2>/dev/null || echo 0)
           if [[ "$_cached_mtime" == "$_disk_mtime" ]] \
-             && (( _ts - _cached_ts <= 5 )); then
+            && ((_ts - _cached_ts <= 5)); then
             reason="read-once: ${_abs} DENY — touch on recently-read file looks like a read-once bypass. To force re-read: edit content, or set READ_ONCE_DISABLE=1."
             jq -cn --arg r "$reason" '{
               hookSpecificOutput:{
@@ -211,10 +230,10 @@ if [[ "$TOOL_NAME" == "Bash" ]]; then
   if [[ "$READ_TOOL" == "sed" ]]; then
     # Walk every whitespace-separated token of the command, looking for an
     # in-place flag.
-    read -ra _sed_tokens <<< "$COMMAND" || true
+    read -ra _sed_tokens <<<"$COMMAND" || true
     for _t in "${_sed_tokens[@]}"; do
-      if [[ "$_t" == "-i" || "$_t" == "--in-place" \
-            || "$_t" =~ ^-i.+ || "$_t" =~ ^--in-place= ]]; then
+      if [[ "$_t" == "-i" || "$_t" == "--in-place" ||
+        "$_t" =~ ^-i.+ || "$_t" =~ ^--in-place= ]]; then
         exit 0
       fi
     done
@@ -228,8 +247,7 @@ if [[ "$TOOL_NAME" == "Bash" ]]; then
   else
     _rest=""
   fi
-  _rest="${_rest%%>[^|]*}"   # strip anything after a non-piped >
-
+  _rest="${_rest%%>[^|]*}" # strip anything after a non-piped >
 
   # Collect non-flag tokens as potential file arguments.
   _skip_next=0
@@ -238,14 +256,17 @@ if [[ "$TOOL_NAME" == "Bash" ]]; then
   # head/tail where -n N requires a value. A shared regex across unrelated tools
   # silently lets file paths slip past the cache as consumed flag values.
   case "$READ_TOOL" in
-    head|tail) _skip_re='^-(n|c)$' ;;   # head/tail -n N | -c N
-    sed)       _skip_re='^-(e|f)$' ;;   # sed -e EXPR | -f FILE
-    *)         _skip_re='' ;;            # cat/bat/view/less/more — no value flags
+    head | tail) _skip_re='^-(n|c)$' ;; # head/tail -n N | -c N
+    sed) _skip_re='^-(e|f)$' ;;         # sed -e EXPR | -f FILE
+    *) _skip_re='' ;;                   # cat/bat/view/less/more — no value flags
   esac
-  read -ra _tokens <<< "$_rest" || true
+  read -ra _tokens <<<"$_rest" || true
   _pipe_re='^[|<>]'
   for _tok in "${_tokens[@]}"; do
-    if (( _skip_next )); then _skip_next=0; continue; fi
+    if ((_skip_next)); then
+      _skip_next=0
+      continue
+    fi
     [[ "$_tok" == "--" ]] && continue
     # Pipe or redirection: stop collecting.
     [[ "$_tok" =~ $_pipe_re ]] && break
@@ -255,7 +276,8 @@ if [[ "$TOOL_NAME" == "Bash" ]]; then
       continue
     fi
     # Strip surrounding single or double quotes.
-    _tok="${_tok#[\'\"]}" ; _tok="${_tok%[\'\"]}"
+    _tok="${_tok#[\'\"]}"
+    _tok="${_tok%[\'\"]}"
     [[ -n "$_tok" ]] && FILE_ARGS+=("$_tok")
   done
 
@@ -266,7 +288,7 @@ fi
 if [[ "$TOOL_NAME" == "Grep" ]]; then
   [[ "$OUTPUT_MODE" == "content" ]] || exit 0
   [[ -n "$FILE_PATH" ]] || exit 0
-  [[ -d "$FILE_PATH" ]] && exit 0  # directory glob — not a single-file read
+  [[ -d "$FILE_PATH" ]] && exit 0 # directory glob — not a single-file read
 fi
 
 # Read / NotebookRead / mcp__qmd__*: qmd docids ("#abc123") are not real paths.
@@ -294,10 +316,10 @@ if [[ "${READ_ONCE_GC_DISABLE:-0}" != "1" ]]; then
   _need_prune=1
   if [[ -f "$_sentinel" ]]; then
     _s_mtime=$(stat -c %Y "$_sentinel" 2>/dev/null \
-              || stat -f %m "$_sentinel" 2>/dev/null || echo 0)
-    if (( NOW - _s_mtime < 86400 )); then _need_prune=0; fi
+      || stat -f %m "$_sentinel" 2>/dev/null || echo 0)
+    if ((NOW - _s_mtime < 86400)); then _need_prune=0; fi
   fi
-  if (( _need_prune )); then
+  if ((_need_prune)); then
     touch "$_sentinel" 2>/dev/null || true
     {
       _days="${READ_ONCE_GC_DAYS:-7}"
@@ -342,7 +364,7 @@ _check_path() {
   stat_out=$(stat -c '%Y %s' "$abs" 2>/dev/null \
     || stat -f '%m %z' "$abs" 2>/dev/null) || return 0
   local current_mtime size
-  read -r current_mtime size <<< "$stat_out"
+  read -r current_mtime size <<<"$stat_out"
   [[ "$current_mtime" =~ ^[0-9]+$ && "$current_mtime" -gt 0 ]] || return 0
 
   # Cache lookup.
@@ -360,7 +382,7 @@ _check_path() {
     # READ_ONCE_DIFF_MAX_BYTES (default 256KB) and dir-capped at 50 files.
     if [[ "${READ_ONCE_DIFF:-1}" == "1" ]]; then
       local _max_bytes="${READ_ONCE_DIFF_MAX_BYTES:-262144}"
-      if (( size <= _max_bytes )); then
+      if ((size <= _max_bytes)); then
         local snap_dir="${CACHE_DIR}/snapshots-${SESSION_ID}"
         mkdir -p "$snap_dir" 2>/dev/null || true
         local slug
@@ -373,9 +395,9 @@ _check_path() {
           # don't inflate the count via wc -l.
           local _count
           _count=$(find "$snap_dir" -maxdepth 1 -type f 2>/dev/null | wc -l)
-          if (( _count > 50 )); then
-            ls -1t "$snap_dir" 2>/dev/null | tail -n +51 | \
-              while IFS= read -r _f; do rm -f -- "$snap_dir/$_f"; done
+          if ((_count > 50)); then
+            ls -1t "$snap_dir" 2>/dev/null | tail -n +51 \
+              | while IFS= read -r _f; do rm -f -- "$snap_dir/$_f"; done
           fi
         fi
       fi
@@ -386,8 +408,8 @@ _check_path() {
   # File changed since last read.
   if [[ "$p_mtime" != "$current_mtime" ]]; then
     # Diff mode (Read/NotebookRead/qmd only): return diff instead of full re-read.
-    if [[ "${READ_ONCE_DIFF:-1}" == "1" \
-        && "$TOOL_NAME" != "Bash" && "$TOOL_NAME" != "Grep" ]]; then
+    if [[ "${READ_ONCE_DIFF:-1}" == "1" &&
+      "$TOOL_NAME" != "Bash" && "$TOOL_NAME" != "Grep" ]]; then
       local snap_dir="${CACHE_DIR}/snapshots-${SESSION_ID}"
       local slug
       slug=$(rc_path_slug "$abs") || true
@@ -401,16 +423,16 @@ _check_path() {
         # current size > 4x snap size (heuristic for rewrites).
         local _snap_size _bin_marker=0
         _snap_size=$(stat -c %s "$snap" 2>/dev/null \
-                     || stat -f %z "$snap" 2>/dev/null || echo 0)
+          || stat -f %z "$snap" 2>/dev/null || echo 0)
         if [[ "$diff_out" == "Binary files"* ]]; then _bin_marker=1; fi
-        if [[ -n "$diff_out" && "$diff_lines" -le "$max_lines" \
-              && "$_bin_marker" -eq 0 \
-              && "$size" -le $((_snap_size * 4)) ]]; then
+        if [[ -n "$diff_out" && "$diff_lines" -le "$max_lines" &&
+          "$_bin_marker" -eq 0 &&
+          "$size" -le $((_snap_size * 4)) ]]; then
           cp -- "$abs" "$snap" 2>/dev/null || true
           rc_record "$abs" "$current_mtime" "[[${offset}, ${limit}]]"
           local tokens
-          tokens=$(( size / 4 ))
-          local _diff_tokens=$(( ${#diff_out} / 4 ))
+          tokens=$((size / 4))
+          local _diff_tokens=$((${#diff_out} / 4))
           local reason="read-once: ${abs} changed since last read (file ~${tokens} tokens, diff ~${_diff_tokens} tokens, ${diff_lines} lines). Apply this Diff instead of re-reading.
 ${diff_out}"
           jq -cn --arg r "$reason" '{
@@ -429,7 +451,7 @@ ${diff_out}"
   fi
 
   # Cache entry expired (guards context compaction after long sessions).
-  if (( NOW - p_ts >= TTL )); then
+  if ((NOW - p_ts >= TTL)); then
     rc_record "$abs" "$current_mtime" "[[${offset}, ${limit}]]"
     return 0
   fi
@@ -444,15 +466,15 @@ ${diff_out}"
   # counter by writing a fresh cache entry with denies = prior + 1. The
   # latest line wins on the next rc_lookup.
   local age
-  age=$(( NOW - p_ts ))
-  local _next_denies=$(( p_denies + 1 ))
+  age=$((NOW - p_ts))
+  local _next_denies=$((p_denies + 1))
   rc_record "$abs" "$current_mtime" "$extended" "$_next_denies"
   # Touch-invalidation detection: if the agent recently touched this path
   # to try to invalidate the cache, replace the normal ladder with a
   # dedicated wording so the signal is unmistakable.
   local _touch_ts
   if _touch_ts=$(rc_recent_touch "$abs"); then
-    local _touch_age=$(( NOW - _touch_ts ))
+    local _touch_age=$((NOW - _touch_ts))
     local reason="read-once: ${abs} DENY — touch invalidation detected (touched ${_touch_age}s ago, no real edit). Use content from context OR make real edits. Touch invalidation detected at ${_touch_ts}."
     jq -cn --arg r "$reason" '{
       hookSpecificOutput:{

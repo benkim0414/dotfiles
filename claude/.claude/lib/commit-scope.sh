@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Signal-driven commit-scope validation. Repo-agnostic.
+# commit-scope.sh — signal-driven commit-scope validation, repo-agnostic.
+#                   Sourced by hooks/git-safety.sh and tests/commit-scope.
 #
 # Four signals (computed against the current repo's filesystem + git log):
 #   S1 universal filesystem container name (with history escape)
@@ -21,6 +22,10 @@ CONTAINER_NAMES=(
 
 # --- Private helpers --------------------------------------------------------
 
+# Print the current repo's basename (the COMMIT_SCOPE_REPO_NAME override wins).
+# Globals:   COMMIT_SCOPE_REPO_NAME (read)
+# Outputs:   repo basename on stdout
+# Returns:   1 when not in a git repo and no override is set
 _repo_basename() {
   if [[ -n "${COMMIT_SCOPE_REPO_NAME:-}" ]]; then
     echo "$COMMIT_SCOPE_REPO_NAME"
@@ -31,6 +36,9 @@ _repo_basename() {
   basename "$top"
 }
 
+# Print the set of scopes seen in recent git history, one per line.
+# Globals:   COMMIT_SCOPE_KNOWN_OVERRIDE (read)
+# Outputs:   sorted-unique scope names parsed from the last 100 subjects
 _known_scopes() {
   if [[ -n "${COMMIT_SCOPE_KNOWN_OVERRIDE:-}" ]]; then
     echo "$COMMIT_SCOPE_KNOWN_OVERRIDE" | tr ',' '\n'
@@ -41,6 +49,10 @@ _known_scopes() {
     | sort -u
 }
 
+# Test whether a scope is a universal filesystem-container name (S1 list).
+# Globals:   CONTAINER_NAMES (read)
+# Arguments: $1 scope
+# Returns:   0 if it is a container name, 1 otherwise
 _is_container() {
   local s="$1" c
   for c in "${CONTAINER_NAMES[@]}"; do
@@ -49,11 +61,18 @@ _is_container() {
   return 1
 }
 
+# Test whether a scope appears in recent git history.
+# Arguments: $1 scope
+# Returns:   0 if found in _known_scopes, 1 otherwise
 _in_known_scopes() {
   local scope="$1"
   _known_scopes | grep -qxF "$scope"
 }
 
+# Test whether a scope matches a path segment, allowing +s plural inflection
+# in either direction (scope==seg, scope+s==seg, scope==seg+s).
+# Arguments: $1 scope, $2 path segment
+# Returns:   0 on match, 1 otherwise
 _seg_matches_scope() {
   local scope="$1" seg="$2"
   [[ "$scope" == "$seg" ]] && return 0
@@ -62,6 +81,10 @@ _seg_matches_scope() {
   return 1
 }
 
+# Split a newline-separated list of staged paths into unique path segments,
+# dropping empties and the .md extension.
+# Arguments: $1 staged-files string (newline-separated)
+# Outputs:   sorted-unique path segments, one per line
 _path_segments() {
   local staged="$1"
   echo "$staged" | tr '/' '\n' | sed '/^$/d' | sed 's|\.md$||' | sort -u
@@ -69,8 +92,10 @@ _path_segments() {
 
 # --- Public API -------------------------------------------------------------
 
-# is_banned_scope <scope> [<staged-files>]
-# Exit 0 = banned, 1 = ok.
+# Decide whether a commit scope names an artifact location rather than a
+# component (S1-S3). See the file header for the signal definitions.
+# Arguments: $1 scope, $2 staged-files string (optional, newline-separated)
+# Returns:   0 = banned scope, 1 = acceptable
 is_banned_scope() {
   local scope="$1" staged="${2:-}"
 
@@ -99,8 +124,11 @@ is_banned_scope() {
   return 1
 }
 
-# suggest_scope <staged-files>
-# Echo candidate scope (empty if none).
+# Suggest a likely component scope from the staged file paths, preferring a
+# longest match against known historical scopes.
+# Arguments: $1 staged-files string (newline-separated)
+# Outputs:   a candidate scope on stdout (empty if none could be derived)
+# Returns:   0 always
 suggest_scope() {
   local staged="$1"
   local count
@@ -108,7 +136,7 @@ suggest_scope() {
   local candidate=""
 
   # Step 1: single file with date-prefixed slug
-  if (( count == 1 )); then
+  if ((count == 1)); then
     local base
     base=$(basename "$staged")
     if [[ "$base" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}-(.+)\.md$ ]]; then
@@ -119,7 +147,7 @@ suggest_scope() {
   fi
 
   # Step 2: single .md file under nested path; walk deepest-first
-  if [[ -z "$candidate" ]] && (( count == 1 )) && [[ "$staged" == *.md ]]; then
+  if [[ -z "$candidate" ]] && ((count == 1)) && [[ "$staged" == *.md ]]; then
     local dir seg
     dir=$(dirname "$staged")
     while [[ "$dir" != "." && "$dir" != "/" && "$dir" != "" ]]; do
@@ -148,10 +176,10 @@ suggest_scope() {
   while IFS= read -r k; do
     [[ -z "$k" ]] && continue
     if [[ "$candidate" == "$k" ]] \
-        || [[ "$candidate" == "${k}-"* ]] \
-        || [[ "$candidate" == *"-${k}-"* ]] \
-        || [[ "$candidate" == *"-${k}" ]]; then
-      if (( ${#k} > best_len )); then
+      || [[ "$candidate" == "${k}-"* ]] \
+      || [[ "$candidate" == *"-${k}-"* ]] \
+      || [[ "$candidate" == *"-${k}" ]]; then
+      if ((${#k} > best_len)); then
         best="$k"
         best_len=${#k}
       fi

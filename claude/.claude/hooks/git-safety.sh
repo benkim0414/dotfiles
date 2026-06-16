@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
-# PreToolUse hook (matcher: Bash): guard for git-related Bash tool calls.
-# Enforces git-main-guard and commit-guard with a single jq invocation.
-# Worktree isolation is handled by the dedicated worktree-guard.sh hook
-# (matcher: Write|Edit|NotebookEdit).
-# Exit 0 = allow (stdout → context). Exit 2 = block (stderr → Claude).
+# git-safety.sh — guard git Bash calls: main-branch + commit scope/atomicity.
+#
+# Event:   PreToolUse
+# Matcher: Bash
+# Exit:    0 = allow (warnings → stdout/context); 2 = block (stderr → Claude)
+#
+# Enforces git-main-guard (no commit/push/merge on main) and commit-guard
+# (atomicity + commit-scope signals via lib/commit-scope.sh) with a single jq
+# invocation. Worktree isolation for file edits is handled by the dedicated
+# worktree-guard.sh hook (matcher: Write|Edit|NotebookEdit).
 set -euo pipefail
 
 # --- Read stdin once; fast-exit for non-git commands ---
@@ -167,7 +172,7 @@ if [[ "$NO_PR" != "true" && "$COMMAND" =~ git[[:space:]]+push ]]; then
       if [[ "$COMMAND" =~ git[[:space:]]+push([[:space:]]+-[^[:space:]]+)*[[:space:]]+(origin)[[:space:]]+([^[:space:]]+:[^[:space:]]+) ]]; then
         dest_refspec="${BASH_REMATCH[3]}"
         if [[ "$dest_refspec" =~ :${MAIN_BRANCH}$ ]]; then
-          block_push=true  # Explicit push to main via src:main — block.
+          block_push=true # Explicit push to main via src:main — block.
         fi
         # else: explicit non-main refspec overrides tracking — ALLOW.
       else
@@ -248,12 +253,12 @@ mkdir -p "$cache_dir" 2>/dev/null || true
 scope_cache="${cache_dir}/commit-scopes-${repo_key}"
 scope_age=999
 if [[ -f "$scope_cache" ]]; then
-  scope_age=$(( EPOCHSECONDS - $(file_mtime "$scope_cache") ))
+  scope_age=$((EPOCHSECONDS - $(file_mtime "$scope_cache")))
 fi
-if (( scope_age > 60 )); then
+if ((scope_age > 60)); then
   known_scopes=$(git log --format='%s' -50 2>/dev/null \
     | awk -F'[()]' '/^[a-z]+\(/ && !seen[$2]++ { s = s (s?",":"") $2 } END { print s }' || true)
-  printf '%s' "$known_scopes" > "$scope_cache" 2>/dev/null || true
+  printf '%s' "$known_scopes" >"$scope_cache" 2>/dev/null || true
 else
   known_scopes=$(cat "$scope_cache" 2>/dev/null || true)
 fi
@@ -272,15 +277,15 @@ fi
 if [[ -n "$suggested" ]]; then
   ctx+=". Suggested scope (derived): ${suggested}"
 fi
-if (( top_level_count > 1 )); then
+if ((top_level_count > 1)); then
   ctx+=". ATOMICITY: staged files span ${top_level_count} top-level dirs. Verify ONE logical change; split if not."
 fi
 
 # S4: new-scope soft advisory (declared scope valid but unfamiliar)
 if [[ -n "${declared_scope:-}" ]] \
-   && ! is_banned_scope "$declared_scope" "$staged" \
-   && ! echo "$known_scopes" | tr ',' '\n' | grep -qxF "$declared_scope" \
-   && [[ "$declared_scope" != "$suggested" ]]; then
+  && ! is_banned_scope "$declared_scope" "$staged" \
+  && ! echo "$known_scopes" | tr ',' '\n' | grep -qxF "$declared_scope" \
+  && [[ "$declared_scope" != "$suggested" ]]; then
   ctx+=". NEW SCOPE: '${declared_scope}' not in git log history; suggested from paths is '${suggested:-<none>}'. Verify scope names a component."
 fi
 

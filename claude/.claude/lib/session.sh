@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Shared session utilities for Claude Code hooks.
-# Source this file; do not execute it directly.
+# session.sh — shared session utilities for Claude Code hooks: structured
+#              context injection, session-id parsing, and worktree/workflow
+#              detection. Source this file; do not execute it directly.
 
 # shellcheck source=portability.sh
 source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/portability.sh"
@@ -10,12 +11,12 @@ source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${
 # reasoning (additionalContext) and/or show a message to the user (systemMessage).
 # These helpers produce the correct envelope for each hook event type.
 
-# Emit additionalContext only (silent -- Claude sees it, user doesn't).
-# Usage: emit_context "SessionStart" "Branch: main. Call EnterWorktree()."
-#
-# PostCompact is not a valid hookEventName for hookSpecificOutput; Claude Code
-# rejects it. Use systemMessage instead, which is injected into the system
-# prompt after compaction and achieves the same re-orientation effect.
+# Emit additionalContext only (silent -- Claude sees it, the user does not).
+# PostCompact is not a valid hookEventName for hookSpecificOutput (Claude Code
+# rejects it), so for that event we emit systemMessage instead, which is
+# injected into the system prompt after compaction and re-orients Claude.
+# Arguments: $1 hook event name, $2 context string
+# Outputs:   the hook JSON envelope on stdout
 emit_context() {
   local event="$1" ctx="$2"
   if [[ "$event" == "PostCompact" ]]; then
@@ -26,8 +27,9 @@ emit_context() {
   fi
 }
 
-# Emit additionalContext + a user-visible systemMessage.
-# Usage: emit_context_with_msg "SessionStart" "<detailed context>" "<short user msg>"
+# Emit additionalContext plus a user-visible systemMessage.
+# Arguments: $1 hook event name, $2 context string, $3 short user message
+# Outputs:   the hook JSON envelope on stdout
 emit_context_with_msg() {
   local event="$1" ctx="$2" msg="$3"
   jq -n --arg e "$event" --arg c "$ctx" --arg m "$msg" \
@@ -36,9 +38,9 @@ emit_context_with_msg() {
 
 # --- Session ID ---
 
-# Parse and validate session_id from a JSON string.
-# Usage: SESSION_ID=$(parse_session_id "$json")
-# Returns empty string if missing or not a valid UUID.
+# Parse and validate session_id from a hook JSON payload.
+# Arguments: $1 JSON string
+# Outputs:   the UUID on stdout, or nothing if missing/not a valid UUID
 parse_session_id() {
   local sid
   sid=$(printf '%s' "$1" | jq -r '.session_id // empty' 2>/dev/null || true)
@@ -51,15 +53,21 @@ parse_session_id() {
 
 STATE_DIR="$HOME/.claude/session-worktrees"
 
-# Path to the pending-worktree marker for a given session.
+# Print the pending-worktree marker path for a session.
+# Globals:   STATE_DIR (read)
+# Arguments: $1 session id
+# Outputs:   the marker file path on stdout
 pending_file() { printf '%s' "$STATE_DIR/pending-${1}"; }
 
-# Check whether the current session still needs a worktree.
-# If the pending file exists but we're already in a linked worktree (self-healing),
-# clears the file and returns 0. If genuinely pending, prints a block message to
-# stderr and exits 2. If no pending file or no session ID, returns 0 silently.
-#
-# Usage: check_worktree_pending "$SESSION_ID"
+# Decide whether the current session still owes a worktree before file edits.
+# Self-healing: if the pending marker exists but we are already in a linked
+# worktree, the stale marker is cleared and the function returns 0. If genuinely
+# pending, prints a block message to stderr and exits 2. No marker / no session
+# id -> returns 0 silently.
+# Globals:   STATE_DIR (read, via pending_file)
+# Arguments: $1 session id
+# Outputs:   block message on stderr when blocking
+# Returns:   0 = allow; exits 2 = block
 check_worktree_pending() {
   local sid="$1"
   [[ -n "$sid" ]] || return 0
@@ -88,22 +96,31 @@ check_worktree_pending() {
 
 # --- Worktree / CWD detection ---
 
-# Echo the parent repo path when PWD is (or was) under a .claude/worktrees/
-# directory; echo nothing otherwise. Used to build the "! cd <repo>" recovery
+# Print the parent repo path when PWD is (or was) under a .claude/worktrees/
+# directory; print nothing otherwise. Used to build the "! cd <repo>" recovery
 # hint when a worktree CWD has been deleted.
+# Globals:   PWD (read)
+# Outputs:   the parent repo path on stdout, or nothing
 cwd_repo_hint() {
   if [[ "$PWD" =~ ^(.*)/\.claude/worktrees/ ]]; then
     printf '%s' "${BASH_REMATCH[1]}"
   fi
 }
 
-# Echo the worktree kind for the current directory:
+# Classify the current directory's git worktree kind.
+# Outputs (stdout):
 #   linked  -- inside a linked (git worktree add) working tree
 #   main    -- inside the primary working tree
 #   none    -- not in a git repo, or a bare repo
 worktree_kind() {
-  git rev-parse --git-dir >/dev/null 2>&1 || { printf 'none'; return; }
-  [[ "$(git rev-parse --is-bare-repository 2>/dev/null)" == "true" ]] && { printf 'none'; return; }
+  git rev-parse --git-dir >/dev/null 2>&1 || {
+    printf 'none'
+    return
+  }
+  [[ "$(git rev-parse --is-bare-repository 2>/dev/null)" == "true" ]] && {
+    printf 'none'
+    return
+  }
   local abs common
   abs=$(git rev-parse --absolute-git-dir 2>/dev/null || true)
   common=$(cd "$(git rev-parse --git-common-dir 2>/dev/null)" 2>/dev/null && pwd || true)
@@ -116,9 +133,11 @@ worktree_kind() {
 
 # --- Workflow mode ---
 
-# Return 0 when the session runs in no-pr workflow mode, 1 otherwise.
-# Single source for the CLAUDE_GIT_WORKFLOW env-var name and its "no-pr"
-# contract; a future rename or added mode changes only this function.
+# Test whether the session runs in no-pr workflow mode. Single source for the
+# CLAUDE_GIT_WORKFLOW env-var name and its "no-pr" contract; a future rename or
+# added mode changes only this function.
+# Globals:   CLAUDE_GIT_WORKFLOW (read)
+# Returns:   0 when no-pr mode, 1 otherwise
 workflow_no_pr() {
   [[ "${CLAUDE_GIT_WORKFLOW:-}" == "no-pr" ]]
 }

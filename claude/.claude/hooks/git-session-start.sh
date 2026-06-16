@@ -1,7 +1,14 @@
 #!/usr/bin/env bash
-# SessionStart hook: inject git/worktree context into Claude's session.
+# git-session-start.sh — inject git/worktree context at session start.
+#
+# Event:   SessionStart
+# Matcher: n/a
+# Exit:    0 always (emits additionalContext + systemMessage JSON)
+#
 # Uses structured JSON output: additionalContext for Claude's reasoning,
-# systemMessage for user-visible confirmation.
+# systemMessage for user-visible confirmation. Detects deleted CWDs, linked
+# worktrees, merged branches (auto-checkout to main), and flags the main
+# working tree as needing EnterWorktree() before edits.
 set -euo pipefail
 
 # shellcheck source=../lib/session.sh
@@ -50,8 +57,8 @@ CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/claude"
 CLEANUP_MARKER="${CACHE_DIR}/.last-cleanup"
 cleanup_needed=true
 if [[ -f "$CLEANUP_MARKER" ]]; then
-  cleanup_age=$(( EPOCHSECONDS - $(file_mtime "$CLEANUP_MARKER") ))
-  (( cleanup_age < 86400 )) && cleanup_needed=false
+  cleanup_age=$((EPOCHSECONDS - $(file_mtime "$CLEANUP_MARKER")))
+  ((cleanup_age < 86400)) && cleanup_needed=false
 fi
 if [[ "$cleanup_needed" == "true" ]]; then
   if [[ -d "$CACHE_DIR" ]]; then
@@ -81,6 +88,7 @@ fi
 CTX=""
 MSG=""
 
+# --- Auto-checkout merged branches (covers the GitHub web-merge case) ---
 REMOTE_HEAD=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null || true)
 MAIN_BRANCH="${REMOTE_HEAD#refs/remotes/origin/}"
 MAIN_BRANCH="${MAIN_BRANCH:-main}"
@@ -93,9 +101,9 @@ if [[ -n "$BRANCH" && "$BRANCH" != "$MAIN_BRANCH" && "$BRANCH" != "HEAD" ]]; the
   fetch_head="${GIT_ABS_DIR}/FETCH_HEAD"
   fetch_age=999
   if [[ -f "$fetch_head" ]]; then
-    fetch_age=$(( EPOCHSECONDS - $(file_mtime "$fetch_head") ))
+    fetch_age=$((EPOCHSECONDS - $(file_mtime "$fetch_head")))
   fi
-  if (( fetch_age > 300 )); then
+  if ((fetch_age > 300)); then
     git fetch origin "$MAIN_BRANCH" 2>/dev/null || true
   fi
   # Two detection strategies:
@@ -117,22 +125,22 @@ if [[ -n "$BRANCH" && "$BRANCH" != "$MAIN_BRANCH" && "$BRANCH" != "HEAD" ]]; the
       git checkout "$MAIN_BRANCH" 2>/dev/null || true
       BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)
       if [[ "$BRANCH" == "$MAIN_BRANCH" ]]; then
-        git pull --ff-only origin "$MAIN_BRANCH" 2>/dev/null || \
-          git pull origin "$MAIN_BRANCH" 2>/dev/null || true
+        git pull --ff-only origin "$MAIN_BRANCH" 2>/dev/null \
+          || git pull origin "$MAIN_BRANCH" 2>/dev/null || true
         CTX+="Merged branch detected; switched to ${MAIN_BRANCH} and pulled latest. "
       fi
     fi
   fi
 fi
 
-# List existing linked worktrees so Claude knows where to resume open PR work.
+# --- List linked worktrees so Claude can resume open PR work ---
 # Prune stale entries — rate-limited to once per 30 minutes.
 repo_key=${REPO//[^a-zA-Z0-9_]/_}
 prune_marker="${CACHE_DIR}/.last-wt-prune-${repo_key}"
 prune_needed=true
 if [[ -f "$prune_marker" ]]; then
-  prune_age=$(( EPOCHSECONDS - $(file_mtime "$prune_marker") ))
-  (( prune_age < 1800 )) && prune_needed=false
+  prune_age=$((EPOCHSECONDS - $(file_mtime "$prune_marker")))
+  ((prune_age < 1800)) && prune_needed=false
 fi
 if [[ "$prune_needed" == "true" ]]; then
   git worktree prune 2>/dev/null || true

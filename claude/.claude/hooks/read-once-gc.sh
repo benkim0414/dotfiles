@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
-# SessionEnd hook: prune the just-ended session's read-once cache file and
-# snapshot directory when its parent transcript is missing or older than
-# READ_ONCE_GC_DAYS. Also sweeps orphan snapshot dirs.
+# read-once-gc.sh — prune the ended session's read-once cache + snapshots.
 #
-# Operator opt-out: READ_ONCE_GC_DISABLE=1.
+# Event:   SessionEnd
+# Matcher: n/a
+# Exit:    0 always. Operator opt-out: READ_ONCE_GC_DISABLE=1.
+#
+# Drops the just-ended session's read-once cache file and snapshot directory
+# when its parent transcript is missing or older than READ_ONCE_GC_DAYS, then
+# sweeps orphan snapshot dirs.
 #
 # No -e: individual rm/find failures must not abort the GC sweep — the hook
 # is best-effort cleanup, not a transaction.
@@ -23,14 +27,14 @@ SNAP_DIR="$CACHE_DIR/snapshots-$SESSION_ID"
 # 1. Drop the just-ended session unless its transcript is still fresh.
 transcript_fresh=0
 while IFS= read -r tx; do
-  if [[ -n "$tx" ]] && \
-     find "$tx" -mtime "-$GC_DAYS" -print -quit 2>/dev/null | grep -q .; then
+  if [[ -n "$tx" ]] \
+    && find "$tx" -mtime "-$GC_DAYS" -print -quit 2>/dev/null | grep -q .; then
     transcript_fresh=1
     break
   fi
 done < <(find "$HOME/.claude/projects" -maxdepth 2 -name "$SESSION_ID.jsonl" 2>/dev/null)
 
-if (( transcript_fresh == 0 )); then
+if ((transcript_fresh == 0)); then
   rm -f -- "$CACHE_FILE"
   rm -rf -- "$SNAP_DIR"
 fi

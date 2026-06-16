@@ -1,42 +1,46 @@
 #!/usr/bin/env bash
-# Permission-policy lib for the PreToolUse permission-policy.sh hook.
-# Source this file; do not execute it directly.
+# permission-policy.sh — matchers for the PreToolUse permission-policy.sh hook.
+#                        Source this file; do not execute it directly.
 #
-# Public API:
-#   check_bash <command>                 -- emit reason or empty
-#   check_file_edit <path> <wt_root>     -- emit reason or empty
-#   check_web_fetch <url>                -- emit reason or empty
+# Public API (each prints a non-empty "ask" reason on match, empty otherwise):
+#   check_bash <command>                 -- risky bash shapes
+#   check_file_edit <path> <wt_root>     -- sensitive file edits
+#   check_web_fetch <url>                -- exfil / suspect-host URLs
 
 # --- check_bash -----------------------------------------------------------
-# Inspect a bash command string and return a non-empty reason if any
-# risky-shape pattern matches; empty otherwise.
+# Inspect a bash command for risky shapes the static deny/ask lists miss:
+# shell-expanded secret paths, rm -rf bypass forms, curl|sh, chained rm -rf,
+# and base64/tar/gpg|curl exfil pipelines.
+# Arguments: $1 command string
+# Outputs:   a reason string on match; empty string otherwise
+# Returns:   0 always
 # shellcheck disable=SC2016  # intentional literal $HOME / ${HOME} matching
 check_bash() {
   local cmd="$1"
   # Shell-expanded secret paths the tilde-prefix deny list misses.
-  if [[ "$cmd" == *'$HOME/.ssh/'* \
-     || "$cmd" == *'${HOME}/.ssh/'* \
-     || "$cmd" == *'/Users/ben/.ssh/'* \
-     || "$cmd" == *'$HOME/.aws/credentials'* \
-     || "$cmd" == *'${HOME}/.aws/credentials'* \
-     || "$cmd" == *'/Users/ben/.aws/credentials'* \
-     || "$cmd" == *'$HOME/.claude/.credentials'* \
-     || "$cmd" == *'${HOME}/.claude/.credentials'* \
-     || "$cmd" == *'/Users/ben/.claude/.credentials'* \
-     || "$cmd" == *'$HOME/.gnupg/'* \
-     || "$cmd" == *'${HOME}/.gnupg/'* \
-     || "$cmd" == *'/Users/ben/.gnupg/'* ]]; then
+  if [[ "$cmd" == *'$HOME/.ssh/'* ||
+    "$cmd" == *'${HOME}/.ssh/'* ||
+    "$cmd" == *'/Users/ben/.ssh/'* ||
+    "$cmd" == *'$HOME/.aws/credentials'* ||
+    "$cmd" == *'${HOME}/.aws/credentials'* ||
+    "$cmd" == *'/Users/ben/.aws/credentials'* ||
+    "$cmd" == *'$HOME/.claude/.credentials'* ||
+    "$cmd" == *'${HOME}/.claude/.credentials'* ||
+    "$cmd" == *'/Users/ben/.claude/.credentials'* ||
+    "$cmd" == *'$HOME/.gnupg/'* ||
+    "$cmd" == *'${HOME}/.gnupg/'* ||
+    "$cmd" == *'/Users/ben/.gnupg/'* ]]; then
     printf 'Bash command references secret path via non-tilde form'
     return 0
   fi
   # Bypass attempts for `rm -rf` that evade the deny/ask pattern.
   # Detect leading whitespace AND prefixed command forms directly against $cmd.
-  if [[ "$cmd" =~ ^[[:space:]]+rm[[:space:]]+-r[fF]?[[:space:]] \
-     || "$cmd" =~ ^\\rm[[:space:]]+-r[fF]?[[:space:]] \
-     || "$cmd" =~ ^command[[:space:]]+rm[[:space:]]+-r[fF]?[[:space:]] \
-     || "$cmd" =~ ^builtin[[:space:]]+rm[[:space:]]+-r[fF]?[[:space:]] \
-     || "$cmd" =~ ^\"rm\"[[:space:]]+-r[fF]?[[:space:]] \
-     || "$cmd" =~ ^\'rm\'[[:space:]]+-r[fF]?[[:space:]] ]]; then
+  if [[ "$cmd" =~ ^[[:space:]]+rm[[:space:]]+-r[fF]?[[:space:]] ||
+    "$cmd" =~ ^\\rm[[:space:]]+-r[fF]?[[:space:]] ||
+    "$cmd" =~ ^command[[:space:]]+rm[[:space:]]+-r[fF]?[[:space:]] ||
+    "$cmd" =~ ^builtin[[:space:]]+rm[[:space:]]+-r[fF]?[[:space:]] ||
+    "$cmd" =~ ^\"rm\"[[:space:]]+-r[fF]?[[:space:]] ||
+    "$cmd" =~ ^\'rm\'[[:space:]]+-r[fF]?[[:space:]] ]]; then
     printf 'Possible deny-list bypass for rm -rf'
     return 0
   fi
@@ -59,9 +63,12 @@ check_bash() {
 }
 
 # --- check_file_edit ------------------------------------------------------
-# Inspect a file_path (canonicalized internally) plus the worktree root and
-# return a non-empty reason if the edit targets safety-critical claude config
-# outside the current worktree, or persistence/shell-init files.
+# Flag edits to safety-critical live ~/.claude/ config outside the current
+# worktree, or to shell-init / persistence files. Edits via the dotfiles
+# source path (e.g. zsh/.zshrc inside the repo) do not match and stay silent.
+# Arguments: $1 file path, $2 worktree root (optional)
+# Outputs:   a reason string on match; empty string otherwise
+# Returns:   0 always
 check_file_edit() {
   local path="$1" wt_root="${2:-}"
 
@@ -83,18 +90,18 @@ check_file_edit() {
   # Shell init / persistence files via live paths. Edits via the dotfiles
   # source path (e.g., zsh/.zshrc inside the repo) don't match here and
   # stay silent naturally.
-  if [[ "$path" == /Users/ben/.zshrc \
-     || "$path" == /Users/ben/.zshenv \
-     || "$path" == /Users/ben/.zprofile \
-     || "$path" == /Users/ben/.zlogin \
-     || "$path" == /Users/ben/.bashrc \
-     || "$path" == /Users/ben/.bash_profile \
-     || "$path" == /Users/ben/.profile \
-     || "$path" == /Users/ben/.gitconfig \
-     || "$path" == /Users/ben/Library/LaunchAgents/* \
-     || "$path" == /Users/ben/.config/launchd/* \
-     || "$path" == /etc/crontab \
-     || "$path" == /var/spool/cron/* ]]; then
+  if [[ "$path" == /Users/ben/.zshrc ||
+    "$path" == /Users/ben/.zshenv ||
+    "$path" == /Users/ben/.zprofile ||
+    "$path" == /Users/ben/.zlogin ||
+    "$path" == /Users/ben/.bashrc ||
+    "$path" == /Users/ben/.bash_profile ||
+    "$path" == /Users/ben/.profile ||
+    "$path" == /Users/ben/.gitconfig ||
+    "$path" == /Users/ben/Library/LaunchAgents/* ||
+    "$path" == /Users/ben/.config/launchd/* ||
+    "$path" == /etc/crontab ||
+    "$path" == /var/spool/cron/* ]]; then
     if [[ -n "$wt_root" && "$path" == "$wt_root"/* ]]; then
       :
     else
@@ -107,8 +114,12 @@ check_file_edit() {
 }
 
 # --- check_web_fetch ------------------------------------------------------
-# Inspect a URL string and return a non-empty reason if it matches exfil /
-# suspect-host / local-path patterns.
+# Flag a URL that matches exfil / suspect-host / local-path patterns:
+# dynamic-DNS/paste/webhook hosts, oversized or base64-shaped query strings,
+# or URLs that embed a local filesystem path / shell var.
+# Arguments: $1 URL string
+# Outputs:   a reason string on match; empty string otherwise
+# Returns:   0 always
 # shellcheck disable=SC2016  # intentional literal $HOME / ${HOME} matching
 check_web_fetch() {
   local url="$1"
@@ -126,7 +137,7 @@ check_web_fetch() {
     query="${url#*\?}"
     query="${query%%#*}"
   fi
-  if (( ${#query} > 500 )); then
+  if ((${#query} > 500)); then
     printf 'Fetch URL carries large query payload (possible exfil)'
     return 0
   fi
@@ -136,9 +147,9 @@ check_web_fetch() {
   fi
 
   # URL references a local filesystem path or shell var (likely exfil bait).
-  if [[ "$url" == *'/Users/ben/'* \
-     || "$url" == *'$HOME/'* \
-     || "$url" == *'${HOME}/'* ]]; then
+  if [[ "$url" == *'/Users/ben/'* ||
+    "$url" == *'$HOME/'* ||
+    "$url" == *'${HOME}/'* ]]; then
     printf 'Fetch URL references local filesystem path'
     return 0
   fi
