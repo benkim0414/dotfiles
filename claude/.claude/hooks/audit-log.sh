@@ -24,7 +24,7 @@ IFS=$'\t' read -r ENTRY TODAY <<< "$(cat | jq -r '
   (.tool_input | keys_unsorted | join(",")) as $input_keys |
   (if   $tool == "Bash"         then $cmd
    elif $tool == "Write"        then "write \($path)"
-   elif $tool == "Edit" or $tool == "MultiEdit" then "edit \($path)"
+   elif $tool == "Edit" then "edit \($path)"
    elif $tool == "NotebookEdit" then "notebook-edit \($path)"
    elif $tool == "WebFetch"     then "fetch \($url | .[0:200])"
    elif $tool == "WebSearch"    then "search \($query | .[0:200])"
