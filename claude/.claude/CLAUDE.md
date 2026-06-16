@@ -132,6 +132,40 @@ Override: if the user explicitly names a different execution path in
 the same turn (e.g. "use executing-plans for this one", "dispatch
 subagents", "do it inline"), honour that request instead.
 
+### Execution handoff for `ce-compound`
+
+When `compound-engineering:ce-compound` reaches any interactive blocking
+prompt, do NOT ask. Auto-select the recommended option, announce the choice
+in one line, then proceed. Mirrors the `writing-plans` handoff above.
+(Headless mode already skips these prompts -- this covers interactive runs.)
+
+Prompt-by-prompt:
+
+1. **Full vs Lightweight** -> always **Full**, the option the skill marks
+   `(recommended)`.
+2. **Session history** (Full only) -> the skill marks no recommendation, so
+   pick per-run and state which. Default to **skipping** (the skill flags
+   added time + token cost); opt in only when the documented problem clearly
+   spans multiple prior sessions and that history would materially improve
+   the doc.
+3. **Discoverability Check consent** -> if the check finds a gap, apply the
+   smallest fitting edit directly; if not, move on. No prompt either way.
+4. **"What's next?" menu** -> auto-pick **only in no-pr repos**. Detect mode
+   from the git-workflow session context / `CLAUDE_GIT_WORKFLOW=no-pr`.
+   - **no-pr mode**: pick option 1 **Continue workflow** (skill-marked
+     `(recommended)`) -> proceed to `finishing-a-development-branch`
+     option 1 (local merge).
+   - **PR mode (default)**: present the menu normally -- do NOT auto-select.
+     Pushing + opening a PR is outward-facing; the user controls that step.
+
+Announce in one line, e.g. `Auto-running ce-compound Full, skipping session
+history, applying discoverability edit, continuing workflow per user
+preference.` (drop the "continuing workflow" clause in PR-mode repos).
+
+Override: if the user names a different choice in the same turn (e.g. "use
+lightweight", "search session history", "stop after the doc"), honour that
+instead.
+
 ### Commit rules
 
 #### Atomicity
