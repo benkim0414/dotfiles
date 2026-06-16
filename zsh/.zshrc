@@ -48,10 +48,10 @@ KEYTIMEOUT=1
 
 bindkey -M viins "^a" beginning-of-line
 bindkey -M viins "^e" end-of-line
-bindkey -M viins "^p" history-search-backward
-bindkey -M viins "^n" history-search-forward
-bindkey -M viins "^[[A" history-search-backward
-bindkey -M viins "^[[B" history-search-forward
+bindkey -M viins "^p" history-beginning-search-backward
+bindkey -M viins "^n" history-beginning-search-forward
+bindkey -M viins "^[[A" history-beginning-search-backward
+bindkey -M viins "^[[B" history-beginning-search-forward
 bindkey -M viins "^[[C" forward-char
 bindkey -M viins "^[[D" backward-char
 
