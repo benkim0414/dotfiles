@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
-# UserPromptSubmit hook: inject targeted context based on the user's prompt
-# and clear stale attention markers.
+# resolve-pr-refs.sh — inject prompt-driven context; clear attention markers.
+#
+# Event:   UserPromptSubmit
+# Matcher: n/a
+# Exit:    0 always (emits context JSON only when a PR/issue ref matches)
+#
+# Detects "PR #123" / "pull/123" / standalone "#123" references in the prompt
+# and injects a one-line PR or issue summary (gh, 120s-cached). Also clears the
+# tmux attention marker since the user is present.
 #
 # Fires on EVERY user message — fast path (no match) must be <10ms.
 # Uses pure bash extraction and string matching; jq/gh only on pattern match.

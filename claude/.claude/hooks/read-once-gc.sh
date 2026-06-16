@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
-# SessionEnd hook: prune the just-ended session's read-once cache file and
-# snapshot directory when its parent transcript is missing or older than
-# READ_ONCE_GC_DAYS. Also sweeps orphan snapshot dirs.
+# read-once-gc.sh — prune the ended session's read-once cache + snapshots.
 #
-# Operator opt-out: READ_ONCE_GC_DISABLE=1.
+# Event:   SessionEnd
+# Matcher: n/a
+# Exit:    0 always. Operator opt-out: READ_ONCE_GC_DISABLE=1.
+#
+# Drops the just-ended session's read-once cache file and snapshot directory
+# when its parent transcript is missing or older than READ_ONCE_GC_DAYS, then
+# sweeps orphan snapshot dirs.
 #
 # No -e: individual rm/find failures must not abort the GC sweep — the hook
 # is best-effort cleanup, not a transaction.

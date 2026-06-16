@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
-# PostCompact hook: re-inject git/worktree context after context compaction.
+# restore-git-context.sh — re-inject git/worktree context after compaction.
+#
+# Event:   PostCompact
+# Matcher: n/a
+# Exit:    0 always (emits context JSON; silent if not in a git repo)
 #
 # Compaction is lossy -- it can drop instructions that SessionStart or
 # UserPromptSubmit hooks injected. This hook restores the critical bits
-# so Claude retains orientation after compaction.
+# (deleted-CWD recovery, worktree vs main orientation) so Claude stays
+# oriented after compaction.
 set -euo pipefail
 
 # shellcheck source=../lib/session.sh

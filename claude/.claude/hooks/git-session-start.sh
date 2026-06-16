@@ -1,7 +1,14 @@
 #!/usr/bin/env bash
-# SessionStart hook: inject git/worktree context into Claude's session.
+# git-session-start.sh — inject git/worktree context at session start.
+#
+# Event:   SessionStart
+# Matcher: n/a
+# Exit:    0 always (emits additionalContext + systemMessage JSON)
+#
 # Uses structured JSON output: additionalContext for Claude's reasoning,
-# systemMessage for user-visible confirmation.
+# systemMessage for user-visible confirmation. Detects deleted CWDs, linked
+# worktrees, merged branches (auto-checkout to main), and flags the main
+# working tree as needing EnterWorktree() before edits.
 set -euo pipefail
 
 # shellcheck source=../lib/session.sh
@@ -81,6 +88,7 @@ fi
 CTX=""
 MSG=""
 
+# --- Auto-checkout merged branches (covers the GitHub web-merge case) ---
 REMOTE_HEAD=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null || true)
 MAIN_BRANCH="${REMOTE_HEAD#refs/remotes/origin/}"
 MAIN_BRANCH="${MAIN_BRANCH:-main}"
@@ -125,7 +133,7 @@ if [[ -n "$BRANCH" && "$BRANCH" != "$MAIN_BRANCH" && "$BRANCH" != "HEAD" ]]; the
   fi
 fi
 
-# List existing linked worktrees so Claude knows where to resume open PR work.
+# --- List linked worktrees so Claude can resume open PR work ---
 # Prune stale entries — rate-limited to once per 30 minutes.
 repo_key=${REPO//[^a-zA-Z0-9_]/_}
 prune_marker="${CACHE_DIR}/.last-wt-prune-${repo_key}"

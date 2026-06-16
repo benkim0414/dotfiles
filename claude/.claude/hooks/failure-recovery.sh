@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
-# PostToolUseFailure hook: inject targeted recovery guidance when tools fail.
-# Pattern-matches common failure modes and provides specific remediation steps.
+# failure-recovery.sh — inject recovery guidance when a tool call fails.
+#
+# Event:   PostToolUseFailure
+# Matcher: n/a
+# Exit:    0 always (emits context JSON only on a recognized failure pattern)
+#
+# Pattern-matches common failure modes (deleted CWD, gh auth, merge conflicts,
+# permission denied, timeout) and provides specific remediation steps.
 # Fast exit for unrecognized failures.
 set -euo pipefail
 
