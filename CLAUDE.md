@@ -61,9 +61,15 @@ User-scope defaults (in `claude/.claude/settings.base.json`):
 - `defaultMode: "auto"` -- new sessions open in auto mode. A classifier
   judges unmatched tool calls; explicit `allow` entries skip the
   classifier. Requires Opus 4.6+ / Sonnet 4.6+ (Opus 4.7 in use).
-- MCP tools are not pre-approved in `allow` (bare `mcp__*` is invalid
-  there -- only `deny`/`ask` accept bare wildcards). Under
+- Most MCP tools are not pre-approved in `allow` (bare `mcp__*` is
+  invalid there -- only `deny`/`ask` accept bare wildcards). Under
   `defaultMode: "auto"` the classifier judges each unmatched MCP call.
+  The exception is context-mode: the nine non-destructive context-mode
+  tools (`ctx_batch_execute`, `ctx_doctor`, `ctx_execute`,
+  `ctx_execute_file`, `ctx_fetch_and_index`, `ctx_index`, `ctx_insight`,
+  `ctx_search`, `ctx_stats`) are listed by exact name in `allow` so they
+  skip the classifier and never prompt; `ctx_purge` and `ctx_upgrade`
+  stay in `ask`.
 - `ask` rules still gate MCP mutations: the `mcp__*__*create*`,
   `*delete*`, `*update*`, `*write*` (etc.) globs, plus two destructive
   context-mode tools --
