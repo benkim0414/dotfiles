@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
-# PostToolUse hook (matcher: EnterWorktree):
-# Clear the pending state file once the worktree is successfully entered.
-# Uses structured JSON output for context injection.
-# Never exit non-zero (PostToolUse should not block).
+# worktree-entered.sh — clear pending state once a worktree is entered.
+#
+# Event:   PostToolUse
+# Matcher: EnterWorktree
+# Exit:    0 always (PostToolUse must not block; emits context JSON)
+#
+# Removes the session's pending-<id> marker so worktree-guard.sh stops
+# blocking edits, then confirms isolation to Claude.
 set -euo pipefail
 
 # shellcheck source=../lib/session.sh

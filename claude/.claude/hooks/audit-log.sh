@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
-# PostToolUse hook: append a JSONL audit entry for every mutating tool call.
-# Runs async — must never block Claude Code.
+# audit-log.sh — append a JSONL audit entry for every mutating tool call.
+#
+# Event:   PostToolUse
+# Matcher: Bash|Write|Edit|NotebookEdit|CronCreate|CronDelete|RemoteTrigger|Read|NotebookRead|Grep|mcp__qmd__get|mcp__qmd__multi_get
+# Exit:    0 always.
+# Async:   yes — must never block Claude Code.
+#
+# Writes one JSON line per call to ~/.claude/logs/audit-<date>.log, rotating
+# at 50 MB. Timestamp + summary are built in a single jq pass (no subprocesses).
 set -euo pipefail
 
 # --- Build JSONL entry + today's date in a single jq pass (no subprocesses) ---

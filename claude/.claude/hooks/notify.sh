@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
-# Attention hook: alert the user via Ghostty OSC 777 desktop notification
-# and tmux bell when Claude Code needs attention.
+# notify.sh — alert the user (Ghostty OSC 777 + tmux bell) when Claude needs
+#             attention.
 #
-# Called from two hook contexts:
+# Event:   Notification and PreToolUse
+# Matcher: AskUserQuestion|ExitPlanMode (PreToolUse); all Notification events
+# Exit:    0 always.
+# Async:   yes — must never slow down Claude Code.
+#
+# Called from two hook contexts; detects its context via hook_event_name:
 #   Notification   -- permission_prompt, idle_prompt, elicitation_dialog
 #   PreToolUse     -- AskUserQuestion, ExitPlanMode
-#
-# The script detects its context via hook_event_name in the JSON payload.
-# Runs async (non-blocking) -- must never slow down Claude Code.
 set -euo pipefail
 
 : "${EPOCHSECONDS:=$(date +%s)}"
