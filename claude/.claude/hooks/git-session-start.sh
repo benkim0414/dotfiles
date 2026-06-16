@@ -12,10 +12,7 @@ SESSION_ID=$(parse_session_id "$INPUT")
 
 # --- CWD health check ---
 if [[ ! -d "$PWD" ]]; then
-  repo_hint=""
-  if [[ "$PWD" =~ ^(.*)/\.claude/worktrees/ ]]; then
-    repo_hint="${BASH_REMATCH[1]}"
-  fi
+  repo_hint=$(cwd_repo_hint)
   msg="WARNING: Current directory no longer exists: $PWD."
   if [[ -n "$repo_hint" ]]; then
     ctx="CWD no longer exists: $PWD. The worktree was deleted. User must type at Claude Code prompt: ! cd \"$repo_hint\""
@@ -41,7 +38,6 @@ fi
 REPO=$(git rev-parse --show-toplevel 2>/dev/null || true)
 BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)
 GIT_ABS_DIR=$(git rev-parse --absolute-git-dir 2>/dev/null || true)
-GIT_COMMON_DIR=$(cd "$(git rev-parse --git-common-dir 2>/dev/null)" 2>/dev/null && pwd || true)
 
 # State directory: one pending file per session needing a worktree.
 STATE_DIR="$HOME/.claude/session-worktrees"
@@ -73,7 +69,7 @@ fi
 
 # Detect if already in a linked worktree.
 # Linked worktree: absolute-git-dir is under .git/worktrees/, differs from git-common-dir.
-if [[ -n "$GIT_ABS_DIR" && -n "$GIT_COMMON_DIR" && "$GIT_ABS_DIR" != "$GIT_COMMON_DIR" ]]; then
+if [[ "$(worktree_kind)" == "linked" ]]; then
   emit_context_with_msg "SessionStart" \
     "Worktree session active: branch=${BRANCH}, repo=${REPO}. Isolation confirmed. Commit each logical change atomically." \
     "[git-workflow] Worktree active (branch: ${BRANCH}). Isolation confirmed."
@@ -153,7 +149,7 @@ if [[ -n "$SESSION_ID" ]]; then
   touch "$STATE_DIR/pending-${SESSION_ID}"
   CTX+="Main worktree (branch: ${BRANCH}). Call EnterWorktree() before any edits."
   MSG="[git-workflow] Main worktree (branch: ${BRANCH}). Call EnterWorktree() before any edits."
-  if [[ "${CLAUDE_GIT_WORKFLOW:-}" == "no-pr" ]]; then
+  if workflow_no_pr; then
     CTX+=" MODE: no-pr -- canonical flow at ~/.claude/docs/superpowers-workflow.md. After EnterWorktree, run brainstorming -> writing-plans -> subagent-driven-development -> requesting-code-review -> ce-compound -> finishing-a-development-branch option 1 (local merge). No PRs."
     MSG+=" MODE: no-pr"
   fi

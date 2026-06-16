@@ -31,10 +31,7 @@ guidance=""
 # --- Pattern: deleted CWD / path does not exist ---
 if [[ "$error_lower" == *"path"*"does not exist"* ]] ||
    [[ "$error_lower" == *"no such file or directory"* && "$TOOL_NAME" == "Bash" ]]; then
-  repo_hint=""
-  if [[ "$PWD" =~ ^(.*)/\.claude/worktrees/ ]]; then
-    repo_hint="${BASH_REMATCH[1]}"
-  fi
+  repo_hint=$(cwd_repo_hint)
   if [[ -n "$repo_hint" ]]; then
     guidance="The working directory no longer exists (likely a deleted worktree). The user must type at the Claude Code prompt: ! cd \"${repo_hint}\" -- then retry."
   else
@@ -61,7 +58,7 @@ if [[ -z "$guidance" ]] && [[ "$TOOL_NAME" == "Bash" ]]; then
 fi
 
 # --- Pattern: permission denied on file operations ---
-if [[ -z "$guidance" ]] && [[ "$TOOL_NAME" =~ ^(Write|Edit|MultiEdit)$ ]]; then
+if [[ -z "$guidance" ]] && [[ "$TOOL_NAME" =~ ^(Write|Edit)$ ]]; then
   if [[ "$error_lower" == *"permission denied"* ]] ||
      [[ "$error_lower" == *"read-only"* ]]; then
     guidance="File permission denied. Check: (1) worktree state -- is EnterWorktree() needed? (2) file ownership -- is this a system file? (3) read-only filesystem."

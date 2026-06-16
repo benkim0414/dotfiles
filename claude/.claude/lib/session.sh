@@ -85,3 +85,40 @@ check_worktree_pending() {
   echo "  Emergency escape: rm \"${pf}\"" >&2
   exit 2
 }
+
+# --- Worktree / CWD detection ---
+
+# Echo the parent repo path when PWD is (or was) under a .claude/worktrees/
+# directory; echo nothing otherwise. Used to build the "! cd <repo>" recovery
+# hint when a worktree CWD has been deleted.
+cwd_repo_hint() {
+  if [[ "$PWD" =~ ^(.*)/\.claude/worktrees/ ]]; then
+    printf '%s' "${BASH_REMATCH[1]}"
+  fi
+}
+
+# Echo the worktree kind for the current directory:
+#   linked  -- inside a linked (git worktree add) working tree
+#   main    -- inside the primary working tree
+#   none    -- not in a git repo, or a bare repo
+worktree_kind() {
+  git rev-parse --git-dir >/dev/null 2>&1 || { printf 'none'; return; }
+  [[ "$(git rev-parse --is-bare-repository 2>/dev/null)" == "true" ]] && { printf 'none'; return; }
+  local abs common
+  abs=$(git rev-parse --absolute-git-dir 2>/dev/null || true)
+  common=$(cd "$(git rev-parse --git-common-dir 2>/dev/null)" 2>/dev/null && pwd || true)
+  if [[ -n "$abs" && -n "$common" && "$abs" != "$common" ]]; then
+    printf 'linked'
+  else
+    printf 'main'
+  fi
+}
+
+# --- Workflow mode ---
+
+# Return 0 when the session runs in no-pr workflow mode, 1 otherwise.
+# Single source for the CLAUDE_GIT_WORKFLOW env-var name and its "no-pr"
+# contract; a future rename or added mode changes only this function.
+workflow_no_pr() {
+  [[ "${CLAUDE_GIT_WORKFLOW:-}" == "no-pr" ]]
+}

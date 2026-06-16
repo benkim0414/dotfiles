@@ -2,7 +2,7 @@
 # PreToolUse hook (matcher: Bash): guard for git-related Bash tool calls.
 # Enforces git-main-guard and commit-guard with a single jq invocation.
 # Worktree isolation is handled by the dedicated worktree-guard.sh hook
-# (matcher: Write|Edit|MultiEdit|NotebookEdit).
+# (matcher: Write|Edit|NotebookEdit).
 # Exit 0 = allow (stdout → context). Exit 2 = block (stderr → Claude).
 set -euo pipefail
 
@@ -16,10 +16,11 @@ INPUT=$(cat)
 # rarer case where the directory exists but is in an inconsistent state.
 # When stuck in a deleted CWD, the user must escape via: ! cd <project-root>
 if [[ ! -d "$PWD" ]]; then
-  repo_hint=""
-  if [[ "$PWD" =~ ^(.*)/\.claude/worktrees/ ]]; then
-    repo_hint="${BASH_REMATCH[1]}"
-  fi
+  # Cold path (deleted CWD): lazily source session.sh for cwd_repo_hint so the
+  # hot path (~90% of Bash calls) stays lib-free.
+  # shellcheck source=../lib/session.sh
+  source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../lib/session.sh"
+  repo_hint=$(cwd_repo_hint)
   {
     echo "BLOCKED: Shell CWD no longer exists: $PWD"
     echo ""
@@ -44,13 +45,15 @@ fi
 COMMAND=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // ""')
 
 # Per-repo opt-out of PR workflow.
+# Canonical gate: workflow_no_pr in lib/session.sh. Inlined here so the hot
+# path (~90% of Bash calls) never sources a lib.
 NO_PR=false
 [[ "${CLAUDE_GIT_WORKFLOW:-}" == "no-pr" ]] && NO_PR=true
 
 # =====================================================================
 # Git guards — only relevant for git add/commit/push/merge/rebase/cherry-pick
 # =====================================================================
-# NOTE: Worktree isolation for file-editing tools (Write, Edit, MultiEdit,
+# NOTE: Worktree isolation for file-editing tools (Write, Edit,
 # NotebookEdit) is enforced by the dedicated worktree-guard.sh hook.
 # This hook only enforces git-command guards (no commit/push/merge on main).
 

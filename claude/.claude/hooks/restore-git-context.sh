@@ -11,10 +11,7 @@ source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${
 
 # CWD health check -- mirror SessionStart's deleted-worktree recovery.
 if [[ ! -d "$PWD" ]]; then
-  repo_hint=""
-  if [[ "$PWD" =~ ^(.*)/\.claude/worktrees/ ]]; then
-    repo_hint="${BASH_REMATCH[1]}"
-  fi
+  repo_hint=$(cwd_repo_hint)
   ctx="Post-compaction context: CWD no longer exists: $PWD."
   if [[ -n "$repo_hint" ]]; then
     ctx+=" Worktree deleted. User must type at Claude Code prompt: ! cd \"$repo_hint\""
@@ -36,20 +33,18 @@ if [[ "$(git rev-parse --is-bare-repository 2>/dev/null)" == "true" ]]; then
 fi
 
 BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)
-GIT_ABS_DIR=$(git rev-parse --absolute-git-dir 2>/dev/null || true)
-GIT_COMMON_DIR=$(cd "$(git rev-parse --git-common-dir 2>/dev/null)" 2>/dev/null && pwd || true)
 
 CTX=""
 
 # Detect linked worktree vs main working tree.
-if [[ -n "$GIT_ABS_DIR" && -n "$GIT_COMMON_DIR" && "$GIT_ABS_DIR" != "$GIT_COMMON_DIR" ]]; then
+if [[ "$(worktree_kind)" == "linked" ]]; then
   CTX="Post-compaction context: worktree session active (branch: ${BRANCH}). Isolation confirmed; edits are safe."
-  if [[ "${CLAUDE_GIT_WORKFLOW:-}" == "no-pr" ]]; then
+  if workflow_no_pr; then
     CTX+=" MODE: no-pr -- before ExitWorktree, run requesting-code-review until clean, then ce-compound."
   fi
 else
   CTX="Post-compaction context: main worktree (branch: ${BRANCH}). Call EnterWorktree() before any edits."
-  if [[ "${CLAUDE_GIT_WORKFLOW:-}" == "no-pr" ]]; then
+  if workflow_no_pr; then
     CTX+=" MODE: no-pr -- run requesting-code-review until clean, then ce-compound, then finishing-a-development-branch option 1. Reference: ~/.claude/docs/superpowers-workflow.md."
   fi
 fi
