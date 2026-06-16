@@ -17,8 +17,10 @@ they are out of scope for this README.
   bash 3.2 at `/bin/bash`, while Homebrew bash 5 lives outside `/bin`.
   `env bash` selects the modern bash on both macOS and Linux.
 - **Exit codes:** PreToolUse hooks use `exit 0` = allow and `exit 2` = block
-  (stderr is shown to Claude). `read-once.sh` instead emits a
-  `permissionDecision: "deny"` JSON object to block. PostToolUse / SessionStart
+  (stderr is shown to Claude), with two exceptions: `read-once.sh` blocks by
+  emitting a `permissionDecision: "deny"` JSON object, and
+  `permission-policy.sh` never blocks (exit 0 only — it emits `ask` JSON).
+  PostToolUse / SessionStart
   / PostCompact / etc. emit structured JSON (`additionalContext`,
   `systemMessage`, `permissionDecision`) and must not block.
 - **Async hooks** (`audit-log.sh`, `notify.sh`) are registered with
