@@ -14,7 +14,7 @@ if [[ "$INPUT" != *'"tool_name"'* ]]; then
   exit 0
 fi
 
-IFS=$'\t' read -r TOOL_NAME TOOL_ERROR <<< "$(
+IFS=$'\t' read -r TOOL_NAME TOOL_ERROR <<<"$(
   printf '%s' "$INPUT" | jq -r '[
     (.tool_name // ""),
     ((.tool_error // .tool_output // "") | tostring | .[0:2000])
@@ -29,8 +29,8 @@ error_lower="${TOOL_ERROR,,}"
 guidance=""
 
 # --- Pattern: deleted CWD / path does not exist ---
-if [[ "$error_lower" == *"path"*"does not exist"* ]] ||
-   [[ "$error_lower" == *"no such file or directory"* && "$TOOL_NAME" == "Bash" ]]; then
+if [[ "$error_lower" == *"path"*"does not exist"* ]] \
+  || [[ "$error_lower" == *"no such file or directory"* && "$TOOL_NAME" == "Bash" ]]; then
   repo_hint=$(cwd_repo_hint)
   if [[ -n "$repo_hint" ]]; then
     guidance="The working directory no longer exists (likely a deleted worktree). The user must type at the Claude Code prompt: ! cd \"${repo_hint}\" -- then retry."
@@ -41,34 +41,34 @@ fi
 
 # --- Pattern: GitHub CLI authentication ---
 if [[ -z "$guidance" ]] && [[ "$TOOL_NAME" == "Bash" ]]; then
-  if [[ "$error_lower" == *"gh auth"* ]] ||
-     [[ "$error_lower" == *"authentication"*"required"* ]] ||
-     [[ "$error_lower" == *"not logged"* ]]; then
+  if [[ "$error_lower" == *"gh auth"* ]] \
+    || [[ "$error_lower" == *"authentication"*"required"* ]] \
+    || [[ "$error_lower" == *"not logged"* ]]; then
     guidance="GitHub CLI authentication issue. The user should run: ! gh auth status -- to check auth, then: ! gh auth login -- if needed."
   fi
 fi
 
 # --- Pattern: git merge conflicts ---
 if [[ -z "$guidance" ]] && [[ "$TOOL_NAME" == "Bash" ]]; then
-  if [[ "$error_lower" == *"conflict"* && "$error_lower" == *"merge"* ]] ||
-     [[ "$error_lower" == *"unmerged"* ]] ||
-     [[ "$error_lower" == *"fix conflicts"* ]]; then
+  if [[ "$error_lower" == *"conflict"* && "$error_lower" == *"merge"* ]] \
+    || [[ "$error_lower" == *"unmerged"* ]] \
+    || [[ "$error_lower" == *"fix conflicts"* ]]; then
     guidance="Git merge conflict detected. Resolve conflicts in the affected files, then stage and commit. Use 'git diff' to see conflict markers and 'git status' to list unmerged files."
   fi
 fi
 
 # --- Pattern: permission denied on file operations ---
 if [[ -z "$guidance" ]] && [[ "$TOOL_NAME" =~ ^(Write|Edit)$ ]]; then
-  if [[ "$error_lower" == *"permission denied"* ]] ||
-     [[ "$error_lower" == *"read-only"* ]]; then
+  if [[ "$error_lower" == *"permission denied"* ]] \
+    || [[ "$error_lower" == *"read-only"* ]]; then
     guidance="File permission denied. Check: (1) worktree state -- is EnterWorktree() needed? (2) file ownership -- is this a system file? (3) read-only filesystem."
   fi
 fi
 
 # --- Pattern: command timeout ---
 if [[ -z "$guidance" ]]; then
-  if [[ "$error_lower" == *"timed out"* ]] ||
-     [[ "$error_lower" == *"timeout"* ]]; then
+  if [[ "$error_lower" == *"timed out"* ]] \
+    || [[ "$error_lower" == *"timeout"* ]]; then
     guidance="Command timed out. Consider: (1) breaking the operation into smaller steps, (2) running with a longer timeout, (3) checking if a background process is blocking."
   fi
 fi

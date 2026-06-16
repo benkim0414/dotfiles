@@ -57,8 +57,8 @@ if [[ -n "$pr_num" ]]; then
 
   # Check cache (120s TTL).
   if [[ -f "$pr_cache" ]]; then
-    cache_age=$(( EPOCHSECONDS - $(file_mtime "$pr_cache") ))
-    if (( cache_age < 120 )); then
+    cache_age=$((EPOCHSECONDS - $(file_mtime "$pr_cache")))
+    if ((cache_age < 120)); then
       pr_summary=$(cat "$pr_cache" 2>/dev/null || true)
     fi
   fi
@@ -70,7 +70,7 @@ if [[ -n "$pr_num" ]]; then
       pr_summary=$(printf '%s' "$pr_info" | jq -r '"PR #\(.number): \(.title) [\(.state)] branch=\(.headRefName) \(.url)"' 2>/dev/null || true)
       if [[ -n "$pr_summary" ]]; then
         mkdir -p "$cache_dir" 2>/dev/null || true
-        printf '%s' "$pr_summary" > "$pr_cache" 2>/dev/null || true
+        printf '%s' "$pr_summary" >"$pr_cache" 2>/dev/null || true
       fi
     fi
   fi
@@ -82,15 +82,15 @@ if [[ -n "$pr_num" ]]; then
     issue_cache="${cache_dir}/.issue-cache-${repo_key}-${pr_num}"
     issue_summary=""
     if [[ -f "$issue_cache" ]]; then
-      cache_age=$(( EPOCHSECONDS - $(file_mtime "$issue_cache") ))
-      (( cache_age < 120 )) && issue_summary=$(cat "$issue_cache" 2>/dev/null || true)
+      cache_age=$((EPOCHSECONDS - $(file_mtime "$issue_cache")))
+      ((cache_age < 120)) && issue_summary=$(cat "$issue_cache" 2>/dev/null || true)
     fi
     if [[ -z "$issue_summary" ]]; then
       issue_info=$(run_timeout 3 gh issue view "$pr_num" --json number,title,state,url 2>/dev/null || true)
       if [[ -n "$issue_info" ]]; then
         issue_summary=$(printf '%s' "$issue_info" | jq -r '"Issue #\(.number): \(.title) [\(.state)] \(.url)"' 2>/dev/null || true)
         if [[ -n "$issue_summary" ]]; then
-          printf '%s' "$issue_summary" > "$issue_cache" 2>/dev/null || true
+          printf '%s' "$issue_summary" >"$issue_cache" 2>/dev/null || true
         fi
       fi
     fi

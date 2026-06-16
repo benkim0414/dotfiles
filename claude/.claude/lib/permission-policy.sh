@@ -14,29 +14,29 @@
 check_bash() {
   local cmd="$1"
   # Shell-expanded secret paths the tilde-prefix deny list misses.
-  if [[ "$cmd" == *'$HOME/.ssh/'* \
-     || "$cmd" == *'${HOME}/.ssh/'* \
-     || "$cmd" == *'/Users/ben/.ssh/'* \
-     || "$cmd" == *'$HOME/.aws/credentials'* \
-     || "$cmd" == *'${HOME}/.aws/credentials'* \
-     || "$cmd" == *'/Users/ben/.aws/credentials'* \
-     || "$cmd" == *'$HOME/.claude/.credentials'* \
-     || "$cmd" == *'${HOME}/.claude/.credentials'* \
-     || "$cmd" == *'/Users/ben/.claude/.credentials'* \
-     || "$cmd" == *'$HOME/.gnupg/'* \
-     || "$cmd" == *'${HOME}/.gnupg/'* \
-     || "$cmd" == *'/Users/ben/.gnupg/'* ]]; then
+  if [[ "$cmd" == *'$HOME/.ssh/'* ||
+    "$cmd" == *'${HOME}/.ssh/'* ||
+    "$cmd" == *'/Users/ben/.ssh/'* ||
+    "$cmd" == *'$HOME/.aws/credentials'* ||
+    "$cmd" == *'${HOME}/.aws/credentials'* ||
+    "$cmd" == *'/Users/ben/.aws/credentials'* ||
+    "$cmd" == *'$HOME/.claude/.credentials'* ||
+    "$cmd" == *'${HOME}/.claude/.credentials'* ||
+    "$cmd" == *'/Users/ben/.claude/.credentials'* ||
+    "$cmd" == *'$HOME/.gnupg/'* ||
+    "$cmd" == *'${HOME}/.gnupg/'* ||
+    "$cmd" == *'/Users/ben/.gnupg/'* ]]; then
     printf 'Bash command references secret path via non-tilde form'
     return 0
   fi
   # Bypass attempts for `rm -rf` that evade the deny/ask pattern.
   # Detect leading whitespace AND prefixed command forms directly against $cmd.
-  if [[ "$cmd" =~ ^[[:space:]]+rm[[:space:]]+-r[fF]?[[:space:]] \
-     || "$cmd" =~ ^\\rm[[:space:]]+-r[fF]?[[:space:]] \
-     || "$cmd" =~ ^command[[:space:]]+rm[[:space:]]+-r[fF]?[[:space:]] \
-     || "$cmd" =~ ^builtin[[:space:]]+rm[[:space:]]+-r[fF]?[[:space:]] \
-     || "$cmd" =~ ^\"rm\"[[:space:]]+-r[fF]?[[:space:]] \
-     || "$cmd" =~ ^\'rm\'[[:space:]]+-r[fF]?[[:space:]] ]]; then
+  if [[ "$cmd" =~ ^[[:space:]]+rm[[:space:]]+-r[fF]?[[:space:]] ||
+    "$cmd" =~ ^\\rm[[:space:]]+-r[fF]?[[:space:]] ||
+    "$cmd" =~ ^command[[:space:]]+rm[[:space:]]+-r[fF]?[[:space:]] ||
+    "$cmd" =~ ^builtin[[:space:]]+rm[[:space:]]+-r[fF]?[[:space:]] ||
+    "$cmd" =~ ^\"rm\"[[:space:]]+-r[fF]?[[:space:]] ||
+    "$cmd" =~ ^\'rm\'[[:space:]]+-r[fF]?[[:space:]] ]]; then
     printf 'Possible deny-list bypass for rm -rf'
     return 0
   fi
@@ -83,18 +83,18 @@ check_file_edit() {
   # Shell init / persistence files via live paths. Edits via the dotfiles
   # source path (e.g., zsh/.zshrc inside the repo) don't match here and
   # stay silent naturally.
-  if [[ "$path" == /Users/ben/.zshrc \
-     || "$path" == /Users/ben/.zshenv \
-     || "$path" == /Users/ben/.zprofile \
-     || "$path" == /Users/ben/.zlogin \
-     || "$path" == /Users/ben/.bashrc \
-     || "$path" == /Users/ben/.bash_profile \
-     || "$path" == /Users/ben/.profile \
-     || "$path" == /Users/ben/.gitconfig \
-     || "$path" == /Users/ben/Library/LaunchAgents/* \
-     || "$path" == /Users/ben/.config/launchd/* \
-     || "$path" == /etc/crontab \
-     || "$path" == /var/spool/cron/* ]]; then
+  if [[ "$path" == /Users/ben/.zshrc ||
+    "$path" == /Users/ben/.zshenv ||
+    "$path" == /Users/ben/.zprofile ||
+    "$path" == /Users/ben/.zlogin ||
+    "$path" == /Users/ben/.bashrc ||
+    "$path" == /Users/ben/.bash_profile ||
+    "$path" == /Users/ben/.profile ||
+    "$path" == /Users/ben/.gitconfig ||
+    "$path" == /Users/ben/Library/LaunchAgents/* ||
+    "$path" == /Users/ben/.config/launchd/* ||
+    "$path" == /etc/crontab ||
+    "$path" == /var/spool/cron/* ]]; then
     if [[ -n "$wt_root" && "$path" == "$wt_root"/* ]]; then
       :
     else
@@ -126,7 +126,7 @@ check_web_fetch() {
     query="${url#*\?}"
     query="${query%%#*}"
   fi
-  if (( ${#query} > 500 )); then
+  if ((${#query} > 500)); then
     printf 'Fetch URL carries large query payload (possible exfil)'
     return 0
   fi
@@ -136,9 +136,9 @@ check_web_fetch() {
   fi
 
   # URL references a local filesystem path or shell var (likely exfil bait).
-  if [[ "$url" == *'/Users/ben/'* \
-     || "$url" == *'$HOME/'* \
-     || "$url" == *'${HOME}/'* ]]; then
+  if [[ "$url" == *'/Users/ben/'* ||
+    "$url" == *'$HOME/'* ||
+    "$url" == *'${HOME}/'* ]]; then
     printf 'Fetch URL references local filesystem path'
     return 0
   fi

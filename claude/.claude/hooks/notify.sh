@@ -17,7 +17,7 @@ HOOK_EVENT=$(printf '%s' "$INPUT" | jq -r '.hook_event_name // ""')
 
 if [[ "$HOOK_EVENT" == "PreToolUse" ]]; then
   # Called from PreToolUse -- map tool name to notification type.
-  IFS=$'\t' read -r TOOL_NAME SESSION_ID CWD <<< "$(
+  IFS=$'\t' read -r TOOL_NAME SESSION_ID CWD <<<"$(
     printf '%s' "$INPUT" | jq -r '[
       (.tool_name // ""),
       (.session_id // ""),
@@ -26,13 +26,13 @@ if [[ "$HOOK_EVENT" == "PreToolUse" ]]; then
   )"
   case "$TOOL_NAME" in
     AskUserQuestion) NTYPE="ask_user_question" ;;
-    ExitPlanMode)    NTYPE="plan_approval" ;;
-    *)               exit 0 ;;
+    ExitPlanMode) NTYPE="plan_approval" ;;
+    *) exit 0 ;;
   esac
   MESSAGE=""
 else
   # Called from Notification hook.
-  IFS=$'\t' read -r NTYPE MESSAGE SESSION_ID CWD <<< "$(
+  IFS=$'\t' read -r NTYPE MESSAGE SESSION_ID CWD <<<"$(
     printf '%s' "$INPUT" | jq -r '[
       (.notification_type // ""),
       (.message // ""),
@@ -42,7 +42,7 @@ else
   )"
   # Only notify for types where Claude is blocked waiting for the user.
   case "$NTYPE" in
-    permission_prompt|idle_prompt|elicitation_dialog) ;;
+    permission_prompt | idle_prompt | elicitation_dialog) ;;
     *) exit 0 ;;
   esac
 fi
@@ -55,7 +55,7 @@ CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/claude"
 PANE_LABEL=""
 PANE_TTY=""
 if [[ -n "${TMUX_PANE:-}" ]]; then
-  IFS=$'\t' read -r PANE_LABEL PANE_TTY <<< "$(
+  IFS=$'\t' read -r PANE_LABEL PANE_TTY <<<"$(
     tmux display-message -t "$TMUX_PANE" \
       -p '#{session_name}:#{window_index}.#{pane_index}'$'\t''#{pane_tty}' 2>/dev/null || true
   )"
@@ -82,7 +82,7 @@ if [[ -n "${TMUX_PANE:-}" ]]; then
       "project=${PROJECT}" \
       "cwd=${CWD}" \
       "timestamp=${EPOCHSECONDS}" \
-      > "$MARKER_TMP" 2>/dev/null || true
+      >"$MARKER_TMP" 2>/dev/null || true
     mv -f "$MARKER_TMP" "${ATTN_DIR}/${TMUX_PANE}" 2>/dev/null || true
   fi
 fi
@@ -94,21 +94,21 @@ if [[ -n "$SESSION_ID" ]]; then
   NOW=$EPOCHSECONDS
   if [[ -f "$COOLDOWN_FILE" ]]; then
     LAST=$(cat "$COOLDOWN_FILE" 2>/dev/null || echo 0)
-    if (( NOW - LAST < 10 )); then
+    if ((NOW - LAST < 10)); then
       exit 0
     fi
   fi
-  printf '%s' "$NOW" > "$COOLDOWN_FILE" 2>/dev/null || true
+  printf '%s' "$NOW" >"$COOLDOWN_FILE" 2>/dev/null || true
 fi
 
 # --- Build notification title and body ---
 TITLE="Claude Code"
 case "$NTYPE" in
-  permission_prompt)  TITLE="Approval Needed" ;;
-  idle_prompt)        TITLE="Task Complete" ;;
+  permission_prompt) TITLE="Approval Needed" ;;
+  idle_prompt) TITLE="Task Complete" ;;
   elicitation_dialog) TITLE="Input Needed" ;;
-  ask_user_question)  TITLE="Question" ;;
-  plan_approval)      TITLE="Plan Review" ;;
+  ask_user_question) TITLE="Question" ;;
+  plan_approval) TITLE="Plan Review" ;;
 esac
 
 BODY=""
@@ -132,10 +132,10 @@ send_osc777() {
   local title="$1" body="$2" target="$3"
   if [[ -n "${TMUX:-}" ]]; then
     # Wrap in DCS passthrough so tmux forwards to Ghostty.
-    printf '\ePtmux;\e\e]777;notify;%s;%s\a\e\\' "$title" "$body" > "$target"
+    printf '\ePtmux;\e\e]777;notify;%s;%s\a\e\\' "$title" "$body" >"$target"
   else
     # Direct Ghostty (no tmux).
-    printf '\e]777;notify;%s;%s\a' "$title" "$body" > "$target"
+    printf '\e]777;notify;%s;%s\a' "$title" "$body" >"$target"
   fi
 }
 
@@ -153,7 +153,7 @@ fi
 # BEL is handled natively by tmux (no passthrough needed).
 # Lights up the bell icon in the Catppuccin status bar for this window.
 if [[ -n "$PANE_TTY" && -w "$PANE_TTY" ]]; then
-  printf '\a' > "$PANE_TTY"
+  printf '\a' >"$PANE_TTY"
 fi
 
 exit 0

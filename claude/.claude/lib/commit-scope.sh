@@ -108,7 +108,7 @@ suggest_scope() {
   local candidate=""
 
   # Step 1: single file with date-prefixed slug
-  if (( count == 1 )); then
+  if ((count == 1)); then
     local base
     base=$(basename "$staged")
     if [[ "$base" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}-(.+)\.md$ ]]; then
@@ -119,7 +119,7 @@ suggest_scope() {
   fi
 
   # Step 2: single .md file under nested path; walk deepest-first
-  if [[ -z "$candidate" ]] && (( count == 1 )) && [[ "$staged" == *.md ]]; then
+  if [[ -z "$candidate" ]] && ((count == 1)) && [[ "$staged" == *.md ]]; then
     local dir seg
     dir=$(dirname "$staged")
     while [[ "$dir" != "." && "$dir" != "/" && "$dir" != "" ]]; do
@@ -148,10 +148,10 @@ suggest_scope() {
   while IFS= read -r k; do
     [[ -z "$k" ]] && continue
     if [[ "$candidate" == "$k" ]] \
-        || [[ "$candidate" == "${k}-"* ]] \
-        || [[ "$candidate" == *"-${k}-"* ]] \
-        || [[ "$candidate" == *"-${k}" ]]; then
-      if (( ${#k} > best_len )); then
+      || [[ "$candidate" == "${k}-"* ]] \
+      || [[ "$candidate" == *"-${k}-"* ]] \
+      || [[ "$candidate" == *"-${k}" ]]; then
+      if ((${#k} > best_len)); then
         best="$k"
         best_len=${#k}
       fi

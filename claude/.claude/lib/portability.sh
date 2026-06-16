@@ -6,7 +6,8 @@
 file_mtime() { stat -c %Y "$1" 2>/dev/null || stat -f %m "$1" 2>/dev/null || echo 0; }
 # Portable timeout: prefer GNU timeout, fall back to perl alarm.
 run_timeout() {
-  local t=$1; shift
+  local t=$1
+  shift
   if command -v timeout >/dev/null 2>&1; then
     timeout "$t" "$@"
   else

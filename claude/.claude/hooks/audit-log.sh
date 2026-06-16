@@ -4,7 +4,7 @@
 set -euo pipefail
 
 # --- Build JSONL entry + today's date in a single jq pass (no subprocesses) ---
-IFS=$'\t' read -r ENTRY TODAY <<< "$(cat | jq -r '
+IFS=$'\t' read -r ENTRY TODAY <<<"$(cat | jq -r '
   # Generate timestamp and today inside jq (avoids date subprocess).
   (now | strftime("%Y-%m-%dT%H:%M:%SZ")) as $ts |
   (now | strftime("%Y-%m-%d")) as $today |
@@ -59,15 +59,15 @@ fi
 # --- Size guard: rotate if file exceeds 50 MB ---
 if [[ -f "$LOG_FILE" ]]; then
   SIZE=$(stat -c %s "$LOG_FILE" 2>/dev/null || stat -f %z "$LOG_FILE" 2>/dev/null || echo 0)
-  if (( SIZE > 52428800 )); then
+  if ((SIZE > 52428800)); then
     N=1
-    while [[ -f "${LOG_FILE}.${N}" ]] && (( N < 100 )); do
+    while [[ -f "${LOG_FILE}.${N}" ]] && ((N < 100)); do
       N=$((N + 1))
     done
     mv "$LOG_FILE" "${LOG_FILE}.${N}" 2>/dev/null || true
   fi
 fi
 
-printf '%s\n' "$ENTRY" >> "$LOG_FILE" 2>/dev/null || true
+printf '%s\n' "$ENTRY" >>"$LOG_FILE" 2>/dev/null || true
 
 exit 0

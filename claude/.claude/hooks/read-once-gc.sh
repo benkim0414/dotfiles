@@ -23,14 +23,14 @@ SNAP_DIR="$CACHE_DIR/snapshots-$SESSION_ID"
 # 1. Drop the just-ended session unless its transcript is still fresh.
 transcript_fresh=0
 while IFS= read -r tx; do
-  if [[ -n "$tx" ]] && \
-     find "$tx" -mtime "-$GC_DAYS" -print -quit 2>/dev/null | grep -q .; then
+  if [[ -n "$tx" ]] \
+    && find "$tx" -mtime "-$GC_DAYS" -print -quit 2>/dev/null | grep -q .; then
     transcript_fresh=1
     break
   fi
 done < <(find "$HOME/.claude/projects" -maxdepth 2 -name "$SESSION_ID.jsonl" 2>/dev/null)
 
-if (( transcript_fresh == 0 )); then
+if ((transcript_fresh == 0)); then
   rm -f -- "$CACHE_FILE"
   rm -rf -- "$SNAP_DIR"
 fi

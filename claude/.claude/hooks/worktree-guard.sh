@@ -37,7 +37,7 @@ if [[ -n "$FILE_PATH" ]]; then
   if [[ -n "$REPO_ROOT" ]]; then
     resolved=$(realpath -m "$FILE_PATH" 2>/dev/null || grealpath -m "$FILE_PATH" 2>/dev/null || echo "$FILE_PATH")
     if [[ "$resolved" != "${REPO_ROOT}"/* ]]; then
-      exit 0  # Target is outside the repo working tree — allow unconditionally.
+      exit 0 # Target is outside the repo working tree — allow unconditionally.
     fi
   fi
 fi

@@ -21,7 +21,7 @@ TOOL=$(printf '%s' "$INPUT" | jq -r '.tool_name // ""' 2>/dev/null || true)
 # Fast-exit for tools we do not inspect (Read, Glob, Grep, Task, etc.).
 # Avoids sourcing the lib for ~70%+ of tool calls in a typical session.
 case "$TOOL" in
-  Bash|Write|Edit|NotebookEdit|WebFetch) ;;
+  Bash | Write | Edit | NotebookEdit | WebFetch) ;;
   *) exit 0 ;;
 esac
 
@@ -37,7 +37,7 @@ case "$TOOL" in
     CMD=$(jq -r '.tool_input.command // ""' <<<"$INPUT")
     REASON="$(check_bash "$CMD")"
     ;;
-  Write|Edit|NotebookEdit)
+  Write | Edit | NotebookEdit)
     FILE_PATH=$(jq -r '.tool_input.file_path // .tool_input.notebook_path // ""' <<<"$INPUT")
     REASON="$(check_file_edit "$FILE_PATH" "${CLAUDE_WORKTREE_ROOT:-}")"
     ;;

@@ -14,7 +14,7 @@ rc_record() {
     --argjson ts "$NOW" \
     --argjson denies "$denies" \
     '{path:$path,mtime:$mtime,ranges:$ranges,ts:$ts,denies:$denies}' \
-    >> "$CACHE" 2>/dev/null || true
+    >>"$CACHE" 2>/dev/null || true
 }
 
 # Look up ABS in the JSONL cache and emit tab-separated:
@@ -52,14 +52,14 @@ rc_lookup() {
 rc_deny() {
   local abs="$1" age="$2" size="$3" denies="${4:-0}"
   local tokens
-  tokens=$(( size / 4 ))
+  tokens=$((size / 4))
   local n=$((denies + 1))
   local reason
-  if   (( denies == 0 )); then
+  if ((denies == 0)); then
     reason="read-once: ${abs} in context (read ${age}s ago, unchanged, ~${tokens} tokens). Use loaded content. To invalidate: edit file or request different offset/limit."
-  elif (( denies <= 2 )); then
+  elif ((denies <= 2)); then
     reason="read-once: ${abs} STILL in context (deny #${n}, read ${age}s ago). Stop re-reading. Use content already loaded OR change approach."
-  elif (( denies <= 5 )); then
+  elif ((denies <= 5)); then
     reason="read-once: ${abs} DENY #${n}. File unchanged since first read. Re-reads will keep failing. Use content from context OR change task plan."
   else
     reason="read-once: ${abs} DENY #${n} — retry loop. Operator escape: set READ_ONCE_DISABLE=1 in env. Otherwise abandon this approach."
@@ -96,9 +96,9 @@ rc_recent_touch() {
 rc_path_slug() {
   local abs="$1"
   printf '%s' "$abs" | sha1sum 2>/dev/null | cut -c1-40 && return
-  printf '%s' "$abs" | shasum  2>/dev/null | cut -c1-40 && return
-  printf '%s' "$abs" | md5sum  2>/dev/null | cut -c1-32 && return
-  printf '%s' "$abs" | md5     2>/dev/null | tr -d ' \t\n' && return
+  printf '%s' "$abs" | shasum 2>/dev/null | cut -c1-40 && return
+  printf '%s' "$abs" | md5sum 2>/dev/null | cut -c1-32 && return
+  printf '%s' "$abs" | md5 2>/dev/null | tr -d ' \t\n' && return
   # Absolute fallback: base64, URL-safe chars only.
   printf '%s' "$abs" | base64 2>/dev/null | tr '/+=' '_-~' | head -c 64
 }
