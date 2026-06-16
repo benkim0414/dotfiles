@@ -24,13 +24,7 @@ setopt HIST_IGNORE_SPACE         # Don't record entries starting with space
 setopt HIST_REDUCE_BLANKS        # Remove unnecessary blanks
 setopt HIST_VERIFY               # Don't execute immediately on history expansion
 setopt INC_APPEND_HISTORY        # Add commands to history immediately
-unsetopt SHARE_HISTORY           # Manual import via fc -RI gives predictable refresh timing
-
-autoload -Uz add-zsh-hook
-_import_appended_history() {
-  [[ -r "$HISTFILE" ]] && fc -RI
-}
-add-zsh-hook precmd _import_appended_history
+setopt SHARE_HISTORY             # Share history across concurrent sessions in real time
 
 setopt COMBINING_CHARS           # Handle combining Unicode characters correctly
 setopt COMPLETE_IN_WORD          # Complete from both ends of word
