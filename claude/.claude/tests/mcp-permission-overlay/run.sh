@@ -76,6 +76,13 @@ expect mcp__atlassian__jira_remove_watcher          ask
 expect mcp__atlassian__confluence_delete_page       ask
 expect mcp__atlassian__confluence_delete_attachment ask
 
+# Verbs dropped from the base global gate (create/update/edit/add/
+# transition) no longer force-ask on other servers; they fall to the
+# auto-mode classifier. A still-gated destructive verb on the same
+# hypothetical server stays at ask.
+expect mcp__somefuture__create_thing                classifier
+expect mcp__somefuture__delete_thing                ask
+
 echo
 if [[ $fail -eq 0 ]]; then echo "mcp-permission-overlay: all passed"; else echo "mcp-permission-overlay: FAILURES"; fi
 exit $fail
