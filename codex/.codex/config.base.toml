@@ -165,10 +165,19 @@ source = "https://github.com/EveryInc/compound-engineering-plugin.git"
 # Tell Codex to treat the marketplace source as a Git checkout.
 source_type = "git"
 
+[marketplaces.agentmemory]
+# Load the Agentmemory plugin marketplace from its Git repository.
+source = "https://github.com/rohitg00/agentmemory.git"
+# Tell Codex to treat the marketplace source as a Git checkout.
+source_type = "git"
+
 [plugins."superpowers@superpowers-marketplace"]
 enabled = true
 
 [plugins."compound-engineering@compound-engineering-plugin"]
+enabled = true
+
+[plugins."agentmemory@agentmemory"]
 enabled = true
 
 [otel]
