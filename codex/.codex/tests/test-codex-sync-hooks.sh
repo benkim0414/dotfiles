@@ -143,7 +143,46 @@ git -C "$LIVE_PRIMARY_REPO" config user.name "Codex Test"
 printf 'fixture\n' >"$LIVE_PRIMARY_REPO/README.md"
 git -C "$LIVE_PRIMARY_REPO" add README.md
 git -C "$LIVE_PRIMARY_REPO" commit -m "test: seed fixture" >/dev/null
-live_guard_output="$(
+primary_guard_output="$(
+  jq -cn --arg cwd "$LIVE_PRIMARY_REPO" --arg tool_name "Write" '{
+    hook_event_name:"PreToolUse",
+    tool_name:$tool_name,
+    cwd:$cwd,
+    tool_input:{file_path:"generated.txt", content:"ok"}
+  }' | env -i HOME="$HOME_DIR" PATH="/usr/bin:/bin" bash "$CODEX_HOME/hooks/worktree-guard.sh"
+)"
+jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null <<<"$primary_guard_output"
+jq -e '.hookSpecificOutput.permissionDecisionReason | contains("primary worktree")' >/dev/null <<<"$primary_guard_output"
+
+git -C "$LIVE_PRIMARY_REPO" worktree add "$LIVE_PRIMARY_REPO/.worktrees/linked" -b linked-fixture >/dev/null
+jq -cn --arg cwd "$LIVE_PRIMARY_REPO/.worktrees/linked" --arg tool_name "Write" '{
+  hook_event_name:"PreToolUse",
+  tool_name:$tool_name,
+  cwd:$cwd,
+  tool_input:{file_path:"linked-generated.txt", content:"ok"}
+}' | env -i HOME="$HOME_DIR" PATH="/usr/bin:/bin" bash "$CODEX_HOME/hooks/worktree-guard.sh" >/dev/null
+
+OUTSIDE_REPO="$TEST_ROOT/outside-repo"
+mkdir -p "$OUTSIDE_REPO"
+jq -cn --arg cwd "$OUTSIDE_REPO" --arg tool_name "Write" '{
+  hook_event_name:"PreToolUse",
+  tool_name:$tool_name,
+  cwd:$cwd,
+  tool_input:{file_path:"outside-generated.txt", content:"ok"}
+}' | env -i HOME="$HOME_DIR" PATH="/usr/bin:/bin" bash "$CODEX_HOME/hooks/worktree-guard.sh" >/dev/null
+
+cross_boundary_output="$(
+  jq -cn --arg cwd "$LIVE_PRIMARY_REPO/.worktrees/linked" --arg target "$LIVE_PRIMARY_REPO/README.md" --arg tool_name "Write" '{
+    hook_event_name:"PreToolUse",
+    tool_name:$tool_name,
+    cwd:$cwd,
+    tool_input:{file_path:$target, content:"changed"}
+  }' | env -i HOME="$HOME_DIR" PATH="/usr/bin:/bin" bash "$CODEX_HOME/hooks/worktree-guard.sh"
+)"
+jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null <<<"$cross_boundary_output"
+jq -e '.hookSpecificOutput.permissionDecisionReason | contains("cross-boundary")' >/dev/null <<<"$cross_boundary_output"
+
+mcp_guard_output="$(
   jq -cn --arg cwd "$LIVE_PRIMARY_REPO" --arg tool_name "mcp__context_mode__.ctx_execute" '{
     hook_event_name:"PreToolUse",
     tool_name:$tool_name,
@@ -151,8 +190,7 @@ live_guard_output="$(
     tool_input:{language:"shell", code:"touch generated.txt"}
   }' | env -i HOME="$HOME_DIR" PATH="/usr/bin:/bin" bash "$CODEX_HOME/hooks/worktree-guard.sh"
 )"
-jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null <<<"$live_guard_output"
-jq -e '.hookSpecificOutput.permissionDecisionReason | contains("primary worktree")' >/dev/null <<<"$live_guard_output"
+[[ -z "$mcp_guard_output" ]]
 
 UNMANAGED_DOTFILES="$TEST_ROOT/unmanaged-dotfiles"
 UNMANAGED_HOME="$TEST_ROOT/unmanaged-home"
