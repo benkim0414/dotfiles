@@ -78,7 +78,10 @@ User-scope defaults (in `claude/.claude/settings.base.json`):
   stay in `ask`.
 - `ask` rules gate destructive + high-impact MCP mutations: the
   `mcp__*__*delete*`, `*remove*`, `*sync*`, `*deploy*`, `*apply*`,
-  `*patch*`, `*write*` globs, plus two destructive context-mode tools --
+  `*patch*`, `*write*` globs (the `mcp__*__` server-segment wildcard is
+  valid only in `ask`/`deny` -- `allow` requires a literal, glob-free
+  server segment, so do not move these to `allow`), plus two destructive
+  context-mode tools --
   `mcp__plugin_context-mode_context-mode__ctx_purge` (wipes the FTS5
   knowledge base, irreversible) and
   `mcp__plugin_context-mode_context-mode__ctx_upgrade` (pulls, builds,
