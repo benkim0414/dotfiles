@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # claude-sync -- merge base + overlay Claude Code settings and stow the claude package.
 #
-# Base settings:   $DOTFILES/claude/.claude/settings.base.json   (always present)
-# Overlay:         $CLAUDE_SKILLS_DIR/settings.overlay.json      (optional, from claude-skills)
-# Output:          ~/.claude/settings.json                       (generated, not a symlink)
+# Base settings:   $DOTFILES/claude/.claude/settings.base.json      (always present)
+# Overlays (in merge order, later wins on scalar conflict):
+#   1. $DOTFILES/claude/.claude/settings.overlay.json              (company, optional)
+#   2. $CLAUDE_SKILLS_DIR/settings.overlay.json                    (claude-skills, optional)
+# Output:          ~/.claude/settings.json                          (generated, not a symlink)
 #
 # Merge semantics:
 #   - String arrays: concatenate + deduplicate  (permissions.allow, deny, ask)
@@ -17,7 +19,8 @@ set -euo pipefail
 DOTFILES="${DOTFILES_DIR:-$HOME/workspace/dotfiles}"
 SKILLS="${CLAUDE_SKILLS_DIR:-$HOME/workspace/claude-skills}"
 BASE="$DOTFILES/claude/.claude/settings.base.json"
-OVERLAY="$SKILLS/settings.overlay.json"
+DOTFILES_OVERLAY="$DOTFILES/claude/.claude/settings.overlay.json"
+SKILLS_OVERLAY="$SKILLS/settings.overlay.json"
 OUTPUT="$HOME/.claude/settings.json"
 
 command -v jq >/dev/null 2>&1 || { echo >&2 "error: jq is required but not installed"; exit 1; }
@@ -30,9 +33,16 @@ fi
 # Stow base claude config (creates symlinks for everything except settings.json)
 stow -d "$DOTFILES" -t ~ -R claude
 
-# Merge settings: base + overlay -> output
-if [[ -f "$OVERLAY" ]]; then
-  jq -n --slurpfile base "$BASE" --slurpfile over "$OVERLAY" '
+# Merge settings: base + ordered overlays -> output.
+# Overlays are folded left-to-right; later overlays win on scalar conflicts.
+overlays=()
+[[ -f "$DOTFILES_OVERLAY" ]] && overlays+=("$DOTFILES_OVERLAY")
+[[ -f "$SKILLS_OVERLAY" ]]   && overlays+=("$SKILLS_OVERLAY")
+
+if (( ${#overlays[@]} > 0 )); then
+  jq -n \
+     --slurpfile base "$BASE" \
+     --slurpfile overlays <(jq -s '.' "${overlays[@]}") '
     def merge(b):
       if (type == "array") and (b | type == "array") then
         if all(type == "string") and (b | all(type == "string"))
@@ -44,9 +54,9 @@ if [[ -f "$OVERLAY" ]]; then
           if has($e.key) then .[$e.key] |= merge($e.value)
           else . + {($e.key): $e.value} end)
       else b end;
-    $base[0] | merge($over[0])
+    reduce $overlays[0][] as $o ($base[0]; merge($o))
   ' > "$OUTPUT.tmp" && mv "$OUTPUT.tmp" "$OUTPUT"
-  echo "settings.json: merged base + overlay -> $OUTPUT"
+  echo "settings.json: merged base + ${#overlays[@]} overlay(s) -> $OUTPUT"
 else
   cp "$BASE" "$OUTPUT"
   echo "settings.json: copied base (no overlay found) -> $OUTPUT"
