@@ -114,6 +114,9 @@ assert_table_contains "$CONFIG" '[auto_review]' 'gh pr merge'
 assert_table_contains "$CONFIG" '[auto_review]' 'branch deletion outside the registered'
 assert_table_contains "$CONFIG" '[auto_review]' 'These sensitive operations require direct user'
 assert_table_contains "$CONFIG" '[mcp_servers.context-mode]' 'default_tools_approval_mode = "approve"'
+assert_table_contains "$CONFIG" '[marketplaces.agentmemory]' 'source = "https://github.com/rohitg00/agentmemory.git"'
+assert_table_contains "$CONFIG" '[marketplaces.agentmemory]' 'source_type = "git"'
+assert_table_contains "$CONFIG" '[plugins."agentmemory@agentmemory"]' 'enabled = true'
 assert_file_contains "$CONFIG" "command = '$EXPECTED_HOOK_PATH context-mode hook codex pretooluse'"
 assert_file_contains "$CONFIG" "command = '$EXPECTED_HOOK_PATH context-mode hook codex posttooluse'"
 assert_file_contains "$CONFIG" "command = '$EXPECTED_HOOK_PATH context-mode hook codex sessionstart'"
