@@ -192,6 +192,17 @@ mcp_guard_output="$(
 )"
 [[ -z "$mcp_guard_output" ]]
 
+stale_mcp_write_output="$(
+  jq -cn --arg cwd "$LIVE_PRIMARY_REPO" --arg tool_name "mcp__x__write_command" '{
+    hook_event_name:"PreToolUse",
+    tool_name:$tool_name,
+    cwd:$cwd,
+    tool_input:{file_path:"generated-via-mcp.txt", content:"ok"}
+  }' | env -i HOME="$HOME_DIR" PATH="/usr/bin:/bin" bash "$CODEX_HOME/hooks/worktree-guard.sh"
+)"
+jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null <<<"$stale_mcp_write_output"
+jq -e '.hookSpecificOutput.permissionDecisionReason | contains("primary worktree")' >/dev/null <<<"$stale_mcp_write_output"
+
 UNMANAGED_DOTFILES="$TEST_ROOT/unmanaged-dotfiles"
 UNMANAGED_HOME="$TEST_ROOT/unmanaged-home"
 UNMANAGED_CODEX_HOME="$UNMANAGED_HOME/.codex"

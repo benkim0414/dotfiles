@@ -2220,10 +2220,6 @@ approval_category_for_base() {
   fi
 }
 
-if is_shell_tool || is_mcp_executor_tool; then
-  exit 0
-fi
-
 repo_root="$(repo_root_for)"
 
 if is_direct_write_tool || is_mcp_write_tool; then
@@ -2271,6 +2267,10 @@ if is_direct_write_tool || is_mcp_write_tool; then
   fi
 
   require_approval "$(approval_reason "primary worktree" "$repo_root")"
+fi
+
+if is_shell_tool || is_mcp_executor_tool; then
+  exit 0
 fi
 
 exit 0
