@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__atlassian__*",
+      "mcp__slack__*"
+    ],
+    "ask": [
+      "mcp__atlassian__jira_delete_issue",
+      "mcp__atlassian__jira_remove_issue_link",
+      "mcp__atlassian__jira_remove_watcher",
+      "mcp__atlassian__confluence_delete_page",
+      "mcp__atlassian__confluence_delete_attachment"
+    ]
+  }
+}
