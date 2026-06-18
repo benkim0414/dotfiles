@@ -35,7 +35,7 @@ DENY=();  while IFS= read -r l; do DENY+=("$l");  done < <(jq -r '.permissions.d
 ASK=();   while IFS= read -r l; do ASK+=("$l");   done < <(jq -r '.permissions.ask[]?'   <<<"$MERGED")
 ALLOW=(); while IFS= read -r l; do ALLOW+=("$l"); done < <(jq -r '.permissions.allow[]?' <<<"$MERGED")
 
-anymatch() { local tool="$1"; shift; local p; for p in "$@"; do [[ "$tool" == $p ]] && return 0; done; return 1; }
+anymatch() { local tool="$1"; shift; (( $# == 0 )) && return 1; local p; for p in "$@"; do [[ "$tool" == $p ]] && return 0; done; return 1; }
 
 classify() {
   local tool="$1"
