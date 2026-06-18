@@ -90,7 +90,7 @@ timeout = 10
 statusMessage = "Checking atomic commit workflow"
 
 [[hooks.PreToolUse]]
-matcher = "apply_patch|Edit|Write|MultiEdit|NotebookEdit|local_shell|shell|shell_command|exec_command|Bash|Shell|mcp__"
+matcher = "apply_patch|Edit|Write|MultiEdit|NotebookEdit"
 
 [[hooks.PreToolUse.hooks]]
 type = "command"
