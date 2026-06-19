@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "mcp__atlassian__*",
-      "mcp__slack__*"
+      "mcp__slack__*",
+      "mcp__qmd__query",
+      "mcp__qmd__get",
+      "mcp__qmd__multi_get",
+      "mcp__qmd__status"
     ],
     "ask": [
       "mcp__atlassian__jira_delete_issue",

@@ -69,6 +69,15 @@ expect mcp__slack__slack_post_message              allow
 expect mcp__slack__slack_reply_to_thread           allow
 expect mcp__slack__slack_add_reaction              allow
 
+# qmd company-wiki read tools auto-allowed via the company overlay
+expect mcp__qmd__query                             allow
+expect mcp__qmd__get                               allow
+expect mcp__qmd__multi_get                         allow
+expect mcp__qmd__status                            allow
+# only the four named read tools are allow-listed; anything else qmd
+# exposes falls to the auto-mode classifier (no blanket qmd allow)
+expect mcp__qmd__some_other_tool                   classifier
+
 # Bucket C (destructive) -> ask
 expect mcp__atlassian__jira_delete_issue            ask
 expect mcp__atlassian__jira_remove_issue_link       ask
