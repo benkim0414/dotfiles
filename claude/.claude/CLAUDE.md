@@ -1,5 +1,12 @@
 # Global Claude Code Preferences
 
+## Company configuration
+
+Company-wide instructions (distinct from these personal defaults) live in a
+separate stowed file and are imported here:
+
+@CLAUDE.company.md
+
 ## Preferences
 
 - Editor: nvim

@@ -60,6 +60,12 @@ Run `claude-sync` after editing any of them to regenerate
 deduplicate) and objects (overlay wins). With no overlay present it
 copies the base as-is.
 
+Instructions layer separately from settings: `claude/.claude/CLAUDE.md` holds
+personal defaults and imports company-wide instructions via
+`@CLAUDE.company.md` (a native Claude Code import, resolved relative to the
+stowed `~/.claude/CLAUDE.md`). `claude-sync` does not touch CLAUDE.md -- the
+import is resolved by Claude Code at load time.
+
 ## Permission posture
 
 User-scope defaults (in `claude/.claude/settings.base.json`):
@@ -97,6 +103,14 @@ User-scope defaults (in `claude/.claude/settings.base.json`):
   `confluence_delete_page`, `confluence_delete_attachment`) are re-gated
   by exact name in `ask` (ask beats allow). Verified by
   `claude/.claude/tests/mcp-permission-overlay/run.sh`.
+- qmd company-wiki posture (company overlay): the four read tools
+  (`mcp__qmd__query`, `mcp__qmd__get`, `mcp__qmd__multi_get`,
+  `mcp__qmd__status`) are auto-allowed by exact name so wiki queries skip the
+  classifier. qmd indexing/write tools are intentionally not allowed --
+  indexing stays a manual user action. The "when to query the wiki" directive
+  lives in `claude/.claude/CLAUDE.company.md` (imported into the personal
+  `CLAUDE.md`), not in settings. Verified by the same
+  `mcp-permission-overlay` test.
 
 Per-repo overrides live in `.claude/settings.local.json` (gitignored).
 Add `permissions.ask` or `permissions.deny` rules there for sensitive
