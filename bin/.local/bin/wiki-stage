@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# Mirror a repo's tracked docs/ tree into <wiki>/raw/<repo>/.
+# Idempotent: copies only new or content-changed files; never deletes.
+# Safe anytime; also the manual/backfill entrypoint. Called from post-merge
+# hooks, so it MUST NOT fail a merge: exits 0 on every guard and per-file error.
+set -u
+
+# Canonical repo identity, worktree-independent.
+common_dir=$(git rev-parse --git-common-dir 2>/dev/null) || exit 0
+common_dir=$(cd "$common_dir" 2>/dev/null && pwd) || exit 0
+repo_root=$(dirname "$common_dir")
+repo_name=$(basename "$repo_root")
+
+docs_root="$repo_root/docs"
+[ -d "$docs_root" ] || exit 0
+
+wiki_root="${WIKI_STAGE_DEST_ROOT:-$HOME/workspace/wiki}"
+[ -d "$wiki_root" ] || exit 0
+dest_base="$wiki_root/raw/$repo_name"
+
+# Tracked files under docs/, NUL-delimited for safe paths.
+while IFS= read -r -d '' rel; do
+  sub=${rel#docs/}                 # strip leading docs/
+  src="$repo_root/$rel"
+  dest="$dest_base/$sub"
+  [ -f "$src" ] || continue        # tracked but absent in worktree -> never delete dest
+  if [ -f "$dest" ] && cmp -s "$src" "$dest"; then
+    continue                       # byte-identical -> skip
+  fi
+  if ! mkdir -p "$(dirname "$dest")"; then
+    echo "wiki-stage: mkdir failed for $dest" >&2; continue
+  fi
+  if ! cp -p "$src" "$dest"; then
+    echo "wiki-stage: copy failed for $src" >&2; continue
+  fi
+done < <(git -C "$repo_root" ls-files -z -- docs/)
+
+exit 0

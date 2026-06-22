@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# Install the wiki-stage post-merge shim into a repo's hooks dir.
+# Usage: wiki-stage-install [repo-path]   (default: current repo)
+# Worktree-aware (uses --git-common-dir). Refuses to clobber a foreign hook.
+set -u
+
+target=${1:-.}
+common_dir=$(git -C "$target" rev-parse --git-common-dir 2>/dev/null) || {
+  echo "wiki-stage-install: not a git repository: $target" >&2
+  exit 1
+}
+# git --git-common-dir is relative to $target for a normal repo (".git") and
+# absolute for a linked worktree; cd into $target first, then into it, to get abs.
+common_dir=$(cd "$target" && cd "$common_dir" && pwd) || {
+  echo "wiki-stage-install: cannot resolve git dir for $target" >&2
+  exit 1
+}
+hooks_dir="$common_dir/hooks"
+hook="$hooks_dir/post-merge"
+
+if [ -e "$hook" ]; then
+  if grep -qx 'exec wiki-stage' "$hook" 2>/dev/null; then
+    echo "wiki-stage-install: already installed at $hook"
+    exit 0
+  fi
+  echo "wiki-stage-install: refusing to overwrite existing hook: $hook" >&2
+  exit 1
+fi
+
+mkdir -p "$hooks_dir"
+if ! printf '%s\n' '#!/usr/bin/env sh' 'exec wiki-stage' > "$hook"; then
+  echo "wiki-stage-install: failed to write $hook" >&2; exit 1
+fi
+chmod +x "$hook" || { echo "wiki-stage-install: chmod failed for $hook" >&2; exit 1; }
+echo "wiki-stage-install: installed post-merge shim at $hook"
