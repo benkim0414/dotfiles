@@ -84,6 +84,32 @@ t6_deleted_source_retained() {
     ok "t6 deleted source retained in raw"; else bad "t6 deleted source"; fi
 }
 
+t7_install() {
+  local root; root=$(make_repo inst)
+  # Fresh repo: install writes the shim.
+  ( cd "$root" && "$INSTALL" >/dev/null )
+  local hook="$root/.git/hooks/post-merge"
+  if [ -x "$hook" ] && diff -q <(printf '#!/usr/bin/env sh\nexec wiki-stage\n') "$hook" >/dev/null; then
+    ok "t7a install writes exact shim"; else bad "t7a install writes exact shim"; fi
+  # Re-run: idempotent, exits 0.
+  if ( cd "$root" && "$INSTALL" >/dev/null ); then
+    ok "t7b reinstall idempotent"; else bad "t7b reinstall idempotent"; fi
+  # Foreign hook: refuse, leave it intact.
+  local root2; root2=$(make_repo inst2)
+  printf '#!/bin/sh\necho mine\n' > "$root2/.git/hooks/post-merge"
+  chmod +x "$root2/.git/hooks/post-merge"
+  if ( cd "$root2" && "$INSTALL" >/dev/null 2>&1 ); then
+    bad "t7c refuse foreign hook (did not refuse)"
+  elif grep -q 'echo mine' "$root2/.git/hooks/post-merge"; then
+    ok "t7c refuse foreign hook"; else bad "t7c foreign hook clobbered"; fi
+
+  # t7d: explicit path arg, invoked from a different cwd.
+  local root3; root3=$(make_repo inst3)
+  ( cd "$TMP" && "$INSTALL" "$root3" >/dev/null )
+  if [ -x "$root3/.git/hooks/post-merge" ] && grep -qx 'exec wiki-stage' "$root3/.git/hooks/post-merge"; then
+    ok "t7d install via explicit path arg"; else bad "t7d explicit path arg"; fi
+}
+
 main() {
   TMP=$(mktemp -d)
   WIKI="$TMP/wiki"; mkdir -p "$WIKI"
@@ -94,6 +120,7 @@ main() {
   t4_untracked_skipped
   t5_worktree_canonical_name
   t6_deleted_source_retained
+  t7_install
   printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
   [ "$FAIL" -eq 0 ]
 }
