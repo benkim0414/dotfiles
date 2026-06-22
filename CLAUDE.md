@@ -29,6 +29,23 @@ first clone or secret rotation. 1Password: same pattern with `mise-load-op` and 
 Never use `_.source` for secret scripts -- mise re-runs them on every prompt.
 Never commit `.env*` or `.mise.local.toml` files -- they are gitignored.
 
+# Wiki staging
+
+Generated plugin docs (`docs/superpowers/{specs,plans}/`, `docs/solutions/`) are
+mirrored into `~/workspace/wiki/raw/<repo>/` for later `/ingest` into the wiki's
+`okf/` knowledge pages.
+
+- `wiki-stage` -- idempotent mirror of a repo's tracked `docs/` tree into
+  `~/workspace/wiki/raw/<repo>/`. Content-hash skip, never deletes, exits 0 on
+  every guard. Safe to run manually anytime (also backfills).
+- `wiki-stage-install` -- installs a `post-merge` shim into a repo so staging
+  fires automatically when docs merge to `main`. Run once per repo to wire it;
+  refuses to clobber an existing foreign hook.
+- Staging is copy-only: it never commits or pushes the wiki. Ingestion into
+  `okf/` stays a separate manual step (the wiki's `/ingest` skill).
+
+Design: `docs/superpowers/specs/2026-06-22-wiki-stage-docs-mirror-design.md`.
+
 # Stow gotchas
 
 - **Always pass `-t ~`**. There is no .stowrc; the default target is the parent dir (`~/workspace/`), not `~`.
