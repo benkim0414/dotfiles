@@ -46,6 +46,29 @@ mirrored into `~/workspace/wiki/raw/<repo>/` for later `/ingest` into the wiki's
 
 Design: `docs/superpowers/specs/2026-06-22-wiki-stage-docs-mirror-design.md`.
 
+# MCP servers (Playwright)
+
+The `insane-search` plugin's engine escalates DataDome/Turnstile-class sites to
+MCP Playwright (its R6/R7 routes call `mcp__playwright__*` tools). Register the
+server device-local (user scope), matching the convention for the other MCP
+servers in `~/.claude.json`:
+
+```sh
+claude mcp add --scope user playwright -- npx @playwright/mcp@latest --browser chrome
+```
+
+- Server name MUST be `playwright` so tools register as `mcp__playwright__*`
+  (the names the engine and SKILL.md R6/R7 call).
+- `--browser chrome` uses the installed Google Chrome channel (Brewfile cask
+  `google-chrome`) -- stronger bot-detection evasion than bundled Chromium, and
+  no extra browser binary to download.
+- Device-local (`~/.claude.json`), not committed -- re-run the command on each
+  device. Verify with `claude mcp list` (expect `✔ Connected`).
+- insane-search engine deps run from `~/.local/share/insane-search/venv`; the
+  engine re-fetches any internal API found via Playwright network capture.
+
+Design: `docs/superpowers/specs/2026-06-25-playwright-mcp-design.md`.
+
 # Stow gotchas
 
 - **Always pass `-t ~`**. There is no .stowrc; the default target is the parent dir (`~/workspace/`), not `~`.
