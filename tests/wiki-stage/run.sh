@@ -110,6 +110,46 @@ t7_install() {
     ok "t7d install via explicit path arg"; else bad "t7d explicit path arg"; fi
 }
 
+t8_husky_hookspath() {
+  # Husky repos: git ignores .git/hooks/ (core.hooksPath), so the hook must
+  # land at .husky/post-merge. Detector keys off the .husky/ dir, not hooksPath
+  # (make_repo already sets core.hooksPath=/dev/null for isolation).
+  local root; root=$(make_repo husk)
+  mkdir -p "$root/.husky/_"
+  git -C "$root" config core.hooksPath .husky/_     # husky v9 layout, for realism
+  # The bug we repair: a dead wiki-stage shim sitting in .git/hooks/.
+  mkdir -p "$root/.git/hooks"
+  printf '%s\n' '#!/usr/bin/env sh' 'exec wiki-stage' > "$root/.git/hooks/post-merge"
+  chmod +x "$root/.git/hooks/post-merge"
+
+  ( cd "$root" && "$INSTALL" >/dev/null )
+
+  local hook="$root/.husky/post-merge"
+  if [ -x "$hook" ] \
+     && grep -qFx 'command -v wiki-stage >/dev/null 2>&1 || exit 0' "$hook" \
+     && grep -qx 'exec wiki-stage' "$hook"; then
+    ok "t8a husky hook installed with guard"; else bad "t8a husky hook installed with guard"; fi
+
+  if grep -qFx '/.husky/post-merge' "$root/.git/info/exclude" 2>/dev/null; then
+    ok "t8b husky hook kept local via exclude"; else bad "t8b husky hook exclude"; fi
+
+  if [ ! -e "$root/.git/hooks/post-merge" ]; then
+    ok "t8c dead .git/hooks shim removed"; else bad "t8c dead shim not removed"; fi
+
+  if ( cd "$root" && "$INSTALL" >/dev/null ); then
+    ok "t8d husky reinstall idempotent"; else bad "t8d husky reinstall idempotent"; fi
+
+  # Foreign .husky/post-merge: refuse, leave intact.
+  local root2; root2=$(make_repo husk2)
+  mkdir -p "$root2/.husky"
+  printf '%s\n' '#!/bin/sh' 'echo mine' > "$root2/.husky/post-merge"
+  chmod +x "$root2/.husky/post-merge"
+  if ( cd "$root2" && "$INSTALL" >/dev/null 2>&1 ); then
+    bad "t8e refuse foreign husky hook (did not refuse)"
+  elif grep -q 'echo mine' "$root2/.husky/post-merge"; then
+    ok "t8e refuse foreign husky hook"; else bad "t8e foreign husky hook clobbered"; fi
+}
+
 main() {
   TMP=$(mktemp -d)
   WIKI="$TMP/wiki"; mkdir -p "$WIKI"
@@ -121,6 +161,7 @@ main() {
   t5_worktree_canonical_name
   t6_deleted_source_retained
   t7_install
+  t8_husky_hookspath
   printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
   [ "$FAIL" -eq 0 ]
 }
