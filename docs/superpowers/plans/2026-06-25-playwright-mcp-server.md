@@ -119,7 +119,7 @@ The new subsection goes under the "Secrets"/"Wiki staging" infra documentation, 
 
 Insert this section (exact content):
 
-```markdown
+````markdown
 # MCP servers (Playwright)
 
 The `insane-search` plugin's engine escalates DataDome/Turnstile-class sites to
@@ -140,7 +140,7 @@ claude mcp add --scope user playwright -- npx @playwright/mcp@latest --browser c
   device. Verify with `claude mcp list` (expect `✔ Connected`).
 - insane-search engine deps run from `~/.local/share/insane-search/venv`; the
   engine re-fetches any internal API found via Playwright network capture.
-```
+````
 
 - [ ] **Step 3: Verify the edit**
 
