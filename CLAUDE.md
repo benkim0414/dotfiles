@@ -38,13 +38,21 @@ mirrored into `~/workspace/wiki/raw/<repo>/` for later `/ingest` into the wiki's
 - `wiki-stage` -- idempotent mirror of a repo's tracked `docs/` tree into
   `~/workspace/wiki/raw/<repo>/`. Content-hash skip, never deletes, exits 0 on
   every guard. Safe to run manually anytime (also backfills).
-- `wiki-stage-install` -- installs a `post-merge` shim into a repo so staging
+- `wiki-stage-install` -- installs a `post-merge` hook into a repo so staging
   fires automatically when docs merge to `main`. Run once per repo to wire it;
-  refuses to clobber an existing foreign hook.
+  refuses to clobber an existing foreign hook. Husky-aware: in repos that set
+  `core.hooksPath` it installs at `.husky/post-merge` (kept local via
+  `.git/info/exclude`), since git ignores `.git/hooks/` there.
 - Staging is copy-only: it never commits or pushes the wiki. Ingestion into
   `okf/` stays a separate manual step (the wiki's `/ingest` skill).
 
 Design: `docs/superpowers/specs/2026-06-22-wiki-stage-docs-mirror-design.md`.
+
+# Documented solutions
+
+`docs/solutions/` holds documented solutions to past problems (bugs, conventions,
+workflow patterns), organized by category with YAML frontmatter (`module`, `tags`,
+`problem_type`). Relevant when implementing or debugging in a documented area.
 
 # MCP servers (Playwright)
 
