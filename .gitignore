@@ -34,3 +34,5 @@ codex/.codex/state*.sqlite*
 codex/.codex/tmp/
 codex/.codex/.tmp/
 codex/.codex/version.json
+# Playwright MCP browser output (snapshots, console logs)
+.playwright-mcp/
