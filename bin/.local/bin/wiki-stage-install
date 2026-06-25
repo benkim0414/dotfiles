@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
-# Install the wiki-stage post-merge shim into a repo's hooks dir.
+# Install the wiki-stage post-merge hook into a repo's hooks dir.
 # Usage: wiki-stage-install [repo-path]   (default: current repo)
-# Worktree-aware (uses --git-common-dir). Refuses to clobber a foreign hook.
+# Worktree-aware (uses --git-common-dir). Husky-aware: a .husky/ dir means git's
+# core.hooksPath redirects hook lookup away from .git/hooks/, so the hook is
+# installed at .husky/post-merge (husky's _/post-merge wrapper sources it on v9;
+# git runs it directly when hooksPath=.husky). The husky hook is kept LOCAL via
+# .git/info/exclude and never committed. Refuses to clobber a foreign hook.
 set -u
 
 target=${1:-.}
@@ -15,8 +19,18 @@ common_dir=$(cd "$target" && cd "$common_dir" && pwd) || {
   echo "wiki-stage-install: cannot resolve git dir for $target" >&2
   exit 1
 }
-hooks_dir="$common_dir/hooks"
-hook="$hooks_dir/post-merge"
+repo_root=$(dirname "$common_dir")
+
+# A .husky/ dir is the signal that hooks are redirected away from .git/hooks/.
+if [ -d "$repo_root/.husky" ]; then
+  hook_dir="$repo_root/.husky"
+  hook="$hook_dir/post-merge"
+  husky=1
+else
+  hook_dir="$common_dir/hooks"
+  hook="$hook_dir/post-merge"
+  husky=0
+fi
 
 if [ -e "$hook" ]; then
   if grep -qx 'exec wiki-stage' "$hook" 2>/dev/null; then
@@ -27,9 +41,34 @@ if [ -e "$hook" ]; then
   exit 1
 fi
 
-mkdir -p "$hooks_dir"
-if ! printf '%s\n' '#!/usr/bin/env sh' 'exec wiki-stage' > "$hook"; then
-  echo "wiki-stage-install: failed to write $hook" >&2; exit 1
+mkdir -p "$hook_dir"
+if [ "$husky" -eq 1 ]; then
+  # Guard: silent no-op for anyone without wiki-stage on PATH.
+  if ! printf '%s\n' '#!/usr/bin/env sh' \
+        'command -v wiki-stage >/dev/null 2>&1 || exit 0' \
+        'exec wiki-stage' > "$hook"; then
+    echo "wiki-stage-install: failed to write $hook" >&2; exit 1
+  fi
+else
+  if ! printf '%s\n' '#!/usr/bin/env sh' 'exec wiki-stage' > "$hook"; then
+    echo "wiki-stage-install: failed to write $hook" >&2; exit 1
+  fi
 fi
 chmod +x "$hook" || { echo "wiki-stage-install: chmod failed for $hook" >&2; exit 1; }
-echo "wiki-stage-install: installed post-merge shim at $hook"
+
+if [ "$husky" -eq 1 ]; then
+  # Keep the hook local: never commit it into the tracked .husky/ dir.
+  rel_hook=${hook#"$repo_root"/}
+  exclude_file="$common_dir/info/exclude"
+  mkdir -p "$common_dir/info"
+  if ! grep -qxF "/$rel_hook" "$exclude_file" 2>/dev/null; then
+    printf '%s\n' "/$rel_hook" >> "$exclude_file"
+  fi
+  # Remove a dead wiki-stage shim left in .git/hooks/ (git ignores it under husky).
+  legacy="$common_dir/hooks/post-merge"
+  if [ "$legacy" != "$hook" ] && [ -f "$legacy" ] \
+     && grep -qx 'exec wiki-stage' "$legacy" 2>/dev/null; then
+    rm -f "$legacy" && echo "wiki-stage-install: removed dead shim at $legacy"
+  fi
+fi
+echo "wiki-stage-install: installed post-merge hook at $hook"
