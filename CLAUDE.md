@@ -66,6 +66,10 @@ claude mcp add --scope user playwright -- npx @playwright/mcp@latest --browser c
   device. Verify with `claude mcp list` (expect `✔ Connected`).
 - insane-search engine deps run from `~/.local/share/insane-search/venv`; the
   engine re-fetches any internal API found via Playwright network capture.
+- Verified 2026-06-25: headed real Chrome passed g2's DataDome challenge and
+  rendered the full page via `browser_snapshot` (the R6 rendered-DOM route).
+  g2 server-renders its HTML and exposes no internal JSON API, so the R7
+  API-recon route was N/A -- snapshot is the winning route for that class of site.
 
 Design: `docs/superpowers/specs/2026-06-25-playwright-mcp-design.md`.
 
