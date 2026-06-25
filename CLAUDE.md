@@ -77,6 +77,27 @@ Run `claude-sync` after editing any of them to regenerate
 deduplicate) and objects (overlay wins). With no overlay present it
 copies the base as-is.
 
+## Plugins and marketplaces (cross-device)
+
+Two `settings.base.json` keys make the plugin set reproducible on any
+device through synced settings alone -- no manual `/plugin marketplace
+add`:
+
+- `enabledPlugins` toggles each plugin on (`"plugin@marketplace": true`).
+- `extraKnownMarketplaces` declares the marketplace each plugin comes
+  from (`github` source + `repo`). On a fresh device Claude Code
+  auto-installs every declared marketplace after a one-time trust
+  prompt. Every entry sets `"autoUpdate": true`, so Claude Code refreshes
+  the marketplace and updates its installed plugins at startup.
+
+A plugin needs an `enabledPlugins` entry AND -- unless it lives on the
+official Anthropic marketplace -- an `extraKnownMarketplaces` entry for
+its marketplace. `claude-md-management@claude-plugins-official` rides the
+auto-known official marketplace, so it has no `extraKnownMarketplaces`
+entry by design. Both keys are objects, so `claude-sync` deep-merges
+them (overlay wins); they live in the base, not an overlay, because they
+are personal cross-device config.
+
 Instructions layer separately from settings: `claude/.claude/CLAUDE.md` holds
 personal defaults and imports company-wide instructions via
 `@CLAUDE.company.md` (a native Claude Code import, resolved relative to the
