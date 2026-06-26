@@ -14,6 +14,12 @@ set -euo pipefail
 
 : "${EPOCHSECONDS:=$(date +%s)}"
 
+# Resolve the pane id even when $TMUX_PANE is not inherited. Async PreToolUse
+# hooks (AskUserQuestion, ExitPlanMode) don't get $TMUX_PANE; Notification
+# hooks do. notify-pane.sh provides notify_resolve_pane_id.
+# shellcheck source=../lib/notify-pane.sh
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../lib/notify-pane.sh" 2>/dev/null || true
+
 # --- Send Ghostty desktop notification via OSC 777 ---
 # Outputs the OSC 777 escape sequence to a tty; wraps in tmux DCS passthrough
 # when inside tmux so the sequence reaches Ghostty.
@@ -79,6 +85,13 @@ main() {
   # --- Shared state ---
   CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/claude"
   [[ -d "$CACHE_DIR" ]] || mkdir -p "$CACHE_DIR" 2>/dev/null || true
+
+  # Recover $TMUX_PANE when the hook did not inherit it (see notify-pane.sh).
+  # Idempotent: echoes the existing value back when already set. Guarded so a
+  # missing lib degrades gracefully instead of clobbering an inherited pane.
+  if declare -F notify_resolve_pane_id >/dev/null 2>&1; then
+    TMUX_PANE="$(notify_resolve_pane_id)"
+  fi
 
   # --- Resolve tmux pane context (single tmux call) ---
   PANE_LABEL=""
