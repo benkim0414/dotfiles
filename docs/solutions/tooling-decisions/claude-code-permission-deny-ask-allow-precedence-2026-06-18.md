@@ -2,6 +2,7 @@
 title: "Claude Code permission precedence (ask beats allow) and overlay merge can add but not remove"
 module: claude-code-permissions
 date: 2026-06-18
+last_updated: 2026-06-30
 problem_type: tooling_decision
 component: tooling
 related_components:
@@ -14,6 +15,7 @@ applies_when:
   - "splitting permission config between a committed base file and a merge-only overlay"
   - "auto-allowing MCP read tools while gating MCP write or destructive tools"
   - "writing MCP allow rules (server segment must be glob-free)"
+  - "a later overlay in the fold re-adds a verb glob the base removed"
 root_cause: config_error
 resolution_type: config_change
 tags:
@@ -160,6 +162,53 @@ atlassian tools; `permissions.allow` gains the two server wildcards. Because
 the fold can only add, the base narrowing in Step 1 is load-bearing -- it is
 the only thing that removes `create`/`update`/etc. from the gate.
 
+### Single-authority caveat -- a later overlay can re-add what the base removed (2026-06-30)
+
+The base narrowing in Step 1 only holds if no *later* overlay in the fold
+re-adds the verb globs. `claude-sync` previously folded a second, optional
+overlay after the company one: `~/workspace/claude-skills/settings.overlay.json`.
+That overlay was a stale copy of the *old, pre-narrowing* policy -- its
+`permissions.ask` still listed `mcp__*__*create*`, `*update*`, `*edit*`,
+`*add*`, `*transition*`, `*invoke*`. Concatenation re-introduced exactly the
+globs Step 1 removed, so `jira_create_issue` (and the claude.ai-connector
+`createJiraIssue`) prompted again -- the symptom looked identical to never
+having narrowed the base at all.
+
+The trap is structural and asymmetric: the fold can only add, so **the
+dotfiles base and company overlay cannot subtract a glob a downstream overlay
+contributes.** No edit to `settings.base.json` or `settings.overlay.json` can
+fix it. The remedy is to remove the offending overlay's contribution *at its
+source* -- here, detach the stale overlay from `claude-sync`'s discovery
+entirely so base + company overlay are the sole authority:
+
+```bash
+# before: claude-sync discovered two overlays
+overlays=()
+[[ -f "$DOTFILES_OVERLAY" ]] && overlays+=("$DOTFILES_OVERLAY")
+[[ -f "$SKILLS_OVERLAY" ]]   && overlays+=("$SKILLS_OVERLAY")  # <- stale; dropped
+
+# after: single authority
+overlays=()
+[[ -f "$DOTFILES_OVERLAY" ]] && overlays+=("$DOTFILES_OVERLAY")
+```
+
+**Principle: keep the MCP verb-gating policy in exactly one authority (the
+base).** An overlay should add server-specific *opt-ins* (allow a named server,
+re-gate its destructive tools by exact name) -- it must never restate the
+global verb gate. A second copy of that policy inevitably drifts from the base
+and, because the fold cannot subtract, silently re-gates whatever the base
+later chose to free. When auditing a "still prompting despite the narrowed
+base" report, enumerate **every** overlay the merge folds, not just the base.
+
+Verify the fix against the *generated* file, since the hermetic
+base+overlay-only test would not have caught the third overlay:
+
+```bash
+claude-sync
+jq -r '(.permissions.ask // []) | map(select(test("\\*(create|update|edit|add|transition|invoke)\\*"))) | length' ~/.claude/settings.json
+# expect: 0
+```
+
 ### Verify with a precedence-simulating bash test
 
 Re-run the exact `jq` merge, then resolve representative tools through
@@ -270,3 +319,8 @@ result: PROMPT  -- destructive op still gated
   verbatim-documented" is now resolved by the official-docs quote above.
 - Separate MCP failure mode (not precedence-related):
   `docs/solutions/developer-experience/mcp-compressor-empty-schema-2026-05-22.md`.
+- 2026-06-30 incident that drove the "Single-authority caveat" update: the
+  stale `claude-skills` overlay re-added the narrowed verb globs and was
+  detached from `claude-sync`. Spec/plan:
+  `docs/superpowers/specs/2026-06-30-mcp-perms-detach-claude-skills-overlay-design.md`,
+  `docs/superpowers/plans/2026-06-30-mcp-perms-detach-claude-skills-overlay.md`.
