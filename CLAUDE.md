@@ -99,18 +99,24 @@ Design: `docs/superpowers/specs/2026-06-25-playwright-mcp-design.md`.
 
 # Claude Code settings (layered merge)
 
-Base settings live in `claude/.claude/settings.base.json`. Overlays are
-folded on top in order (later wins on scalar conflict):
+Base settings live in `claude/.claude/settings.base.json`. A single
+overlay is folded on top (later wins on scalar conflict):
 
 1. `claude/.claude/settings.overlay.json` -- company overlay, committed
    to this repo (e.g. atlassian/slack MCP auto-allow). Always applies.
-2. `~/workspace/claude-skills/settings.overlay.json` -- claude-skills
-   overlay, optional. Merges when the repo is cloned.
 
-Run `claude-sync` after editing any of them to regenerate
+Run `claude-sync` after editing either of them to regenerate
 `~/.claude/settings.json`. The script deep-merges arrays (concatenate +
 deduplicate) and objects (overlay wins). With no overlay present it
 copies the base as-is.
+
+The `~/workspace/claude-skills/settings.overlay.json` overlay was detached
+on 2026-06-30: it carried stale broad `ask` globs
+(`create/update/edit/add/transition/invoke`) that re-gated Atlassian
+non-destructive MCP tools. Because `ask` beats `allow` and the merge only
+concatenates (it cannot subtract), the company `mcp__atlassian__*` allow
+could not suppress them. Base + company overlay are now the sole authority
+for MCP verb gating.
 
 ## Plugins and marketplaces (cross-device)
 
