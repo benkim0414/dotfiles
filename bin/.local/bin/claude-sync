@@ -11,7 +11,7 @@
 #   - Objects:       deep merge, overlay wins   (enabledPlugins)
 #   - Scalars:       overlay wins if present    (effortLevel, statusLine)
 #
-# If the overlay file is absent (claude-skills not cloned), the base is copied as-is.
+# If the overlay file is absent, the base is copied as-is.
 set -euo pipefail
 
 DOTFILES="${DOTFILES_DIR:-$HOME/workspace/dotfiles}"
