@@ -2,9 +2,7 @@
 # claude-sync -- merge base + overlay Claude Code settings and stow the claude package.
 #
 # Base settings:   $DOTFILES/claude/.claude/settings.base.json      (always present)
-# Overlays (in merge order, later wins on scalar conflict):
-#   1. $DOTFILES/claude/.claude/settings.overlay.json              (company, optional)
-#   2. $CLAUDE_SKILLS_DIR/settings.overlay.json                    (claude-skills, optional)
+# Overlay:         $DOTFILES/claude/.claude/settings.overlay.json   (company, optional)
 # Output:          ~/.claude/settings.json                          (generated, not a symlink)
 #
 # Merge semantics:
@@ -17,10 +15,8 @@
 set -euo pipefail
 
 DOTFILES="${DOTFILES_DIR:-$HOME/workspace/dotfiles}"
-SKILLS="${CLAUDE_SKILLS_DIR:-$HOME/workspace/claude-skills}"
 BASE="$DOTFILES/claude/.claude/settings.base.json"
 DOTFILES_OVERLAY="$DOTFILES/claude/.claude/settings.overlay.json"
-SKILLS_OVERLAY="$SKILLS/settings.overlay.json"
 OUTPUT="$HOME/.claude/settings.json"
 
 command -v jq >/dev/null 2>&1 || { echo >&2 "error: jq is required but not installed"; exit 1; }
@@ -37,7 +33,6 @@ stow -d "$DOTFILES" -t ~ -R claude
 # Overlays are folded left-to-right; later overlays win on scalar conflicts.
 overlays=()
 [[ -f "$DOTFILES_OVERLAY" ]] && overlays+=("$DOTFILES_OVERLAY")
-[[ -f "$SKILLS_OVERLAY" ]]   && overlays+=("$SKILLS_OVERLAY")
 
 if (( ${#overlays[@]} > 0 )); then
   jq -n \
