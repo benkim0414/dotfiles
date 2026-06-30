@@ -1,14 +1,10 @@
 # Claude Code Hooks
 
 Shell hooks that fire on Claude Code lifecycle and tool events. They are
-registered in `claude/.claude/settings.base.json` under `hooks` (deep-merged
-with the work overlay by `claude-sync` into `~/.claude/settings.json`). The
-`claude` package is stowed to `~/.claude/`, so each hook runs as
-`bash $HOME/.claude/hooks/<name>.sh`.
-
-The work overlay (`~/workspace/claude-skills/settings.overlay.json`) may
-register additional, work-specific hooks that do **not** live in this repo;
-they are out of scope for this README.
+registered in `claude/.claude/settings.base.json` under `hooks` (merged with
+the company `settings.overlay.json` by `claude-sync` into
+`~/.claude/settings.json`). The `claude` package is stowed to `~/.claude/`,
+so each hook runs as `bash $HOME/.claude/hooks/<name>.sh`.
 
 ## Conventions
 
