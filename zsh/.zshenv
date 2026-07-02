@@ -14,8 +14,15 @@ export XDG_STATE_HOME="$HOME/.local/state"
 # .zshenv makes non-interactive zsh invocations use the same config and skills.
 export HERMES_HOME="$HOME/workspace/hermes"
 
-export PATH="$HOME/bin:$PATH"
-export PATH="$HOME/.local/bin:$PATH"
+typeset -U path PATH
+path=(
+    "$HOME/.local/bin"
+    "$HOME/bin"
+    /usr/local/sbin
+    /usr/sbin
+    /sbin
+    $path
+)
 if [[ "$OSTYPE" == "darwin"* ]]; then
     if [[ -x /opt/homebrew/bin/brew ]]; then  # Apple Silicon
         eval "$(/opt/homebrew/bin/brew shellenv)"
