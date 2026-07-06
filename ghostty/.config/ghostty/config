@@ -1,3 +1,23 @@
-config-file = ?~/.config/omarchy/current/theme/ghostty.conf
+# Font
 font-family = JetBrainsMonoNL Nerd Font
-font-size = 14
+font-size = 16
+
+# Theme — built-in Catppuccin Mocha (self-contained, no stray files)
+theme = Catppuccin Mocha
+
+# macOS
+macos-titlebar-style = hidden
+macos-option-as-alt = true
+window-save-state = always
+
+# Window
+window-padding-x = 8
+window-padding-y = 8
+window-padding-balance = true
+background-opacity = 1
+
+# Behavior
+mouse-hide-while-typing = true
+
+# Bell — native notification on bell (attention+title already default)
+bell-features = system,attention,title
