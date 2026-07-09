@@ -89,6 +89,11 @@ herdr's keymap onto tmux muscle memory: prefix `ctrl+s`, `prefix s` = stacked
 split, `prefix v` = side-by-side split, `settings` moved to `prefix ,`. `r`
 (resize), `R` (reload), `b` (sidebar) stay at herdr defaults.
 
+In navigate mode the workspace sidebar list moves with `j`/`k`
+(`navigate_workspace_up/down`); the up/down arrows are reassigned to pane
+vertical focus (`navigate_pane_up/down`). Pane nav elsewhere is unchanged
+(`ctrl+hjkl`, `prefix+hjkl`).
+
 Direct `ctrl+h/j/k/l` pane navigation comes from the `vim-herdr-navigation`
 herdr plugin (a vim-tmux-navigator port): it forwards the key into vim when a
 vim/neovim pane is focused, else moves herdr focus, and falls back to tmux or
