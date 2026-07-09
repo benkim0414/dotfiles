@@ -17,7 +17,7 @@ window-padding-balance = true
 background-opacity = 1
 
 # Behavior
-command = /usr/bin/zsh
+command = zsh
 mouse-hide-while-typing = true
 
 # Bell — native notification on bell (attention+title already default)
