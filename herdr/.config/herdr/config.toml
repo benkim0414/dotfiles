@@ -5,6 +5,13 @@ prefix = "ctrl+s"
 split_horizontal = "prefix+s"   # stacked (pane below): tmux muscle memory
 settings = "prefix+comma"       # evicted from prefix+s
 
+# navigate mode: j/k walk the workspace sidebar list (default is arrows only);
+# up/down arrows absorb pane vertical movement freed from j/k.
+navigate_workspace_up = "k"
+navigate_workspace_down = "j"
+navigate_pane_up = "up"
+navigate_pane_down = "down"
+
 # vim-herdr-navigation: direct ctrl+hjkl, forwards into vim when vim is focused,
 # else moves herdr pane focus; falls back to tmux/wincmd outside herdr.
 [[keys.command]]
