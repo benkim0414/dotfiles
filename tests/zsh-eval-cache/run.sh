@@ -123,6 +123,17 @@ t_command_failure_keeps_valid_existing_cache() {
   fi
 }
 
+t_zshrc_wires_helper_and_install_hints() {
+  local zshrc="$DOTFILES/zsh/.zshrc"
+  if grep -q 'source "${XDG_CONFIG_HOME:-$HOME/.config}/zsh/eval-cache.zsh"' "$zshrc" \
+    && grep -q '_eval_cache fzf "sudo dnf install fzf" fzf --zsh' "$zshrc" \
+    && grep -q '_eval_cache zoxide "sudo dnf install zoxide" zoxide init zsh --cmd cd' "$zshrc"; then
+    ok "zshrc wires eval-cache helper and install hints"
+  else
+    bad "zshrc wires eval-cache helper and install hints"
+  fi
+}
+
 main() {
   trap cleanup EXIT
   t_valid_output_is_cached_and_sourced
@@ -134,6 +145,8 @@ main() {
   t_invalid_existing_cache_is_not_sourced
   cleanup
   t_command_failure_keeps_valid_existing_cache
+  cleanup
+  t_zshrc_wires_helper_and_install_hints
   cleanup
 
   printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
