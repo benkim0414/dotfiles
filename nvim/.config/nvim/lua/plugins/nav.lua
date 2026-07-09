@@ -80,7 +80,15 @@ return {
       -- vim-herdr-navigation owns <C-h/j/k/l>: forwards to herdr when in a herdr
       -- pane, falls back to tmux ($TMUX) or plain wincmd otherwise.
       local root = require("lazy.core.config").options.root
-      dofile(root .. "/vim-herdr-navigation/editor/nvim.lua")
+      local hook = root .. "/vim-herdr-navigation/editor/nvim.lua"
+      if (vim.uv or vim.loop).fs_stat(hook) then
+        dofile(hook)
+      else
+        vim.notify(
+          "vim-herdr-navigation not synced; run :Lazy sync",
+          vim.log.levels.WARN
+        )
+      end
     end,
   }
 }
