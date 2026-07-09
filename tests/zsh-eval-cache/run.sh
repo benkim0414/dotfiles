@@ -57,12 +57,14 @@ t_packagekit_output_is_rejected() {
   write_fake fakefzf 'cat <<'"'"'OUT'"'"'
 The following packages have to be installed:
  fzf_0.73.1-1.fc44.x86_64  A command-line fuzzy finder written in Go
+export BAD_CACHE_SOURCED=1
 OUT'
 
   local output
-  output=$(run_zsh 'source "$XDG_CONFIG_HOME/zsh/eval-cache.zsh"; _eval_cache fakefzf "sudo dnf install fzf" fakefzf; print -- "${FZF_TEST_LOADED:-unset}"' 2>&1)
+  output=$(run_zsh 'source "$XDG_CONFIG_HOME/zsh/eval-cache.zsh"; _eval_cache fakefzf "sudo dnf install fzf" fakefzf; print -- "${FZF_TEST_LOADED:-unset} ${BAD_CACHE_SOURCED:-unset}"' 2>&1)
   if [[ "$output" == *"zsh: fakefzf init unavailable; install with: sudo dnf install fzf"* ]] \
     && [[ "$output" == *"unset"* ]] \
+    && [[ "$output" == *"unset unset"* ]] \
     && [[ ! -s "$TMP/cache/zsh/eval-cache-fakefzf.zsh" ]]; then
     ok "PackageKit command-not-found output is rejected"
   else
@@ -88,12 +90,15 @@ t_missing_command_warns_and_sources_stale_cache() {
 t_invalid_existing_cache_is_not_sourced() {
   setup_case
   mkdir -p "$TMP/cache/zsh"
-  printf '%s\n' 'The following packages have to be installed:' >"$TMP/cache/zsh/eval-cache-fakezoxide.zsh"
+  {
+    printf '%s\n' 'The following packages have to be installed:'
+    printf '%s\n' 'export BAD_CACHE_SOURCED=1'
+  } >"$TMP/cache/zsh/eval-cache-fakezoxide.zsh"
 
   local output
-  output=$(run_zsh 'source "$XDG_CONFIG_HOME/zsh/eval-cache.zsh"; _eval_cache fakezoxide "sudo dnf install zoxide" fakezoxide; print -- "${ZOXIDE_TEST_LOADED:-unset}"' 2>&1)
+  output=$(run_zsh 'source "$XDG_CONFIG_HOME/zsh/eval-cache.zsh"; _eval_cache fakezoxide "sudo dnf install zoxide" fakezoxide; print -- "${ZOXIDE_TEST_LOADED:-unset} ${BAD_CACHE_SOURCED:-unset}"' 2>&1)
   if [[ "$output" == *"zsh: fakezoxide init unavailable; install with: sudo dnf install zoxide"* ]] \
-    && [[ "$output" == *"unset"* ]]; then
+    && [[ "$output" == *"unset unset"* ]]; then
     ok "invalid existing cache is not sourced"
   else
     bad "invalid existing cache is not sourced ($output)"
@@ -102,15 +107,16 @@ t_invalid_existing_cache_is_not_sourced() {
 
 t_command_failure_keeps_valid_existing_cache() {
   setup_case
-  write_fake flakytool 'exit 42'
+  write_fake flakytool 'printf "%s\n" "The following packages have to be installed:"; printf "%s\n" "export BAD_GENERATOR_SOURCED=1"; exit 42'
   mkdir -p "$TMP/cache/zsh"
   printf '%s\n' 'export FLAKY_CACHE_SOURCED=1' >"$TMP/cache/zsh/eval-cache-flakytool.zsh"
+  sleep 1
   touch "$TMP/bin/flakytool"
 
   local output
-  output=$(run_zsh 'source "$XDG_CONFIG_HOME/zsh/eval-cache.zsh"; _eval_cache flakytool "sudo dnf install flakytool" flakytool; print -- "${FLAKY_CACHE_SOURCED:-unset}"' 2>&1)
+  output=$(run_zsh 'source "$XDG_CONFIG_HOME/zsh/eval-cache.zsh"; _eval_cache flakytool "sudo dnf install flakytool" flakytool; print -- "${FLAKY_CACHE_SOURCED:-unset} ${BAD_GENERATOR_SOURCED:-unset}"' 2>&1)
   if [[ "$output" == *"zsh: flakytool init unavailable; install with: sudo dnf install flakytool"* ]] \
-    && [[ "$output" == *"1"* ]]; then
+    && [[ "$output" == *"1 unset"* ]]; then
     ok "command failure keeps valid existing cache and warns"
   else
     bad "command failure keeps valid existing cache and warns ($output)"
