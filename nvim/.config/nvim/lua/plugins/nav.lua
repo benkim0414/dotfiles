@@ -71,19 +71,29 @@ return {
   },
   {
     "christoomey/vim-tmux-navigator",
-    cmd = {
-      "TmuxNavigateLeft",
-      "TmuxNavigateDown",
-      "TmuxNavigateUp",
-      "TmuxNavigateRight",
-      "TmuxNavigatePrevious",
-    },
-    keys = {
-      { "<c-h>",  "<cmd><C-U>TmuxNavigateLeft<cr>",     desc = "Navigate left" },
-      { "<c-j>",  "<cmd><C-U>TmuxNavigateDown<cr>",     desc = "Navigate down" },
-      { "<c-k>",  "<cmd><C-U>TmuxNavigateUp<cr>",       desc = "Navigate up" },
-      { "<c-l>",  "<cmd><C-U>TmuxNavigateRight<cr>",    desc = "Navigate right" },
-      { "<c-\\>", "<cmd><C-U>TmuxNavigatePrevious<cr>", desc = "Navigate previous" },
-    },
+    dependencies = { "paulbkim-dev/vim-herdr-navigation" },
+    lazy = false,
+    init = function()
+      vim.g.tmux_navigator_no_mappings = 1
+    end,
+    config = function()
+      -- vim-herdr-navigation owns <C-h/j/k/l>: forwards to herdr when in a herdr
+      -- pane, falls back to tmux ($TMUX) or plain wincmd otherwise.
+      local root = require("lazy.core.config").options.root
+      local hook = root .. "/vim-herdr-navigation/editor/nvim.lua"
+      if (vim.uv or vim.loop).fs_stat(hook) then
+        dofile(hook)
+      else
+        vim.notify(
+          "vim-herdr-navigation not synced; run :Lazy sync",
+          vim.log.levels.WARN
+        )
+      end
+      -- Keep tmux muscle memory for last-focused split. The port owns C-hjkl but
+      -- has no "previous" action, so this uses the TmuxNavigate command (tmux, or
+      -- wincmd fallback in plain vim); it does not cross into a herdr pane.
+      vim.keymap.set("n", "<c-\\>", "<cmd>TmuxNavigatePrevious<cr>",
+        { silent = true, desc = "Navigate previous" })
+    end,
   }
 }

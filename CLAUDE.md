@@ -81,11 +81,43 @@ claude mcp add --scope user playwright -- npx @playwright/mcp@latest --browser c
 
 Design: `docs/superpowers/specs/2026-06-25-playwright-mcp-design.md`.
 
+# herdr
+
+herdr (homebrew-core `brew "herdr"`) is the primary agent workspace manager. The
+`herdr/` Stow package ships a minimal `~/.config/herdr/config.toml` that remaps
+herdr's keymap onto tmux muscle memory: prefix `ctrl+s`, `prefix s` = stacked
+split, `prefix v` = side-by-side split, `settings` moved to `prefix ,`. `r`
+(resize), `R` (reload), `b` (sidebar) stay at herdr defaults.
+
+Direct `ctrl+h/j/k/l` pane navigation comes from the `vim-herdr-navigation`
+herdr plugin (a vim-tmux-navigator port): it forwards the key into vim when a
+vim/neovim pane is focused, else moves herdr focus, and falls back to tmux or
+`wincmd` outside herdr. The nvim side is folded into the `vim-tmux-navigator`
+spec in `nvim/.config/nvim/lua/plugins/nav.lua`.
+
+`config.toml` is direct-stowed: herdr only writes the `onboarding` flag and never
+rewrites keys at runtime (runtime state lives in separate files -- `session.json`,
+sockets, `*.log`). No base+generated pattern is needed (unlike codex).
+
+Per-device setup (one time):
+
+1. `brew bundle --file=Brewfile` -- installs herdr.
+2. `herdr plugin install paulbkim-dev/vim-herdr-navigation --yes` -- registers the
+   `vim-herdr-navigation.*` actions the config's `ctrl+hjkl` binds call. herdr
+   plugins live in herdr's own store, not Stow-managed (like `tpm` for tmux).
+3. `rm -f ~/.config/herdr/config.toml` (removes herdr's auto-created stub) then
+   `stow -t ~ herdr`.
+4. Launch nvim once so lazy.nvim syncs `vim-herdr-navigation`.
+5. `herdr server reload-config` (or restart the server) to load the keys.
+
+Design: `docs/superpowers/specs/2026-07-09-herdr-tmux-keybindings-design.md`.
+
 # Stow gotchas
 
 - **Always pass `-t ~`**. There is no .stowrc; the default target is the parent dir (`~/workspace/`), not `~`.
 - **Before stowing `bin`**: run `mkdir -p ~/.local/bin` first. Otherwise Stow tree-folds and creates a directory symlink, which breaks other tools that install into `~/.local/bin`.
 - **Before stowing `codex`**: run `mkdir -p ~/.codex` first, then `codex-sync`. Same tree-folding issue -- Codex writes runtime state (history, logs) into `~/.codex/`.
+- **Before stowing `herdr`**: herdr auto-creates `~/.config/herdr/config.toml` (an `onboarding` stub) on first run. Remove it (`rm -f ~/.config/herdr/config.toml`) before `stow -t ~ herdr`, or Stow refuses to overlay the non-symlink target.
 - **Stow refuses absolute symlinks**. Files installed by external tools (claude, git-filter-repo, uv, uvx) must NOT be added to the bin package -- leave them as-is in `~/.local/bin`.
 - **After restructuring a package dir**, use `stow -t ~ -R <package>` to clean up stale symlinks.
 
