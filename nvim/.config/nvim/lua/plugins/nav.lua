@@ -89,6 +89,11 @@ return {
           vim.log.levels.WARN
         )
       end
+      -- Keep tmux muscle memory for last-focused split. The port owns C-hjkl but
+      -- has no "previous" action, so this uses the TmuxNavigate command (tmux, or
+      -- wincmd fallback in plain vim); it does not cross into a herdr pane.
+      vim.keymap.set("n", "<c-\\>", "<cmd>TmuxNavigatePrevious<cr>",
+        { silent = true, desc = "Navigate previous" })
     end,
   }
 }
