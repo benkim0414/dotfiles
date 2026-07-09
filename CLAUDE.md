@@ -105,8 +105,9 @@ vim/neovim pane is focused, else moves herdr focus, and falls back to tmux or
 spec in `nvim/.config/nvim/lua/plugins/nav.lua`.
 
 `config.toml` is direct-stowed: herdr only writes the `onboarding` flag and never
-rewrites keys at runtime (runtime state lives in separate files -- `session.json`,
-sockets, `*.log`). No base+generated pattern is needed (unlike codex).
+rewrites keys at runtime (runtime state lives in separate files -- `plugins.json`,
+`session.json`, sockets, `*.log`). No base+generated pattern is needed (unlike
+codex).
 
 Per-device setup (one time):
 

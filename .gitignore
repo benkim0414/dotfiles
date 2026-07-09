@@ -6,6 +6,9 @@
 .env.op
 .env.local
 tmux/.config/tmux/plugins
+herdr/.config/herdr/*.log
+herdr/.config/herdr/plugins.json
+herdr/.config/herdr/session.json
 .claude/settings.local.json
 .claude/.credentials.json
 .claude/credentials
