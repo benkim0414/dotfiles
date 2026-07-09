@@ -71,19 +71,16 @@ return {
   },
   {
     "christoomey/vim-tmux-navigator",
-    cmd = {
-      "TmuxNavigateLeft",
-      "TmuxNavigateDown",
-      "TmuxNavigateUp",
-      "TmuxNavigateRight",
-      "TmuxNavigatePrevious",
-    },
-    keys = {
-      { "<c-h>",  "<cmd><C-U>TmuxNavigateLeft<cr>",     desc = "Navigate left" },
-      { "<c-j>",  "<cmd><C-U>TmuxNavigateDown<cr>",     desc = "Navigate down" },
-      { "<c-k>",  "<cmd><C-U>TmuxNavigateUp<cr>",       desc = "Navigate up" },
-      { "<c-l>",  "<cmd><C-U>TmuxNavigateRight<cr>",    desc = "Navigate right" },
-      { "<c-\\>", "<cmd><C-U>TmuxNavigatePrevious<cr>", desc = "Navigate previous" },
-    },
+    dependencies = { "paulbkim-dev/vim-herdr-navigation" },
+    lazy = false,
+    init = function()
+      vim.g.tmux_navigator_no_mappings = 1
+    end,
+    config = function()
+      -- vim-herdr-navigation owns <C-h/j/k/l>: forwards to herdr when in a herdr
+      -- pane, falls back to tmux ($TMUX) or plain wincmd otherwise.
+      local root = require("lazy.core.config").options.root
+      dofile(root .. "/vim-herdr-navigation/editor/nvim.lua")
+    end,
   }
 }
