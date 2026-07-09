@@ -6,6 +6,8 @@
 .env.op
 .env.local
 tmux/.config/tmux/plugins
+# Local installer-managed binaries
+bin/.local/bin/herdr
 herdr/.config/herdr/*.log
 herdr/.config/herdr/plugins.json
 herdr/.config/herdr/session.json
@@ -31,6 +33,9 @@ codex/.codex/memories-*/
 codex/.codex/models_cache.json
 codex/.codex/plugins/
 codex/.codex/sessions/
+codex/.codex/context-mode/sessions/
+codex/.codex/goals_*.sqlite*
+codex/.codex/memories_*.sqlite*
 codex/.codex/shell_snapshots/
 codex/.codex/skills/
 codex/.codex/state*.sqlite*
