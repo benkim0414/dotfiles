@@ -95,9 +95,9 @@ Expected: path ends with `dotfiles/herdr/.config/herdr/config.toml` (or, when ru
 
 Run:
 ```bash
-herdr --default-config | grep -E '^(prefix|settings|split_horizontal|split_vertical) ='
+herdr --default-config | grep -E '^#? *(prefix|settings|split_horizontal|split_vertical) ='
 ```
-Expected: shows herdr's defaults (`prefix = "ctrl+b"`, `settings = "prefix+s"`, `split_horizontal = "prefix+minus"`, `split_vertical = "prefix+v"`). Then eyeball the stowed file: only `prefix`, `split_horizontal`, `settings`, and the four `[[keys.command]]` blocks appear under `[keys]`. `split_vertical` is intentionally absent (kept at default).
+Expected: shows herdr's defaults (these lines are commented in the default output, so the `#?` is required): `# prefix = "ctrl+b"`, `settings = "prefix+s"`, `split_horizontal = "prefix+minus"`, `split_vertical = "prefix+v"`. Then eyeball the stowed file: only `prefix`, `split_horizontal`, `settings`, and the four `[[keys.command]]` blocks appear under `[keys]`. `split_vertical` is intentionally absent (kept at default).
 
 - [ ] **Step 6: Reload herdr config (non-fatal if server not running)**
 
