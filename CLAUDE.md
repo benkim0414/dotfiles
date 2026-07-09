@@ -94,6 +94,10 @@ In navigate mode the workspace sidebar list moves with `j`/`k`
 vertical focus (`navigate_pane_up/down`). Pane nav elsewhere is unchanged
 (`ctrl+hjkl`, `prefix+hjkl`).
 
+New panes explicitly launch zsh as a login shell so the stowed zsh config and
+Starship prompt load even when the Herdr server was started from a sparse
+environment.
+
 Direct `ctrl+h/j/k/l` pane navigation comes from the `vim-herdr-navigation`
 herdr plugin (a vim-tmux-navigator port): it forwards the key into vim when a
 vim/neovim pane is focused, else moves herdr focus, and falls back to tmux or
@@ -108,8 +112,10 @@ Per-device setup (one time):
 
 1. `brew bundle --file=Brewfile` -- installs herdr.
 2. `herdr plugin install paulbkim-dev/vim-herdr-navigation --yes` -- registers the
-   `vim-herdr-navigation.*` actions the config's `ctrl+hjkl` binds call. herdr
-   plugins live in herdr's own store, not Stow-managed (like `tpm` for tmux).
+   `vim-herdr-navigation.*` actions the config's `ctrl+hjkl` binds call. If
+   lazy.nvim has already cloned the repo, `herdr plugin link
+   ~/.local/share/nvim/lazy/vim-herdr-navigation` is also valid for this machine.
+   herdr plugins live in herdr's own store, not Stow-managed (like `tpm` for tmux).
 3. `rm -f ~/.config/herdr/config.toml` (removes herdr's auto-created stub) then
    `stow -t ~ herdr`.
 4. Launch nvim once so lazy.nvim syncs `vim-herdr-navigation`.

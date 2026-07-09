@@ -1,5 +1,9 @@
 onboarding = false
 
+[terminal]
+default_shell = "zsh"
+shell_mode = "login"
+
 [keys]
 prefix = "ctrl+s"
 split_horizontal = "prefix+s"   # stacked (pane below): tmux muscle memory
