@@ -159,5 +159,7 @@ geometry is reversed, swap the two `split_*` lines — a one-line fix.
 
 - Design: `docs/superpowers/specs/2026-07-09-herdr-tmux-keybindings-design.md`
 - Plan: `docs/superpowers/plans/2026-07-09-herdr-tmux-keybindings.md`
+- Next chapter (sidebar navigate-mode nav, built on these binds):
+  `docs/solutions/tooling-decisions/herdr-hjkl-workspace-sidebar-navigation.md`
 - Package convention + per-device setup: `CLAUDE.md` (`# herdr` section)
 - Upstream: [herdr](https://herdr.dev), [vim-herdr-navigation](https://github.com/paulbkim-dev/vim-herdr-navigation)
