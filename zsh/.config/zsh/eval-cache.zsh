@@ -29,9 +29,13 @@ _eval_cache() {
   local bin_path
   local temp
   local needs_refresh=0
+  local refresh_failed=0
 
   bin_path="$(command -v "$1" 2>/dev/null)"
   if [[ -z "$bin_path" ]]; then
+    if _eval_cache_valid_zsh_file "$cache"; then
+      source "$cache"
+    fi
     _eval_cache_warn "$name" "$install_hint"
     return 0
   fi
@@ -48,16 +52,15 @@ _eval_cache() {
     if "$@" >| "$temp" && _eval_cache_valid_zsh_file "$temp"; then
       command mv -f "$temp" "$cache"
     else
+      refresh_failed=1
       command rm -f "$temp"
-      if ! _eval_cache_valid_zsh_file "$cache"; then
-        command rm -f "$cache"
-        _eval_cache_warn "$name" "$install_hint"
-        return 0
-      fi
     fi
   fi
 
   if _eval_cache_valid_zsh_file "$cache"; then
+    if (( refresh_failed )); then
+      _eval_cache_warn "$name" "$install_hint"
+    fi
     source "$cache"
   else
     command rm -f "$cache"

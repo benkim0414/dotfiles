@@ -70,7 +70,7 @@ OUT'
   fi
 }
 
-t_missing_command_warns_and_skips_stale_cache() {
+t_missing_command_warns_and_sources_stale_cache() {
   setup_case
   mkdir -p "$TMP/cache/zsh"
   printf '%s\n' 'export STALE_CACHE_SOURCED=1' >"$TMP/cache/zsh/eval-cache-missingtool.zsh"
@@ -78,10 +78,10 @@ t_missing_command_warns_and_skips_stale_cache() {
   local output
   output=$(run_zsh 'source "$XDG_CONFIG_HOME/zsh/eval-cache.zsh"; _eval_cache missingtool "sudo dnf install missingtool" missingtool; print -- "${STALE_CACHE_SOURCED:-unset}"' 2>&1)
   if [[ "$output" == *"zsh: missingtool init unavailable; install with: sudo dnf install missingtool"* ]] \
-    && [[ "$output" == *"unset"* ]]; then
-    ok "missing command warns and does not source stale cache"
+    && [[ "$output" == *"1"* ]]; then
+    ok "missing command warns and sources valid stale cache"
   else
-    bad "missing command warns and does not source stale cache ($output)"
+    bad "missing command warns and sources valid stale cache ($output)"
   fi
 }
 
@@ -105,13 +105,15 @@ t_command_failure_keeps_valid_existing_cache() {
   write_fake flakytool 'exit 42'
   mkdir -p "$TMP/cache/zsh"
   printf '%s\n' 'export FLAKY_CACHE_SOURCED=1' >"$TMP/cache/zsh/eval-cache-flakytool.zsh"
+  touch "$TMP/bin/flakytool"
 
   local output
   output=$(run_zsh 'source "$XDG_CONFIG_HOME/zsh/eval-cache.zsh"; _eval_cache flakytool "sudo dnf install flakytool" flakytool; print -- "${FLAKY_CACHE_SOURCED:-unset}"' 2>&1)
-  if [[ "$output" == *"1"* ]] && [[ "$output" != *"zsh: flakytool init unavailable"* ]]; then
-    ok "command failure keeps valid existing cache"
+  if [[ "$output" == *"zsh: flakytool init unavailable; install with: sudo dnf install flakytool"* ]] \
+    && [[ "$output" == *"1"* ]]; then
+    ok "command failure keeps valid existing cache and warns"
   else
-    bad "command failure keeps valid existing cache ($output)"
+    bad "command failure keeps valid existing cache and warns ($output)"
   fi
 }
 
@@ -121,7 +123,7 @@ main() {
   cleanup
   t_packagekit_output_is_rejected
   cleanup
-  t_missing_command_warns_and_skips_stale_cache
+  t_missing_command_warns_and_sources_stale_cache
   cleanup
   t_invalid_existing_cache_is_not_sourced
   cleanup
