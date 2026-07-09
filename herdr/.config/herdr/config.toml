@@ -1,0 +1,32 @@
+onboarding = false
+
+[keys]
+prefix = "ctrl+s"
+split_horizontal = "prefix+s"   # stacked (pane below): tmux muscle memory
+settings = "prefix+comma"       # evicted from prefix+s
+
+# vim-herdr-navigation: direct ctrl+hjkl, forwards into vim when vim is focused,
+# else moves herdr pane focus; falls back to tmux/wincmd outside herdr.
+[[keys.command]]
+key = "ctrl+h"
+type = "plugin_action"
+command = "vim-herdr-navigation.left"
+description = "navigate left (vim/herdr)"
+
+[[keys.command]]
+key = "ctrl+j"
+type = "plugin_action"
+command = "vim-herdr-navigation.down"
+description = "navigate down (vim/herdr)"
+
+[[keys.command]]
+key = "ctrl+k"
+type = "plugin_action"
+command = "vim-herdr-navigation.up"
+description = "navigate up (vim/herdr)"
+
+[[keys.command]]
+key = "ctrl+l"
+type = "plugin_action"
+command = "vim-herdr-navigation.right"
+description = "navigate right (vim/herdr)"
