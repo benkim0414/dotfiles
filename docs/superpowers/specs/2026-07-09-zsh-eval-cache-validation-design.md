@@ -67,7 +67,7 @@ When a tool exists but emits invalid output, the message should still point at t
 Missing command:
 
 - Do not generate a cache.
-- Do not source an old cache.
+- Source an old cache only if it still passes validation.
 - Print the install hint.
 
 Command exits non-zero:
@@ -92,7 +92,7 @@ Add focused coverage if there is an obvious shell-test location for zsh startup 
 
 - A fake `fzf` that prints valid zsh output should produce and source a cache.
 - A fake `fzf` that prints PackageKit-style install text should not be sourced and should print the install warning.
-- A missing `zoxide` command should print the install warning.
+- A missing `zoxide` command should print the install warning and source a valid old cache if present.
 - A pre-existing invalid cache should not be sourced.
 - `zsh -n zsh/.zshrc` should pass after the change.
 

@@ -117,7 +117,7 @@ OUT'
   fi
 }
 
-t_missing_command_warns_and_skips_stale_cache() {
+t_missing_command_warns_and_sources_valid_stale_cache() {
   setup_case
   mkdir -p "$TMP/cache/zsh"
   printf '%s\n' 'export STALE_CACHE_SOURCED=1' >"$TMP/cache/zsh/eval-cache-missingtool.zsh"
@@ -125,10 +125,10 @@ t_missing_command_warns_and_skips_stale_cache() {
   local output
   output=$(run_zsh 'source "$XDG_CONFIG_HOME/zsh/eval-cache.zsh"; _eval_cache missingtool "sudo dnf install missingtool" missingtool; print -- "${STALE_CACHE_SOURCED:-unset}"' 2>&1)
   if [[ "$output" == *"zsh: missingtool init unavailable; install with: sudo dnf install missingtool"* ]] \
-    && [[ "$output" == *"unset"* ]]; then
-    ok "missing command warns and does not source stale cache"
+    && [[ "$output" == *"1"* ]]; then
+    ok "missing command warns and sources valid stale cache"
   else
-    bad "missing command warns and does not source stale cache ($output)"
+    bad "missing command warns and sources valid stale cache ($output)"
   fi
 }
 
@@ -168,7 +168,7 @@ main() {
   cleanup
   t_packagekit_output_is_rejected
   cleanup
-  t_missing_command_warns_and_skips_stale_cache
+  t_missing_command_warns_and_sources_valid_stale_cache
   cleanup
   t_invalid_existing_cache_is_not_sourced
   cleanup
@@ -228,9 +228,13 @@ _eval_cache() {
   local bin_path
   local temp
   local needs_refresh=0
+  local refresh_failed=0
 
   bin_path="$(command -v "$1" 2>/dev/null)"
   if [[ -z "$bin_path" ]]; then
+    if _eval_cache_valid_zsh_file "$cache"; then
+      source "$cache"
+    fi
     _eval_cache_warn "$name" "$install_hint"
     return 0
   fi
@@ -247,16 +251,15 @@ _eval_cache() {
     if "$@" >| "$temp" && _eval_cache_valid_zsh_file "$temp"; then
       command mv -f "$temp" "$cache"
     else
+      refresh_failed=1
       command rm -f "$temp"
-      if ! _eval_cache_valid_zsh_file "$cache"; then
-        command rm -f "$cache"
-        _eval_cache_warn "$name" "$install_hint"
-        return 0
-      fi
     fi
   fi
 
   if _eval_cache_valid_zsh_file "$cache"; then
+    if (( refresh_failed )); then
+      _eval_cache_warn "$name" "$install_hint"
+    fi
     source "$cache"
   else
     command rm -f "$cache"
