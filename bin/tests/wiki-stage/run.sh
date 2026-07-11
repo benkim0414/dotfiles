@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Test harness for wiki-stage and wiki-stage-install.
-# Run: bash tests/wiki-stage/run.sh
+# Run: bash bin/tests/wiki-stage/run.sh
 set -u
 
-DOTFILES=$(cd "$(dirname "$0")/../.." && pwd)
+DOTFILES=$(cd "$(dirname "$0")/../../.." && pwd)
 STAGE="$DOTFILES/bin/.local/bin/wiki-stage"
 INSTALL="$DOTFILES/bin/.local/bin/wiki-stage-install"
 

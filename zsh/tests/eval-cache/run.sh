@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -u
 
-DOTFILES=$(cd "$(dirname "$0")/../.." && pwd)
+DOTFILES=$(cd "$(dirname "$0")/../../.." && pwd)
 HELPER="$DOTFILES/zsh/.config/zsh/eval-cache.zsh"
 
 PASS=0
