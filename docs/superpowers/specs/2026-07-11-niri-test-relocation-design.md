@@ -61,13 +61,16 @@ bash zsh/tests/eval-cache/run.sh
 Also run targeted searches to catch active stale references:
 
 ```sh
-rg -n "tests/wiki-stage|tests/zsh-eval-cache" .
+rg -n '(^|[^[:alnum:]_/.-])tests/(wiki-stage|zsh-eval-cache)' CLAUDE.md bin zsh
 rg -n "niri|xdg-desktop-portal" zsh niri xdg-desktop-portal
 ```
 
-Historical docs may still mention wiki-stage and old test paths as project
-history. Those references are intentionally out of scope unless they point to
-active commands or setup instructions.
+The old-path search intentionally looks for top-level `tests/...` references
+only; the approved new `bin/tests/wiki-stage/run.sh` path contains the substring
+`tests/wiki-stage` and should not fail verification. Historical docs may still
+mention wiki-stage and old test paths as project history. Those references are
+intentionally out of scope unless they point to active commands or setup
+instructions.
 
 ## Risks
 

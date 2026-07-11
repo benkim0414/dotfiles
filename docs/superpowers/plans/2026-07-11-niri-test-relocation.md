@@ -177,7 +177,7 @@ This walks from `zsh/tests/eval-cache` back to the repository root.
 
 - [ ] **Step 5: Find active references to old test paths**
 
-Run: `rg -n "tests/wiki-stage|tests/zsh-eval-cache" CLAUDE.md bin zsh`
+Run: `rg -n '(^|[^[:alnum:]_/.-])tests/(wiki-stage|zsh-eval-cache)' CLAUDE.md bin zsh`
 
 Expected: no output and exit 1. If output appears, update active instructions to the new paths:
 
@@ -241,7 +241,7 @@ Run:
 ```sh
 bash bin/tests/wiki-stage/run.sh
 bash zsh/tests/eval-cache/run.sh
-rg -n "tests/wiki-stage|tests/zsh-eval-cache" CLAUDE.md bin zsh
+rg -n '(^|[^[:alnum:]_/.-])tests/(wiki-stage|zsh-eval-cache)' CLAUDE.md bin zsh
 rg -n "niri|xdg-desktop-portal" zsh niri xdg-desktop-portal
 ```
 
