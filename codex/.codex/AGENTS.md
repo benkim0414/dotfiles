@@ -26,6 +26,14 @@
 - Do not offer `superpowers:executing-plans`, inline execution, or a choice between subagents and the main agent unless the user explicitly asks for an alternative or subagents are unavailable.
 - If a loaded plugin skill suggests asking the user to choose an execution mode, treat this standing instruction as the user's preselection of subagent-driven development.
 
+## Superpowers Spec Review Workflow
+
+- After `superpowers:brainstorming` writes and self-reviews a design spec, include a concise summary of the spec before asking the user to review it.
+- The summary should include the spec path, goal, recommended approach, key decisions, implementation boundaries or out-of-scope items, and main risks, validation points, or tests.
+- Treat the summary as a review aid, not a replacement for the committed spec file.
+- Preserve the normal written-spec review gate: wait for user approval or requested changes before invoking `superpowers:writing-plans`.
+- Apply this rule even when the design seems obvious or the user likely does not need to read the full spec file.
+
 ## Worktree Isolation
 
 - For any change in a Git repository, work from a linked Git worktree rather than the repository's main worktree.
