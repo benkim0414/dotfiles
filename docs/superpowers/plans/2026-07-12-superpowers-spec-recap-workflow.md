@@ -197,7 +197,7 @@ Expected: no output.
 Run:
 
 ```bash
-git log --oneline -4
+git log --oneline edd4cec..HEAD
 git status --short
 ```
 
@@ -208,7 +208,7 @@ Expected: log includes the design commit, plan commit, and implementation commit
 Read the final diffs and confirm:
 
 ```bash
-git show --stat --oneline HEAD~3..HEAD
+git show --stat --oneline edd4cec..HEAD
 ```
 
 Expected: only the design spec, implementation plan, Codex instruction file, and workflow doc changed.

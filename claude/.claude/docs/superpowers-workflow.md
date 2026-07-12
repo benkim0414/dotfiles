@@ -42,7 +42,7 @@ in git history.
 |---|---|
 | `brainstorming` | Asked to create/design something new |
 | `writing-plans` | Have a spec/requirements for multi-step work |
-| `subagent-driven-development` | Have a plan with independent tasks |
+| `subagent-driven-development` | Have a Superpowers implementation plan ready to execute |
 | `test-driven-development` | About to implement a feature or bugfix |
 | `systematic-debugging` | Investigating a bug, test failure, or unexpected behavior |
 | `verification-before-completion` | About to claim something is done/fixed |
@@ -104,9 +104,10 @@ fix has reusable lessons worth capturing.
   spec path, goal, approach, key decisions, boundaries, and risks/tests;
   it is a review aid and does not replace the committed spec or approval
   gate.
-- `subagent-driven-development` dispatches a fresh subagent per task
-  with two-stage review between tasks. Faster iteration than inline
-  `executing-plans` for plans with independent tasks.
+- `subagent-driven-development` is the default for ready Superpowers
+  implementation plans unless the user explicitly asks for another mode
+  or subagents are unavailable. It dispatches a fresh subagent per task
+  with two-stage review between tasks.
 - `verification-before-completion` is a pre-report gate, not a
   post-merge check. Run it before saying "done" or "fixed".
 - `requesting-code-review` dispatches `superpowers:code-reviewer`
