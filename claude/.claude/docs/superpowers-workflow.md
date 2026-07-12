@@ -10,7 +10,7 @@ by context; explicit invocation via `/superpowers:<skill>` or
 EnterWorktree                  ← hook-enforced isolation; ALL plan artifacts live here
     ↓
 brainstorming                  ← design + Socratic clarification
-    ↓                             → docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md
+    ↓                             → docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md + recap
 writing-plans                  ← step-by-step breakdown
     ↓                             → docs/superpowers/plans/YYYY-MM-DD-<topic>.md
 subagent-driven-development    ← parallel implementation
@@ -99,6 +99,11 @@ fix has reusable lessons worth capturing.
 - `brainstorming` is Socratic -- it asks questions to refine the design
   before committing to an approach. Let it run before opening a worktree
   if no worktree exists yet, otherwise it runs inside the worktree.
+- After `brainstorming` writes and self-reviews the design spec, Codex
+  summarizes the spec before asking for review. The recap covers the
+  spec path, goal, approach, key decisions, boundaries, and risks/tests;
+  it is a review aid and does not replace the committed spec or approval
+  gate.
 - `subagent-driven-development` dispatches a fresh subagent per task
   with two-stage review between tasks. Faster iteration than inline
   `executing-plans` for plans with independent tasks.
