@@ -1,6 +1,6 @@
 # Superpowers Spec Recap Workflow Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development to implement this plan task-by-task. Use an alternative only if the user explicitly asks for it or subagents are unavailable. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Make Codex summarize every written Superpowers brainstorming spec before asking the user to review and approve it.
 
