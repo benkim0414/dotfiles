@@ -187,7 +187,7 @@ Expected: output shows the durable instruction, workflow note, design spec, and 
 Run:
 
 ```bash
-rg -n "UNRESOLVED_MARKER|NEEDS_DECISION|INCOMPLETE_SECTION" codex/.codex/AGENTS.md claude/.claude/docs/superpowers-workflow.md docs/superpowers/specs/2026-07-12-superpowers-spec-recap-workflow-design.md docs/superpowers/plans/2026-07-12-superpowers-spec-recap-workflow.md
+rg -n "UNRESOLVED[_]MARKER|NEEDS[_]DECISION|INCOMPLETE[_]SECTION" codex/.codex/AGENTS.md claude/.claude/docs/superpowers-workflow.md docs/superpowers/specs/2026-07-12-superpowers-spec-recap-workflow-design.md docs/superpowers/plans/2026-07-12-superpowers-spec-recap-workflow.md
 ```
 
 Expected: no output.
