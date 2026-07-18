@@ -20,6 +20,20 @@ stow -t ~ -R <package>       # re-stow after restructuring
 2. Create package dir mirroring home layout: `<pkg>/.config/<tool>/...`
 3. `stow -t ~ <pkg>`
 
+# Neovim Treesitter parser compilation
+
+`nvim-treesitter` compiles parsers with a C compiler. Make sure one of `cc`,
+`gcc`, or `clang` is available on `PATH` before the first Neovim startup that
+installs parsers.
+
+- macOS/Homebrew: `brew bundle --file=Brewfile` installs Homebrew `gcc`; Apple's
+  Command Line Tools also provide `cc` when installed.
+- Fedora: `sudo dnf install gcc`
+- Debian/Ubuntu: `sudo apt install build-essential`
+
+After installing compiler tools, run `nvim --headless "+TSInstallSync json" +qa`
+to verify the JSON parser compiles.
+
 # Secrets
 
 Bitwarden via mise: `mise-load-bw` resolves `.env.bw` (`VAR=uuid:field` format) into
