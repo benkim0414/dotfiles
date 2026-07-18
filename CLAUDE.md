@@ -22,12 +22,14 @@ stow -t ~ -R <package>       # re-stow after restructuring
 
 # Neovim Treesitter parser compilation
 
-`nvim-treesitter` compiles parsers with a C compiler. Make sure one of `cc`,
-`gcc`, or `clang` is available on `PATH` before the first Neovim startup that
-installs parsers.
+`nvim-treesitter` compiles parsers with a C compiler. The Neovim config prefers
+an already valid `CC`, otherwise it looks for `cc`, `gcc`, `clang`, or a
+Homebrew/Linuxbrew-style `gcc-*` on `PATH` and exports `CC` before parser
+builds.
 
-- macOS/Homebrew: `brew bundle --file=Brewfile` installs Homebrew `gcc`; Apple's
-  Command Line Tools also provide `cc` when installed.
+- macOS/Homebrew: `brew bundle --file=Brewfile` installs Homebrew `gcc`, which
+  provides versioned executables such as `gcc-15`; Apple's Command Line Tools
+  also provide `cc` when installed.
 - Fedora: `sudo dnf install gcc`
 - Debian/Ubuntu: `sudo apt install build-essential`
 

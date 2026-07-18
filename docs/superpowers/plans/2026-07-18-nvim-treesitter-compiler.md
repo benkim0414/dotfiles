@@ -4,7 +4,7 @@
 
 **Goal:** Make Neovim Treesitter parser installation work reproducibly on macOS/Homebrew and Linux, and avoid low-level parser build errors when no C compiler is available.
 
-**Architecture:** Declare the compiler dependency in the repo's existing Homebrew package surface and document the Linux system-package equivalent. Add a small Neovim Treesitter install wrapper that checks for `cc`, `gcc`, or `clang` before calling `nvim-treesitter.install.install`, while leaving normal Treesitter parser/runtime behavior unchanged.
+**Architecture:** Declare the compiler dependency in the repo's existing Homebrew package surface and document the Linux system-package equivalent. Add a small Neovim Treesitter install wrapper that resolves the actual compiler command before calling `nvim-treesitter.install.install`: prefer a valid `CC`, then `cc`, `gcc`, or `clang`, then a versioned `gcc-*` on `PATH`, and export `CC` to that value so Treesitter uses the same compiler the preflight found.
 
 **Tech Stack:** Neovim 0.12.2, Lua, nvim-treesitter, Homebrew `Brewfile`, GNU Stow dotfiles.
 
@@ -13,7 +13,8 @@
 - Resolve the failure for both macOS/Homebrew machines and Linux machines.
 - Fresh dotfile installs should make the compiler dependency explicit.
 - Neovim should avoid repeatedly surfacing low-level parser build errors when the dependency is missing.
-- The Neovim preflight should accept any available compiler from this set: `cc`, `gcc`, or `clang`.
+- The Neovim preflight should resolve the compiler command it will use: prefer a valid `CC`, then `cc`, `gcc`, or `clang`, then `gcc-*` on `PATH`.
+- When the preflight selects a compiler, it should export `CC` before calling Treesitter installs.
 - If none is executable, Neovim should show one concise warning explaining that Treesitter parser installation requires a C compiler and skip both the startup parser install and FileType auto-install.
 - Existing parser runtime behavior should otherwise remain unchanged.
 - If a compiler is available but parser compilation fails for another reason, the existing Treesitter install error should still surface.
@@ -28,7 +29,7 @@
 
 - Modify `Brewfile`: add Homebrew `gcc` in sorted CLI tool order so Homebrew-managed machines have a compiler package available.
 - Modify `CLAUDE.md`: document the Treesitter parser compiler requirement and the platform-specific setup commands for macOS/Homebrew, Fedora, and Debian/Ubuntu.
-- Modify `nvim/.config/nvim/lua/plugins/syntax.lua`: add a local compiler preflight and route startup/FileType parser installs through it.
+- Modify `nvim/.config/nvim/lua/plugins/syntax.lua`: add a local compiler-selection preflight, export `CC`, and route startup/FileType parser installs through it.
 
 ---
 
@@ -152,7 +153,7 @@ Expected: commit succeeds. If the commit hook rejects the subject because the sc
 
 **Interfaces:**
 - Consumes: Compiler guidance from Task 1 and existing `nvim-treesitter.install.install({ lang })` API.
-- Produces: Local functions `has_treesitter_compiler()`, `notify_missing_treesitter_compiler()`, and `install_treesitter_parsers(langs)` inside the plugin `config` function.
+- Produces: Local functions to resolve the Treesitter compiler command, warn once when none exists, and install parsers with `CC` aligned to the selected compiler.
 
 - [ ] **Step 1: Add local compiler preflight functions**
 
@@ -167,10 +168,47 @@ insert:
 ```lua
       local missing_compiler_warned = false
 
-      local function has_treesitter_compiler()
-        return vim.fn.executable("cc") == 1
-          or vim.fn.executable("gcc") == 1
-          or vim.fn.executable("clang") == 1
+      local function find_versioned_gcc()
+        local matches = {}
+        local seen = {}
+
+        for _, dir in ipairs(vim.split(vim.env.PATH or "", ":", { trimempty = true })) do
+          local ok, iter = pcall(vim.fs.dir, dir)
+          if ok then
+            for name, entry_type in iter do
+              local path = vim.fs.joinpath(dir, name)
+              if entry_type ~= "directory" and name:match("^gcc%-%d[%d%.]*$") and not seen[name] and vim.fn.executable(path) == 1 then
+                seen[name] = true
+                table.insert(matches, name)
+              end
+            end
+          end
+        end
+
+        table.sort(matches, function(a, b)
+          local a_version = tonumber(a:match("^gcc%-(%d+)")) or 0
+          local b_version = tonumber(b:match("^gcc%-(%d+)")) or 0
+          if a_version == b_version then
+            return a > b
+          end
+          return a_version > b_version
+        end)
+
+        return matches[1]
+      end
+
+      local function get_treesitter_compiler()
+        if vim.env.CC and vim.fn.executable(vim.env.CC) == 1 then
+          return vim.env.CC
+        end
+
+        for _, compiler in ipairs({ "cc", "gcc", "clang" }) do
+          if vim.fn.executable(compiler) == 1 then
+            return compiler
+          end
+        end
+
+        return find_versioned_gcc()
       end
 
       local function notify_missing_treesitter_compiler()
@@ -181,14 +219,18 @@ insert:
         missing_compiler_warned = true
         vim.schedule(function()
           vim.notify(
-            "Treesitter parser installation requires a C compiler (cc, gcc, or clang). Install compiler tools, then run :TSUpdate.",
+            "Treesitter parser installation requires a C compiler (cc, gcc, clang, or Homebrew gcc-*). Install compiler tools, then run :TSUpdate.",
             vim.log.levels.WARN
           )
         end)
       end
 
       local function install_treesitter_parsers(langs)
-        if has_treesitter_compiler() then
+        local compiler = get_treesitter_compiler()
+        if compiler then
+          if vim.env.CC ~= compiler then
+            vim.env.CC = compiler
+          end
           ts_install.install(langs)
         else
           notify_missing_treesitter_compiler()
@@ -284,7 +326,7 @@ Run:
 nvim --headless '+lua vim.wait(100)' +qa
 ```
 
-Expected: command exits `0`. On a machine without `cc`, `gcc`, or `clang`, warning output may mention the missing Treesitter compiler, but the command must not include `tree-sitter build`, `Failed to compile parser`, or `Failed to execute the C compiler`.
+Expected: command exits `0`. On a machine without any accepted compiler, warning output may mention the missing Treesitter compiler, but the command must not include `tree-sitter build`, `Failed to compile parser`, or `Failed to execute the C compiler`.
 
 - [ ] **Step 5: Verify the missing-compiler branch explicitly**
 
@@ -302,9 +344,25 @@ rg -n 'Treesitter parser installation requires a C compiler|tree-sitter build|Fa
 
 Expected: the log may contain the concise warning `Treesitter parser installation requires a C compiler`, and must not contain `tree-sitter build`, `Failed to compile parser`, or `Failed to execute the C compiler`.
 
-- [ ] **Step 6: Verify compiler-present behavior when a compiler is available**
+- [ ] **Step 6: Verify versioned-gcc detection and compiler-present behavior**
 
-Run:
+Run a focused probe with a fake versioned GCC on `PATH`:
+
+```bash
+mkdir -p /tmp/nvim-treesitter-fakebin
+printf '#!/bin/sh\nexit 0\n' > /tmp/nvim-treesitter-fakebin/gcc-99
+chmod +x /tmp/nvim-treesitter-fakebin/gcc-99
+XDG_CONFIG_HOME="$PWD/nvim/.config" \
+XDG_STATE_HOME=/tmp/nvim-treesitter-state \
+XDG_CACHE_HOME=/tmp/nvim-treesitter-cache \
+PATH="/tmp/nvim-treesitter-fakebin:/usr/bin:/bin" \
+nvim --headless '+lua print("CC=" .. tostring(vim.env.CC)); vim.wait(100)' +qa
+```
+
+Expected: output includes `CC=gcc-99`, showing the preflight chose the versioned
+Homebrew/Linuxbrew-style compiler and exported `CC` before parser installs.
+
+Then run:
 
 ```bash
 command -v cc || command -v gcc || command -v clang

@@ -9,10 +9,47 @@ return {
       local ts_install = require('nvim-treesitter.install')
       local missing_compiler_warned = false
 
-      local function has_treesitter_compiler()
-        return vim.fn.executable("cc") == 1
-          or vim.fn.executable("gcc") == 1
-          or vim.fn.executable("clang") == 1
+      local function find_versioned_gcc()
+        local matches = {}
+        local seen = {}
+
+        for _, dir in ipairs(vim.split(vim.env.PATH or "", ":", { trimempty = true })) do
+          local ok, iter = pcall(vim.fs.dir, dir)
+          if ok then
+            for name, entry_type in iter do
+              local path = vim.fs.joinpath(dir, name)
+              if entry_type ~= "directory" and name:match("^gcc%-%d[%d%.]*$") and not seen[name] and vim.fn.executable(path) == 1 then
+                seen[name] = true
+                table.insert(matches, name)
+              end
+            end
+          end
+        end
+
+        table.sort(matches, function(a, b)
+          local a_version = tonumber(a:match("^gcc%-(%d+)")) or 0
+          local b_version = tonumber(b:match("^gcc%-(%d+)")) or 0
+          if a_version == b_version then
+            return a > b
+          end
+          return a_version > b_version
+        end)
+
+        return matches[1]
+      end
+
+      local function get_treesitter_compiler()
+        if vim.env.CC and vim.fn.executable(vim.env.CC) == 1 then
+          return vim.env.CC
+        end
+
+        for _, compiler in ipairs({ "cc", "gcc", "clang" }) do
+          if vim.fn.executable(compiler) == 1 then
+            return compiler
+          end
+        end
+
+        return find_versioned_gcc()
       end
 
       local function notify_missing_treesitter_compiler()
@@ -23,14 +60,18 @@ return {
         missing_compiler_warned = true
         vim.schedule(function()
           vim.notify(
-            "Treesitter parser installation requires a C compiler (cc, gcc, or clang). Install compiler tools, then run :TSUpdate.",
+            "Treesitter parser installation requires a C compiler (cc, gcc, clang, or Homebrew gcc-*). Install compiler tools, then run :TSUpdate.",
             vim.log.levels.WARN
           )
         end)
       end
 
       local function install_treesitter_parsers(langs)
-        if has_treesitter_compiler() then
+        local compiler = get_treesitter_compiler()
+        if compiler then
+          if vim.env.CC ~= compiler then
+            vim.env.CC = compiler
+          end
           ts_install.install(langs)
         else
           notify_missing_treesitter_compiler()

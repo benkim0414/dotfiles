@@ -43,11 +43,15 @@ dependency-aware.
 3. Add a small compiler preflight in `syntax.lua` before Treesitter parser
    installs run.
 
-The Neovim preflight should accept any available compiler from this set:
-`cc`, `gcc`, or `clang`. If none is executable, Neovim should show one concise
-warning explaining that Treesitter parser installation requires a C compiler and
-skip both the startup parser install and FileType auto-install. Existing parser
-runtime behavior should otherwise remain unchanged.
+The Neovim preflight should return the compiler command it will actually use.
+It should prefer an already valid `CC`, then accept plain `cc`, `gcc`, or
+`clang`, then fall back to Homebrew/Linuxbrew-style versioned `gcc-*` binaries
+found on `PATH`. Before calling Treesitter parser installs, the config should
+export `CC` to the selected compiler so `tree-sitter build` and Rust `cc`
+selection stay aligned. If no compiler is executable, Neovim should show one
+concise warning explaining that Treesitter parser installation requires a C
+compiler and skip both the startup parser install and FileType auto-install.
+Existing parser runtime behavior should otherwise remain unchanged.
 
 ## Alternatives Considered
 
@@ -66,8 +70,9 @@ weaken the current bootstrap behavior.
 ### Force one compiler
 
 Hard-coding `gcc` or `clang` in Neovim would be more brittle across platforms.
-Checking the standard compiler names lets macOS Command Line Tools, Homebrew
-GCC, Fedora GCC, and Clang-based systems work without special cases.
+Checking the standard compiler names plus versioned `gcc-*` lets macOS Command
+Line Tools, Homebrew GCC, Fedora GCC, Debian/Ubuntu build tools, and Clang-based
+systems work without user-specific overrides.
 
 ## Implementation Boundaries
 
@@ -90,8 +95,8 @@ Out of scope:
 
 If a compiler is unavailable, Neovim should notify at warning level and skip
 parser installation attempts for that session. The message should name the
-missing dependency and point to installing `gcc`, `clang`, or system build
-tools.
+missing dependency and point to installing `cc`, `gcc`, `clang`, Homebrew
+`gcc-*`, or system build tools.
 
 If a compiler is available but parser compilation fails for another reason, the
 existing Treesitter install error should still surface. The preflight must not
@@ -105,6 +110,8 @@ Validation should include:
   and `command -v clang` when reproducing on a machine without compiler tools.
 - Run a headless Neovim startup smoke test to ensure missing compilers no longer
   emit repeated Treesitter parser build stack traces.
+- Run a focused probe with only a fake `gcc-*` on `PATH` to confirm the preflight
+  selects it and exports `CC` before Treesitter parser installs.
 - After installing compiler tools, run a JSON parser install check, such as a
   headless `TSInstallSync json` invocation, and confirm the parser compiles.
 - Inspect `git diff` and stage only the logical files for each commit.
@@ -114,5 +121,6 @@ Validation should include:
 The main risk is choosing a Homebrew package that is unnecessary on macOS systems
 where Apple's Command Line Tools already provide `cc`. That is acceptable
 because the repo uses Homebrew for portable tool setup and the preflight accepts
-the system compiler when it exists. Linux remains documentation-only because the
-repo has no distro package manifest today; adding one would be a separate design.
+the system compiler when it exists while still honoring versioned Homebrew
+`gcc-*` binaries. Linux remains documentation-only because the repo has no
+distro package manifest today; adding one would be a separate design.
