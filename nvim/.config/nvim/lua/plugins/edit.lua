@@ -72,6 +72,14 @@ return {
   -- Replace with register content
   "vim-scripts/ReplaceWithRegister",
   
+  -- OSC52 clipboard fallback for terminal, tmux, and SSH sessions
+  {
+    "ojroques/vim-oscyank",
+    init = function()
+      vim.g.system_copy_enable_osc52 = 1
+    end,
+  },
+
   -- System clipboard integration
   "christoomey/vim-system-copy",
   
