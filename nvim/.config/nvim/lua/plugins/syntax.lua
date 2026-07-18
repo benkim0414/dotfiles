@@ -7,9 +7,38 @@ return {
     },
     config = function()
       local ts_install = require('nvim-treesitter.install')
+      local missing_compiler_warned = false
+
+      local function has_treesitter_compiler()
+        return vim.fn.executable("cc") == 1
+          or vim.fn.executable("gcc") == 1
+          or vim.fn.executable("clang") == 1
+      end
+
+      local function notify_missing_treesitter_compiler()
+        if missing_compiler_warned then
+          return
+        end
+
+        missing_compiler_warned = true
+        vim.schedule(function()
+          vim.notify(
+            "Treesitter parser installation requires a C compiler (cc, gcc, or clang). Install compiler tools, then run :TSUpdate.",
+            vim.log.levels.WARN
+          )
+        end)
+      end
+
+      local function install_treesitter_parsers(langs)
+        if has_treesitter_compiler() then
+          ts_install.install(langs)
+        else
+          notify_missing_treesitter_compiler()
+        end
+      end
 
       -- Install essential parsers on startup (async, skips already-installed)
-      ts_install.install({ 'lua', 'go', 'python', 'json', 'markdown' })
+      install_treesitter_parsers({ 'lua', 'go', 'python', 'json', 'markdown' })
 
       -- Auto-install parsers when opening a new filetype
       vim.api.nvim_create_autocmd("FileType", {
@@ -17,7 +46,7 @@ return {
         callback = function(ev)
           local lang = vim.treesitter.language.get_lang(ev.match) or ev.match
           if not pcall(vim.treesitter.get_parser, ev.buf, lang) then
-            ts_install.install({ lang })
+            install_treesitter_parsers({ lang })
           end
         end,
       })
