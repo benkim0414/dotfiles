@@ -17,7 +17,7 @@
 [push]
 	default = "upstream"
 [url "git@github.com:"]
-	insteadOf = https://github.com/
+	pushInsteadOf = https://github.com/
 [credential "https://github.com"]
 	helper = 
 	helper = !gh auth git-credential
