@@ -73,6 +73,10 @@ _eval_cache zoxide "sudo dnf install zoxide" zoxide init zsh --cmd cd
 eval "$(starship init zsh)"
 eval "$(mise activate zsh)"
 
+if (( $+commands[atuin] )); then
+  eval "$(atuin init zsh --disable-up-arrow)"
+fi
+
 # Per-machine env (gitignored on each machine, sourced if present)
 [ -r ~/.openclaw/.env ] && set -a && . ~/.openclaw/.env && set +a
 
