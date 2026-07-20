@@ -35,7 +35,13 @@ Start or verify Ollama:
 
 ```bash
 ollama serve
-curl -s http://localhost:11434/v1/models
+curl --fail --silent --show-error http://localhost:11434/v1/models
+```
+
+Deploy the tracked Atuin package from this repo:
+
+```bash
+stow -t ~ atuin
 ```
 
 Enable the Atuin AI backend service after stowing this repo:
@@ -49,7 +55,7 @@ systemctl --user status atuin-ai.service
 Verify the Atuin AI endpoint:
 
 ```bash
-curl -s http://localhost:8080
+curl --fail --silent --show-error http://localhost:8080/api/cli/models | rg 'qwen3-coder-30b|gpt-oss-20b'
 ```
 
 Open a fresh zsh session and verify Atuin:
@@ -76,7 +82,7 @@ Tracked Atuin config sets:
 The AI backend config points only at Ollama:
 
 ```toml
-endpoint = "http://localhost:11434/v1"
+endpoint = "http://host.containers.internal:11434/v1"
 default_model = "qwen3-coder-30b"
 ```
 
@@ -88,7 +94,8 @@ If `?` in Atuin AI fails, check the local backend first:
 
 ```bash
 systemctl --user status atuin-ai.service
-curl -s http://localhost:11434/v1/models
+curl --fail --silent --show-error http://localhost:11434/v1/models
+curl --fail --silent --show-error http://localhost:8080/api/cli/models
 ```
 
 If command generation is slow, switch `[ai] model` in `~/.config/atuin/config.toml` from `qwen3-coder-30b` to `gpt-oss-20b`.

@@ -6,7 +6,7 @@ After=network-online.target
 [Service]
 Type=simple
 ExecStartPre=/usr/bin/test -r %h/.config/atuin-ai/config.toml
-ExecStart=/usr/sbin/podman run --rm --name atuin-ai-server --network host -v %h/.config/atuin-ai/config.toml:/etc/atuin-ai/config.toml:ro ghcr.io/atuinsh/atuin-ai-server:latest
+ExecStart=/usr/sbin/podman run --rm --name atuin-ai-server -p 127.0.0.1:8080:8080 -v %h/.config/atuin-ai/config.toml:/etc/atuin-ai/config.toml:ro,Z ghcr.io/atuinsh/atuin-ai-server:latest
 ExecStop=/usr/sbin/podman stop atuin-ai-server
 Restart=on-failure
 RestartSec=5

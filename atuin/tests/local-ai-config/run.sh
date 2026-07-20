@@ -21,6 +21,10 @@ python3 - "$ATUIN_CONFIG" <<'PY'
 import sys
 import tomllib
 
+def check(condition, message):
+    if not condition:
+        raise SystemExit(message)
+
 path = sys.argv[1]
 with open(path, "rb") as fh:
     config = tomllib.load(fh)
@@ -29,22 +33,22 @@ ai = config.get("ai", {})
 capabilities = ai.get("capabilities", {})
 opening = ai.get("opening", {})
 
-assert config.get("auto_sync") is False
-assert config.get("update_check") is False
-assert config.get("sync_address") == "http://127.0.0.1:9"
-assert config.get("enter_accept") is False
-assert config.get("secrets_filter") is True
-assert ai.get("enabled") is True
-assert ai.get("endpoint") == "http://localhost:8080"
-assert ai.get("endpoint_protocol") == "oss"
-assert ai.get("model") == "qwen3-coder-30b"
-assert ai.get("yolo") is False
-assert capabilities.get("enable_history_search") is True
-assert capabilities.get("enable_history_output") is False
-assert capabilities.get("enable_file_tools") is False
-assert capabilities.get("enable_command_execution") is False
-assert opening.get("send_cwd") is True
-assert opening.get("send_last_command") is False
+check(config.get("auto_sync") is False, "auto_sync must be false")
+check(config.get("update_check") is False, "update_check must be false")
+check(config.get("sync_address") == "http://127.0.0.1:9", "sync_address must be disabled locally")
+check(config.get("enter_accept") is False, "enter_accept must be false")
+check(config.get("secrets_filter") is True, "secrets_filter must be true")
+check(ai.get("enabled") is True, "Atuin AI must be enabled")
+check(ai.get("endpoint") == "http://localhost:8080", "Atuin AI endpoint must be localhost")
+check(ai.get("endpoint_protocol") == "oss", "Atuin AI protocol must be oss")
+check(ai.get("model") == "qwen3-coder-30b", "Atuin AI model must be qwen3-coder-30b")
+check(ai.get("yolo") is False, "Atuin AI yolo must be false")
+check(capabilities.get("enable_history_search") is True, "history search must be enabled")
+check(capabilities.get("enable_history_output") is False, "history output must be disabled")
+check(capabilities.get("enable_file_tools") is False, "file tools must be disabled")
+check(capabilities.get("enable_command_execution") is False, "command execution must be disabled")
+check(opening.get("send_cwd") is True, "send_cwd must be true")
+check(opening.get("send_last_command") is False, "send_last_command must be false")
 PY
 ok "Atuin client config is strict local AI"
 
@@ -68,20 +72,24 @@ python3 - "$AI_SERVER_CONFIG" <<'PY'
 import sys
 import tomllib
 
+def check(condition, message):
+    if not condition:
+        raise SystemExit(message)
+
 path = sys.argv[1]
 with open(path, "rb") as fh:
     config = tomllib.load(fh)
 
-assert config.get("port") == 8080
-assert config.get("endpoint") == "http://localhost:11434/v1"
-assert config.get("api_key") == "ollama"
-assert config.get("default_model") == "qwen3-coder-30b"
-assert config.get("request", {}).get("body", {}).get("stream_options") == {"include_usage": True}
+check(config.get("port") == 8080, "Atuin AI server port must be 8080")
+check(config.get("endpoint") == "http://host.containers.internal:11434/v1", "Atuin AI server must target local host Ollama from the container")
+check(config.get("api_key") == "ollama", "Atuin AI server api_key must be ollama")
+check(config.get("default_model") == "qwen3-coder-30b", "default model must be qwen3-coder-30b")
+check(config.get("request", {}).get("body", {}).get("stream_options") == {"include_usage": True}, "stream usage must be enabled")
 models = {model["alias"]: model["model"] for model in config.get("models", [])}
-assert models == {
+check(models == {
     "qwen3-coder-30b": "qwen3-coder:30b",
     "gpt-oss-20b": "gpt-oss:20b",
-}
+}, "model aliases must match expected local Ollama models")
 PY
 if rg -n 'api\.atuin\.sh|openai\.com|openrouter|bedrock|warp' "$AI_SERVER_CONFIG"; then
   fail "Atuin AI server config contains a cloud or Warp endpoint"
@@ -93,8 +101,13 @@ ok "Atuin AI server config is strict local AI"
 
 rg -q '^ExecStartPre=/usr/bin/test -r %h/.config/atuin-ai/config.toml$' "$AI_SERVICE" \
   || fail "atuin-ai service must require a readable local config"
-rg -q '^ExecStart=/usr/sbin/podman run --rm --name atuin-ai-server --network host ' "$AI_SERVICE" \
-  || fail "atuin-ai service must run with Podman host networking"
+rg -q -- '-p 127\.0\.0\.1:8080:8080 ' "$AI_SERVICE" \
+  || fail "atuin-ai service must publish only on loopback"
+rg -q '%h/\.config/atuin-ai/config\.toml:/etc/atuin-ai/config\.toml:ro,Z' "$AI_SERVICE" \
+  || fail "atuin-ai service must mount config read-only with SELinux relabeling"
 rg -q 'ghcr.io/atuinsh/atuin-ai-server:latest$' "$AI_SERVICE" \
   || fail "atuin-ai service must run the Atuin AI server image"
-ok "Atuin AI service uses local host networking"
+if rg -q -- '--network host' "$AI_SERVICE"; then
+  fail "atuin-ai service must not use host networking"
+fi
+ok "Atuin AI service is loopback-only"
