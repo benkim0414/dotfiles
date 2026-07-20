@@ -61,8 +61,10 @@ rg -q 'eval "\$\(atuin init zsh --disable-up-arrow\)"' "$ZSHRC" \
   || fail "zshrc must initialize Atuin without stealing up-arrow"
 ok "zsh initializes Atuin conservatively"
 
-if [[ -f "$AI_SERVER_CONFIG" ]]; then
-  python3 - "$AI_SERVER_CONFIG" <<'PY'
+[[ -f "$AI_SERVER_CONFIG" ]] \
+  || fail "Atuin AI server config must exist"
+
+python3 - "$AI_SERVER_CONFIG" <<'PY'
 import sys
 import tomllib
 
@@ -74,22 +76,25 @@ assert config.get("port") == 8080
 assert config.get("endpoint") == "http://localhost:11434/v1"
 assert config.get("api_key") == "ollama"
 assert config.get("default_model") == "qwen3-coder-30b"
+assert config.get("request", {}).get("body", {}).get("stream_options") == {"include_usage": True}
 models = {model["alias"]: model["model"] for model in config.get("models", [])}
 assert models == {
     "qwen3-coder-30b": "qwen3-coder:30b",
     "gpt-oss-20b": "gpt-oss:20b",
 }
 PY
-  if rg -n 'api\.atuin\.sh|openai\.com|openrouter|bedrock|warp' "$AI_SERVER_CONFIG"; then
-    fail "Atuin AI server config contains a cloud or Warp endpoint"
-  fi
-  ok "Atuin AI server config is strict local AI"
+if rg -n 'api\.atuin\.sh|openai\.com|openrouter|bedrock|warp' "$AI_SERVER_CONFIG"; then
+  fail "Atuin AI server config contains a cloud or Warp endpoint"
 fi
+ok "Atuin AI server config is strict local AI"
 
-if [[ -f "$AI_SERVICE" ]]; then
-  rg -q '^ExecStart=/usr/sbin/podman run --rm --name atuin-ai-server --network host ' "$AI_SERVICE" \
-    || fail "atuin-ai service must run with Podman host networking"
-  rg -q 'ghcr.io/atuinsh/atuin-ai-server:latest$' "$AI_SERVICE" \
-    || fail "atuin-ai service must run the Atuin AI server image"
-  ok "Atuin AI service uses local host networking"
-fi
+[[ -f "$AI_SERVICE" ]] \
+  || fail "Atuin AI systemd user service must exist"
+
+rg -q '^ExecStartPre=/usr/bin/test -r %h/.config/atuin-ai/config.toml$' "$AI_SERVICE" \
+  || fail "atuin-ai service must require a readable local config"
+rg -q '^ExecStart=/usr/sbin/podman run --rm --name atuin-ai-server --network host ' "$AI_SERVICE" \
+  || fail "atuin-ai service must run with Podman host networking"
+rg -q 'ghcr.io/atuinsh/atuin-ai-server:latest$' "$AI_SERVICE" \
+  || fail "atuin-ai service must run the Atuin AI server image"
+ok "Atuin AI service uses local host networking"

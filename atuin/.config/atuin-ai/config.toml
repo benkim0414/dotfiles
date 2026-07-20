@@ -1,0 +1,19 @@
+port = 8080
+endpoint = "http://localhost:11434/v1"
+api_key = "ollama"
+default_model = "qwen3-coder-30b"
+
+[request.body]
+stream_options = { include_usage = true }
+
+[[models]]
+alias = "qwen3-coder-30b"
+name = "Qwen3 Coder 30B"
+description = "Local Ollama coding model for Atuin AI"
+model = "qwen3-coder:30b"
+
+[[models]]
+alias = "gpt-oss-20b"
+name = "GPT OSS 20B"
+description = "Local Ollama fallback model for general reasoning"
+model = "gpt-oss:20b"
