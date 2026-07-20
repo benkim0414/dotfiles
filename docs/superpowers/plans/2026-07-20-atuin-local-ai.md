@@ -256,7 +256,7 @@ Expected: exit code 0 with no output.
 
 ```bash
 git add mise/.config/mise/config.toml zsh/.zshrc atuin/.config/atuin/config.toml atuin/tests/local-ai-config/run.sh
-git commit -m "feat(atuin): add local ai client config"
+git commit -m "feat: add atuin local ai client config"
 ```
 
 ### Task 2: Add Local Atuin AI Backend Config And Service
@@ -353,7 +353,7 @@ Expected: exit code 0. If this fails because the user manager is unavailable in 
 
 ```bash
 git add atuin/.config/atuin-ai/config.toml atuin/.config/systemd/user/atuin-ai.service atuin/tests/local-ai-config/run.sh
-git commit -m "feat(atuin): add local ai backend service"
+git commit -m "feat: add atuin local ai backend service"
 ```
 
 ### Task 3: Add Operator Notes And End-To-End Verification
@@ -501,7 +501,7 @@ Expected: Atuin and Ollama probes either show local service information or print
 
 ```bash
 git add docs/solutions/tooling-decisions/atuin-local-ai.md
-git commit -m "docs(atuin): document local ai setup"
+git commit -m "docs: document atuin local ai setup"
 ```
 
 ### Task 4: Final Review
