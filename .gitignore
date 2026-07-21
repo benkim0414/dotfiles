@@ -7,10 +7,15 @@
 .env.local
 tmux/.config/tmux/plugins
 # Local installer-managed binaries
+bin/.local/bin/ansible
+bin/.local/bin/ansible-*
 bin/.local/bin/herdr
+bin/.local/bin/orca-ide
 herdr/.config/herdr/*.log
 herdr/.config/herdr/plugins.json
+herdr/.config/herdr/release-notes.json
 herdr/.config/herdr/session.json
+nvim.log
 .claude/settings.local.json
 .claude/.credentials.json
 .claude/credentials
