@@ -14,6 +14,7 @@ lazygit = "latest"
 "npm:@openai/codex" = "latest"
 go = "latest"
 atuin = "latest"
+uv = "latest"
 
 [env]
 # Load machine-local secrets (e.g. work MCP credentials) into every mise-activated shell.
