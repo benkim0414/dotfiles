@@ -13,7 +13,6 @@ neovim = "0.12.2"
 lazygit = "latest"
 "npm:@openai/codex" = "latest"
 go = "latest"
-uv = "latest"
 atuin = "latest"
 
 [env]

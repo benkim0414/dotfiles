@@ -90,6 +90,7 @@ assert ai.get("enabled") is True
 assert ai.get("endpoint") == "http://localhost:8080"
 assert ai.get("endpoint_protocol") == "oss"
 assert ai.get("model") == "qwen3-coder-30b"
+assert "api_token" not in ai
 assert ai.get("yolo") is False
 assert capabilities.get("enable_history_search") is True
 assert capabilities.get("enable_history_output") is False
@@ -123,7 +124,7 @@ with open(path, "rb") as fh:
     config = tomllib.load(fh)
 
 assert config.get("port") == 8080
-assert config.get("endpoint") == "http://localhost:11434/v1"
+assert config.get("endpoint") == "http://host.containers.internal:11434/v1"
 assert config.get("api_key") == "ollama"
 assert config.get("default_model") == "qwen3-coder-30b"
 models = {model["alias"]: model["model"] for model in config.get("models", [])}
@@ -139,11 +140,16 @@ PY
 fi
 
 if [[ -f "$AI_SERVICE" ]]; then
-  rg -q '^ExecStart=/usr/sbin/podman run --rm --name atuin-ai-server --network host ' "$AI_SERVICE" \
-    || fail "atuin-ai service must run with Podman host networking"
+  rg -q -- '-p 127\.0\.0\.1:8080:8080 ' "$AI_SERVICE" \
+    || fail "atuin-ai service must publish only on loopback"
+  rg -q '%h/\.config/atuin-ai/config\.toml:/etc/atuin-ai/config\.toml:ro,Z' "$AI_SERVICE" \
+    || fail "atuin-ai service must mount config read-only with SELinux relabeling"
   rg -q 'ghcr.io/atuinsh/atuin-ai-server:latest$' "$AI_SERVICE" \
     || fail "atuin-ai service must run the Atuin AI server image"
-  ok "Atuin AI service uses local host networking"
+  if rg -q -- '--network host' "$AI_SERVICE"; then
+    fail "atuin-ai service must not use host networking"
+  fi
+  ok "Atuin AI service is loopback-only"
 fi
 ```
 
@@ -168,7 +174,6 @@ neovim = "0.12.2"
 lazygit = "latest"
 "npm:@openai/codex" = "latest"
 go = "latest"
-uv = "latest"
 atuin = "latest"
 ```
 
@@ -287,7 +292,7 @@ Create `atuin/.config/atuin-ai/config.toml`:
 
 ```toml
 port = 8080
-endpoint = "http://localhost:11434/v1"
+endpoint = "http://host.containers.internal:11434/v1"
 api_key = "ollama"
 default_model = "qwen3-coder-30b"
 
@@ -320,7 +325,7 @@ After=network-online.target
 [Service]
 Type=simple
 ExecStartPre=/usr/bin/test -r %h/.config/atuin-ai/config.toml
-ExecStart=/usr/sbin/podman run --rm --name atuin-ai-server --network host -v %h/.config/atuin-ai/config.toml:/etc/atuin-ai/config.toml:ro ghcr.io/atuinsh/atuin-ai-server:latest
+ExecStart=/usr/sbin/podman run --rm --name atuin-ai-server -p 127.0.0.1:8080:8080 -v %h/.config/atuin-ai/config.toml:/etc/atuin-ai/config.toml:ro,Z ghcr.io/atuinsh/atuin-ai-server:latest
 ExecStop=/usr/sbin/podman stop atuin-ai-server
 Restart=on-failure
 RestartSec=5
@@ -407,7 +412,13 @@ Start or verify Ollama:
 
 ```bash
 ollama serve
-curl -s http://localhost:11434/v1/models
+curl --fail --silent --show-error http://localhost:11434/v1/models
+```
+
+Deploy the tracked Atuin package from this repo:
+
+```bash
+stow -t ~ atuin
 ```
 
 Enable the Atuin AI backend service after stowing this repo:
@@ -421,7 +432,7 @@ systemctl --user status atuin-ai.service
 Verify the Atuin AI endpoint:
 
 ```bash
-curl -s http://localhost:8080
+curl --fail --silent --show-error http://localhost:8080/api/cli/models | rg 'qwen3-coder-30b|gpt-oss-20b'
 ```
 
 Open a fresh zsh session and verify Atuin:
@@ -448,7 +459,7 @@ Tracked Atuin config sets:
 The AI backend config points only at Ollama:
 
 ```toml
-endpoint = "http://localhost:11434/v1"
+endpoint = "http://host.containers.internal:11434/v1"
 default_model = "qwen3-coder-30b"
 ```
 
@@ -460,7 +471,8 @@ If `?` in Atuin AI fails, check the local backend first:
 
 ```bash
 systemctl --user status atuin-ai.service
-curl -s http://localhost:11434/v1/models
+curl --fail --silent --show-error http://localhost:11434/v1/models
+curl --fail --silent --show-error http://localhost:8080/api/cli/models
 ```
 
 If command generation is slow, switch `[ai] model` in `~/.config/atuin/config.toml` from `qwen3-coder-30b` to `gpt-oss-20b`.
@@ -491,7 +503,7 @@ Run:
 
 ```bash
 if command -v atuin >/dev/null 2>&1; then atuin doctor; else echo "atuin not installed yet"; fi
-if command -v ollama >/dev/null 2>&1; then curl -s http://localhost:11434/v1/models; else echo "ollama not installed yet"; fi
+if command -v ollama >/dev/null 2>&1; then curl --fail --silent --show-error http://localhost:11434/v1/models; else echo "ollama not installed yet"; fi
 if command -v systemctl >/dev/null 2>&1; then systemctl --user status atuin-ai.service --no-pager; else echo "systemctl unavailable"; fi
 ```
 
