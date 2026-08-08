@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+name=warp-install
+os_release=${WARP_INSTALL_OS_RELEASE:-/etc/os-release}
+repo_path=${WARP_INSTALL_REPO_PATH:-/etc/yum.repos.d/warpdotdev.repo}
+key_url=https://releases.warp.dev/linux/keys/warp.asc
+
+die() { printf '%s: %s\n' "$name" "$*" >&2; exit 1; }
+need() { command -v "$1" >/dev/null 2>&1 || die "required command not found: $1"; }
+
+case "$(uname -s)" in
+  Darwin)
+    printf '%s\n' 'Install Warp from this dotfiles repository with: brew bundle --file Brewfile'
+    exit 0
+    ;;
+  Linux) ;;
+  *) die "unsupported operating system: $(uname -s)" ;;
+esac
+
+[[ -r "$os_release" ]] || die "cannot read OS metadata: $os_release"
+# shellcheck disable=SC1090
+source "$os_release"
+[[ "${ID:-}" == fedora ]] || die "unsupported Linux distribution: ${ID:-unknown}"
+
+if command -v warp-terminal >/dev/null 2>&1; then
+  printf '%s\n' 'Warp is already installed.'
+  exit 0
+fi
+
+need rpm
+need dnf
+need sudo
+need install
+
+repo_tmp=$(mktemp)
+trap 'rm -f "$repo_tmp"' EXIT
+cat >"$repo_tmp" <<EOF
+[warpdotdev]
+name=warpdotdev
+baseurl=https://releases.warp.dev/linux/rpm/stable
+enabled=1
+gpgcheck=1
+gpgkey=$key_url
+EOF
+
+sudo rpm --import "$key_url"
+sudo install -D -o root -g root -m 644 "$repo_tmp" "$repo_path"
+sudo dnf install warp-terminal
