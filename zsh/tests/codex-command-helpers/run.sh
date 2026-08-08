@@ -154,6 +154,20 @@ t_successful_helpers_use_read_only_ephemeral_exec() {
   ok "successful helpers use read-only ephemeral exec"
 }
 
+t_cmdgen_and_cmdexplain_ignore_redirected_stdin() {
+  local helper
+  for helper in cmdgen cmdexplain; do
+    setup_case
+    printf '%s\n' 'do not upload this redirected input' | run_zsh "$helper 'list files'" >/dev/null 2>&1
+    if [[ -s "$TMP/stdin" ]]; then
+      bad "cmdgen and cmdexplain ignore redirected stdin ($helper)"
+      return
+    fi
+    cleanup
+  done
+  ok "cmdgen and cmdexplain ignore redirected stdin"
+}
+
 t_prompts_treat_input_as_untrusted_and_forbid_execution() {
   local helper prompt
   for helper in cmdgen cmdexplain; do
@@ -246,6 +260,7 @@ main() {
     t_missing_codex_fails_clearly
     t_api_key_login_is_rejected_before_exec
     t_successful_helpers_use_read_only_ephemeral_exec
+    t_cmdgen_and_cmdexplain_ignore_redirected_stdin
     t_prompts_treat_input_as_untrusted_and_forbid_execution
     t_cmderr_forwards_diagnostics_and_optional_question
     t_cmderr_rejects_empty_piped_input

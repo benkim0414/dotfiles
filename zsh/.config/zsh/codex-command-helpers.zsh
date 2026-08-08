@@ -17,7 +17,7 @@ _codex_command_helpers_ready() {
 
 _codex_command_helpers_exec() {
   local prompt=$1
-  command codex exec --ephemeral --sandbox read-only --skip-git-repo-check "$prompt"
+  command codex exec --ephemeral --sandbox read-only --skip-git-repo-check "$prompt" </dev/null
 }
 
 cmdgen() {
