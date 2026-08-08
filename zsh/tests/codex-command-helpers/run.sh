@@ -84,16 +84,24 @@ t_missing_arguments_do_not_invoke_codex() {
 t_cmderr_rejects_terminal_stdin() {
   setup_case
 
-  if ! command -v script >/dev/null 2>&1; then
-    printf '  skip cmderr rejects terminal stdin (script is unavailable)\n'
-    return
-  fi
+  {
+    printf '%s\n' 'zmodload zsh/zpty || exit 2'
+    printf '%s\n' 'zpty -b cmderr_pty zsh -f'
+    printf '%s\n' "zpty -w cmderr_pty 'source \"$HELPER\"; cmderr; print -- \"cmderr_status=\$?\"'"
+    printf '%s\n' "zpty -w cmderr_pty \$'\\n'"
+    printf '%s\n' 'sleep 0.1'
+    printf '%s\n' 'zpty -r cmderr_pty first'
+    printf '%s\n' 'zpty -r cmderr_pty second'
+    printf '%s\n' 'zpty -r cmderr_pty third'
+    printf '%s\n' 'print -r -- "$first$second$third"'
+    printf '%s\n' 'zpty -d cmderr_pty'
+  } >"$TMP/cmderr-pty.zsh"
 
   local output status
   output=$(HOME="$TMP/home" PATH="$TMP/bin:/usr/bin:/bin" CODEX_TEST_LOG="$TMP/log" CODEX_TEST_ARGS="$TMP/args" CODEX_TEST_STDIN="$TMP/stdin" \
-    script -qec "zsh -f -c 'source \"$HELPER\"; cmderr'" /dev/null 2>&1)
+    zsh -f "$TMP/cmderr-pty.zsh" 2>&1)
   status=$?
-  if [[ $status -ne 0 && "$output" == *'cmderr requires piped diagnostic input.'* ]] && [[ ! -s "$TMP/log" ]]; then
+  if [[ $status -eq 0 && "$output" == *cmderr_status=1[!0-9]* ]] && [[ ! -s "$TMP/log" ]]; then
     ok "cmderr rejects terminal stdin without Codex"
   else
     bad "cmderr rejects terminal stdin without Codex ($output)"
@@ -164,12 +172,12 @@ t_prompts_treat_input_as_untrusted_and_forbid_execution() {
 t_cmderr_forwards_diagnostics_and_optional_question() {
   setup_case
 
-  printf '%s\n%s\n' 'fatal: permission denied' 'at /tmp/example' | run_zsh 'cmderr "What should I check?"' >/dev/null 2>&1
-  local prompt diagnostics
+  printf 'fatal: permission denied\nat /tmp/example\n\n' >"$TMP/expected-stdin"
+  cat "$TMP/expected-stdin" | run_zsh 'cmderr "What should I check?"' >/dev/null 2>&1
+  local prompt
   prompt=$(sed -n '6,$p' "$TMP/args" 2>/dev/null || true)
-  diagnostics=$(cat "$TMP/stdin" 2>/dev/null || true)
   if assert_safe_exec_args \
-    && [[ "$diagnostics" == $'fatal: permission denied\nat /tmp/example' ]] \
+    && cmp -s "$TMP/expected-stdin" "$TMP/stdin" \
     && [[ "$prompt" == *'What should I check?'* ]] \
     && [[ "$prompt" == *untrusted* ]] \
     && [[ "$prompt" == *execut* ]]; then
