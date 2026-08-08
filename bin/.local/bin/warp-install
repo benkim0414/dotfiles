@@ -11,7 +11,8 @@ need() { command -v "$1" >/dev/null 2>&1 || die "required command not found: $1"
 
 case "$(uname -s)" in
   Darwin)
-    printf '%s\n' 'Install Warp from this dotfiles repository with: brew bundle --file Brewfile'
+    repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)
+    printf '%s\n' "Install Warp from this dotfiles repository with: brew bundle --file $repo_root/Brewfile"
     exit 0
     ;;
   Linux) ;;

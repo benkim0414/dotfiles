@@ -128,13 +128,14 @@ EOF
   fi
 }
 
-t4_darwin_prints_brew_guidance() {
+t4_darwin_prints_portable_brew_guidance() {
   setup_fakes
   write_os_release fedora
-  if run_installer Darwin \
-    && grep -qxF 'Install Warp from this dotfiles repository with: brew bundle --file Brewfile' "$TMP/stdout" \
+  mkdir -p "$TMP/another-directory"
+  if (cd "$TMP/another-directory" && run_installer Darwin) \
+    && grep -qxF "Install Warp from this dotfiles repository with: brew bundle --file $DOTFILES/Brewfile" "$TMP/stdout" \
     && [ ! -s "$LOG" ]; then
-    ok "t4 Darwin prints brew bundle guidance without sudo"
+    ok "t4 Darwin prints portable brew bundle guidance without sudo"
   else
     bad "t4 Darwin guidance"
   fi
@@ -159,7 +160,7 @@ main() {
   t1_missing_fedora_binary_fails
   t2_fedora_installs_from_official_repository
   t3_existing_warp_skips_sudo
-  t4_darwin_prints_brew_guidance
+  t4_darwin_prints_portable_brew_guidance
   t5_unsupported_linux_skips_sudo
   printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
   [ "$FAIL" -eq 0 ]
