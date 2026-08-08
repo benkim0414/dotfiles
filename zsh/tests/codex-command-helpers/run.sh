@@ -37,6 +37,10 @@ case "${1-}:${2-}" in
     cat >"$CODEX_TEST_STDIN"
     printf '%s\n' "${CODEX_TEST_OUTPUT:-}"
     printf 'exec\n' >>"$CODEX_TEST_LOG"
+    if [[ "${CODEX_TEST_EXEC_KILL_PARENT:-}" == 1 ]]; then
+      kill -INT "$PPID"
+      sleep 0.1
+    fi
     exit "${CODEX_TEST_EXEC_STATUS:-0}"
     ;;
   *)
@@ -183,6 +187,21 @@ t_prompts_treat_input_as_untrusted_and_forbid_execution() {
   ok "prompts treat input as untrusted and forbid execution"
 }
 
+t_cmdgen_prompt_covers_safety_categories() {
+  setup_case
+
+  run_zsh "cmdgen 'remove temporary files'" >/dev/null 2>&1
+  local prompt
+  prompt=$(sed -n '6,$p' "$TMP/args" 2>/dev/null || true)
+  if [[ "$prompt" == *'destructive behavior'* ]] \
+    && [[ "$prompt" == *'privilege requirements'* ]] \
+    && [[ "$prompt" == *'platform assumptions'* ]]; then
+    ok "cmdgen prompt covers destructive privilege and platform safety categories"
+  else
+    bad "cmdgen prompt safety categories"
+  fi
+}
+
 t_cmderr_forwards_diagnostics_and_optional_question() {
   setup_case
 
@@ -198,6 +217,31 @@ t_cmderr_forwards_diagnostics_and_optional_question() {
     ok "cmderr forwards diagnostics and the optional question"
   else
     bad "cmderr forwards diagnostics and the optional question"
+  fi
+}
+
+t_cmderr_cleans_spool_when_codex_interrupts() {
+  setup_case
+  mkdir -p "$TMP/spool"
+
+  local status
+  printf '%s\n' 'fatal: permission denied' | TMPDIR="$TMP/spool" CODEX_TEST_EXEC_KILL_PARENT=1 run_zsh 'cmderr' >/dev/null 2>&1
+  status=$?
+  if [[ $status -ne 0 ]] && [[ -z $(find "$TMP/spool" -type f -print -quit) ]]; then
+    ok "cmderr cleans its spool file when Codex interrupts"
+  else
+    bad "cmderr interrupt cleanup ($status)"
+  fi
+}
+
+t_cmderr_preserves_caller_interrupt_trap() {
+  setup_case
+
+  run_zsh "TRAPINT() { print -r -- preserved > '$TMP/trap'; }; print -r -- diagnostics | cmderr >/dev/null 2>&1; kill -INT \$\$" >/dev/null 2>&1
+  if [[ $(cat "$TMP/trap" 2>/dev/null || true) == preserved ]]; then
+    ok "cmderr preserves the caller interrupt trap"
+  else
+    bad "cmderr caller interrupt trap"
   fi
 }
 
@@ -262,7 +306,10 @@ main() {
     t_successful_helpers_use_read_only_ephemeral_exec
     t_cmdgen_and_cmdexplain_ignore_redirected_stdin
     t_prompts_treat_input_as_untrusted_and_forbid_execution
+    t_cmdgen_prompt_covers_safety_categories
     t_cmderr_forwards_diagnostics_and_optional_question
+    t_cmderr_cleans_spool_when_codex_interrupts
+    t_cmderr_preserves_caller_interrupt_trap
     t_cmderr_rejects_empty_piped_input
     t_model_output_is_printed_without_evaluation
     t_codex_exec_status_is_propagated
