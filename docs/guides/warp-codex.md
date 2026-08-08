@@ -19,6 +19,9 @@ check that `codex login status` reports `ChatGPT`. If it instead reports
 API-key auth, run `codex logout`, then run `codex login` and choose ChatGPT
 sign-in.
 
+Keep Codex installed and managed through `mise`; do not install or replace it
+through another channel.
+
 ## Install Warp
 
 On Fedora, run:
@@ -62,6 +65,9 @@ before running it. Their read-only sandbox limits Codex tools, but it does not
 make a generated command safe. In particular, a command could still be
 destructive, require elevated privileges, or make platform-specific
 assumptions when you choose to run it yourself.
+
+Each helper invokes Codex with the required contract:
+`codex exec --ephemeral --sandbox read-only --skip-git-repo-check`.
 
 Command text and diagnostic logs are sent to OpenAI under the signed-in
 account. Before using `cmderr`, redact credentials, API keys, tokens, private
