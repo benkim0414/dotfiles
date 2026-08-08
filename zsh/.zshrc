@@ -72,6 +72,7 @@ _eval_cache zoxide "sudo dnf install zoxide" zoxide init zsh --cmd cd
 
 eval "$(starship init zsh)"
 eval "$(mise activate zsh)"
+source "$HOME/.config/zsh/codex-command-helpers.zsh"
 
 if (( $+commands[atuin] )); then
   eval "$(atuin init zsh --disable-up-arrow)"
