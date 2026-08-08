@@ -55,13 +55,19 @@ EOF
 }
 
 run_installer() {
+  run_installer_at "$INSTALL" "$@"
+}
+
+run_installer_at() {
+  local installer=$1
+  shift
   local test_path=${WARP_TEST_PATH:-"$FAKE:$PATH"}
   WARP_TEST_UNAME=${1:-Linux} \
     WARP_TEST_LOG="$LOG" \
     WARP_INSTALL_OS_RELEASE="$OS_RELEASE" \
     WARP_INSTALL_REPO_PATH="$REPO_PATH" \
     PATH="$test_path" \
-    "$INSTALL" > "$TMP/stdout" 2> "$TMP/stderr"
+    "$installer" > "$TMP/stdout" 2> "$TMP/stderr"
 }
 
 t1_missing_fedora_binary_fails() {
@@ -141,16 +147,31 @@ t4_darwin_prints_portable_brew_guidance() {
   fi
 }
 
-t5_unsupported_linux_skips_sudo() {
+t5_darwin_stow_symlink_prints_repository_brewfile() {
+  setup_fakes
+  write_os_release fedora
+  local stow_bin="$TMP/home/.local/bin"
+  mkdir -p "$stow_bin" "$TMP/another-directory"
+  ln -s "$INSTALL" "$stow_bin/warp-install"
+  if (cd "$TMP/another-directory" && run_installer_at "$stow_bin/warp-install" Darwin) \
+    && grep -qxF "Install Warp from this dotfiles repository with: brew bundle --file $DOTFILES/Brewfile" "$TMP/stdout" \
+    && [ ! -s "$LOG" ]; then
+    ok "t5 Darwin Stow symlink prints repository Brewfile guidance"
+  else
+    bad "t5 Darwin Stow symlink guidance"
+  fi
+}
+
+t6_unsupported_linux_skips_sudo() {
   setup_fakes
   write_os_release ubuntu
   if run_installer Linux; then
-    bad "t5 unsupported Linux fails"
+    bad "t6 unsupported Linux fails"
   elif grep -qF 'unsupported Linux distribution: ubuntu' "$TMP/stderr" \
     && [ ! -s "$LOG" ]; then
-    ok "t5 unsupported Linux fails before sudo"
+    ok "t6 unsupported Linux fails before sudo"
   else
-    bad "t5 unsupported Linux error"
+    bad "t6 unsupported Linux error"
   fi
 }
 
@@ -161,7 +182,8 @@ main() {
   t2_fedora_installs_from_official_repository
   t3_existing_warp_skips_sudo
   t4_darwin_prints_portable_brew_guidance
-  t5_unsupported_linux_skips_sudo
+  t5_darwin_stow_symlink_prints_repository_brewfile
+  t6_unsupported_linux_skips_sudo
   printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
   [ "$FAIL" -eq 0 ]
 }
