@@ -15,6 +15,12 @@ write_os_release() {
   printf 'ID=%s\n' "$1" > "$OS_RELEASE"
 }
 
+link_real_utility() {
+  local utility=$1 utility_path
+  utility_path=$(command -v "$utility") || return 1
+  ln -s "$utility_path" "$FAKE/$utility"
+}
+
 setup_fakes() {
   FAKE="$TMP/fake"
   LOG="$TMP/sudo.log"
@@ -51,7 +57,10 @@ mkdir -p "$(dirname "$destination")"
 cp "$source_file" "$destination"
 EOF
   chmod +x "$FAKE"/*
-  ln -s "$(command -v bash)" "$FAKE/bash"
+  local utility
+  for utility in bash cat cp dirname mkdir mktemp readlink rm; do
+    link_real_utility "$utility" || return 1
+  done
 }
 
 run_installer() {
@@ -61,7 +70,7 @@ run_installer() {
 run_installer_at() {
   local installer=$1
   shift
-  local test_path=${WARP_TEST_PATH:-"$FAKE:$PATH"}
+  local test_path=${WARP_TEST_PATH:-"$FAKE"}
   WARP_TEST_UNAME=${1:-Linux} \
     WARP_TEST_LOG="$LOG" \
     WARP_INSTALL_OS_RELEASE="$OS_RELEASE" \
