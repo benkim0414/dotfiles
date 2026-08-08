@@ -10,9 +10,10 @@ Warp's native Generate, Explain, Agent/Oz, and Active AI features cannot use a
 ChatGPT/Codex subscription. Bring-your-own-key (BYOK) requires an API key and
 separate billing; local arbitrary endpoints are not a substitute.
 
-In Warp settings, disable Warp AI and Agent features and do not configure
-BYOK. Ordinary terminal features, including Command Inspector, remain
-available.
+In Warp, open **Settings > Features > Session**, disable Warp AI and Agent
+features, leave BYOK unconfigured, and ensure the session starts **zsh** so
+the Codex helper module loads. Ordinary terminal features, including Command
+Inspector, remain available.
 
 The command helpers send requests through the signed-in Codex CLI. They first
 check that `codex login status` reports `ChatGPT`. If it instead reports
@@ -29,6 +30,9 @@ On Fedora, run:
 ```sh
 warp-install
 ```
+
+This uses Warp's official RPM repository. Warp itself is not installed through
+`mise` or an AppImage; `mise` manages Codex CLI only.
 
 On macOS, run this from any location, adjusting the path if the repository
 lives elsewhere:
