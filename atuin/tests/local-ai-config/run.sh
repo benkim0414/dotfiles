@@ -82,7 +82,7 @@ with open(path, "rb") as fh:
     config = tomllib.load(fh)
 
 check(config.get("port") == 8080, "Atuin AI server port must be 8080")
-check(config.get("endpoint") == "http://host.containers.internal:11434/v1", "Atuin AI server must target local host Ollama from the container")
+check(config.get("endpoint") == "http://127.0.0.1:11434/v1", "Atuin AI server must target Ollama through loopback forwarding")
 check(config.get("api_key") == "ollama", "Atuin AI server api_key must be ollama")
 check(config.get("default_model") == "qwen3-coder-30b", "default model must be qwen3-coder-30b")
 check(config.get("request", {}).get("body", {}).get("stream_options") == {"include_usage": True}, "stream usage must be enabled")
@@ -102,13 +102,15 @@ ok "Atuin AI server config is strict local AI"
 
 rg -q '^ExecStartPre=/usr/bin/test -r %h/.config/atuin-ai/config.toml$' "$AI_SERVICE" \
   || fail "atuin-ai service must require a readable local config"
+rg -q -- '--network=pasta:-T,11434 ' "$AI_SERVICE" \
+  || fail "atuin-ai service must forward only Ollama TCP through pasta"
 rg -q -- '-p 127\.0\.0\.1:8080:8080 ' "$AI_SERVICE" \
   || fail "atuin-ai service must publish only on loopback"
 rg -q '%h/\.config/atuin-ai/config\.toml:/etc/atuin-ai/config\.toml:ro,Z' "$AI_SERVICE" \
   || fail "atuin-ai service must mount config read-only with SELinux relabeling"
 rg -q 'ghcr.io/atuinsh/atuin-ai-server:latest$' "$AI_SERVICE" \
   || fail "atuin-ai service must run the Atuin AI server image"
-if rg -q -- '--network host' "$AI_SERVICE"; then
+if rg -q -- '--network([ =])host' "$AI_SERVICE"; then
   fail "atuin-ai service must not use host networking"
 fi
 ok "Atuin AI service is loopback-only"
