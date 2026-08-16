@@ -102,15 +102,8 @@ ok "Atuin AI server config is strict local AI"
 
 rg -q '^ExecStartPre=/usr/bin/test -r %h/.config/atuin-ai/config.toml$' "$AI_SERVICE" \
   || fail "atuin-ai service must require a readable local config"
-rg -q -- '--network=pasta:-T,11434 ' "$AI_SERVICE" \
-  || fail "atuin-ai service must forward only Ollama TCP through pasta"
-rg -q -- '-p 127\.0\.0\.1:8080:8080 ' "$AI_SERVICE" \
-  || fail "atuin-ai service must publish only on loopback"
-rg -q '%h/\.config/atuin-ai/config\.toml:/etc/atuin-ai/config\.toml:ro,Z' "$AI_SERVICE" \
-  || fail "atuin-ai service must mount config read-only with SELinux relabeling"
-rg -q 'ghcr.io/atuinsh/atuin-ai-server:latest$' "$AI_SERVICE" \
-  || fail "atuin-ai service must run the Atuin AI server image"
-if rg -q -- '--network([ =])host' "$AI_SERVICE"; then
-  fail "atuin-ai service must not use host networking"
-fi
+expected_exec_start='ExecStart=/usr/sbin/podman run --rm --name atuin-ai-server --network=pasta:-T,11434 -p 127.0.0.1:8080:8080 -v %h/.config/atuin-ai/config.toml:/etc/atuin-ai/config.toml:ro,Z ghcr.io/atuinsh/atuin-ai-server:latest'
+actual_exec_start=$(rg '^ExecStart=' "$AI_SERVICE" || true)
+[[ "$actual_exec_start" == "$expected_exec_start" ]] \
+  || fail "atuin-ai service ExecStart must use only the canonical rootless pasta command"
 ok "Atuin AI service is loopback-only"
