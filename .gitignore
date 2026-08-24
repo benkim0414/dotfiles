@@ -22,13 +22,26 @@ nvim.log
 .claude/worktrees/
 .worktrees/
 .remember/
+# Superpowers brainstorm server state (recreated per session)
+.superpowers/
+# Stray worktree fragments
+.clone/
 # Codex runtime artifacts (keep config.base.toml)
+codex/.codex/.codex-global-state.json
+codex/.codex/.codex-global-state.json.bak*
 codex/.codex/.personality_migration
+codex/.codex/.sandbox_migration
+codex/.codex/ambient-suggestions/
 codex/.codex/auth.json
 codex/.codex/cache/
+codex/.codex/chrome-native-hosts-v2.json
+codex/.codex/computer-use/
 codex/.codex/config.toml
 codex/.codex/config.toml.bak*
+codex/.codex/herdr-agent-state.sh
 codex/.codex/history.jsonl
+codex/.codex/hooks.json
+codex/.codex/hooks.json.bak*
 codex/.codex/installation_id
 codex/.codex/log/
 codex/.codex/logs/
@@ -37,15 +50,22 @@ codex/.codex/memories/
 codex/.codex/memories-*/
 codex/.codex/models_cache.json
 codex/.codex/plugins/
+codex/.codex/process_manager/
+codex/.codex/queue_*.sqlite*
 codex/.codex/sessions/
+codex/.codex/session_index.jsonl
 codex/.codex/context-mode/sessions/
 codex/.codex/goals_*.sqlite*
 codex/.codex/memories_*.sqlite*
 codex/.codex/shell_snapshots/
 codex/.codex/skills/
+codex/.codex/sqlite/
 codex/.codex/state*.sqlite*
+codex/.codex/thread-writer-locks/
+codex/.codex/thread_history_*.sqlite*
 codex/.codex/tmp/
 codex/.codex/.tmp/
+codex/.codex/vendor_imports/
 codex/.codex/version.json
 # Playwright MCP browser output (snapshots, console logs)
 .playwright-mcp/
