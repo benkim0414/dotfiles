@@ -17,6 +17,8 @@ go = "latest"
 atuin = "latest"
 uv = "latest"
 delta = "latest"
+pi = "latest"
+kubeseal = "latest"
 
 [env]
 # Load machine-local secrets (e.g. work MCP credentials) into every mise-activated shell.
