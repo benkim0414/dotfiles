@@ -13,8 +13,12 @@ bin/.local/bin/amd-*
 bin/.local/bin/claude
 bin/.local/bin/ds4-cockpit
 bin/.local/bin/herdr
+bin/.local/bin/herdr-reviewr
+bin/.local/bin/terminal-browser
 bin/.local/bin/orca-ide
 herdr/.config/herdr/*.log
+herdr/.config/herdr/.plugins.lock
+herdr/.config/herdr/plugins/
 herdr/.config/herdr/plugins.json
 herdr/.config/herdr/release-notes.json
 herdr/.config/herdr/session.json
