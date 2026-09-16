@@ -37,6 +37,47 @@ Before installing, review source, maintenance, license, dependencies, and
 compatibility, then pin an exact npm version or immutable Git ref. Herdr's
 native Pi integration is the only extension added by this plan.
 
+## Connect Pi status to Herdr
+
+Herdr's native Pi integration reports Pi's agent state in the Herdr UI. It is
+status integration only: it is not a Factory worker backend and does not send
+completion or approval signals.
+
+Before installing, inspect the existing device-local extensions and integration
+status. Keep any local customizations. During an authorized per-device setup,
+run only the following commands for this integration:
+
+```sh
+herdr integration status
+herdr integration install pi
+herdr integration status
+```
+
+The installer owns its generated device-local extension at
+`~/.pi/agent/extensions/herdr-agent-state.ts`; do not copy its implementation
+into this repository or edit it as a tracked configuration. Do not install
+Herdr integrations for other worker harnesses as part of Pi setup.
+
+Authentication and model selection remain Pi-local. In a Pi session, use
+`/login`, `/model`, and `/settings` interactively as needed, preserving the
+current provider, model, and other user defaults. If Pi is already configured,
+do not log in again or select a replacement provider. Do not put credentials in
+portable defaults or the Factory skill. Provider readiness that needs user
+interaction is separate from repository setup.
+
+For the live verification, restart Pi in a Herdr pane selected by the user.
+Check its extension-load output and confirm Herdr recognizes it as Pi. With an
+already available provider, send one harmless conversational prompt and observe
+the pane transition from working to idle. If an interactive terminal or provider
+is unavailable, record this smoke test as unverified rather than changing login
+or model configuration.
+
+To verify the optional Factory path, explicitly invoke `/skill:factory` and ask
+only for a status check against the user's existing Factory checkout. Confirm it
+uses that checkout's documented CLI and neither creates a ticket nor claims
+automatic worker control. If no checkout is available, leave this smoke test
+unverified; do not clone a checkout or create Factory state as implicit setup.
+
 ## Deploy the package
 
 Run Stow from the durable dotfiles checkout, not from a temporary worktree that
@@ -121,3 +162,17 @@ git check-ignore --no-index pi/.pi/agent/auth.json \
 ```
 
 The tracked defaults must not be ignored. Finish with `git diff --check`.
+
+## Roll back portable setup
+
+To remove only this Stow package while preserving Pi login, sessions, and local
+settings, run:
+
+```sh
+stow --no-folding -D -t "$HOME" pi
+```
+
+Restore a changed active settings file from its device-local deployment backup
+only on explicit request. If undoing the newly installed native Herdr
+integration is also requested, run `herdr integration uninstall pi`. Never
+recursively delete `.pi`.
