@@ -53,6 +53,11 @@ herdr integration install pi
 herdr integration status
 ```
 
+Device-specific observation (2026-09-16): before this device's installation,
+`herdr integration status` reported Pi as not installed, and `herdr integration
+install --help` listed `pi` as an install target. Treat these as recorded setup
+facts for this device, not as a universal Herdr state.
+
 The installer owns its generated device-local extension at
 `~/.pi/agent/extensions/herdr-agent-state.ts`; do not copy its implementation
 into this repository or edit it as a tracked configuration. Do not install
