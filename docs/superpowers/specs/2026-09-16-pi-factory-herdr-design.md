@@ -1,7 +1,35 @@
 # Personal Pi with Factory and visible Herdr workers
 
 Date: 2026-09-16
-Status: interaction design approved; written spec awaiting review.
+Status: approved in conversation, narrowed to personal Pi configuration.
+
+## Implementation scope
+
+The user clarified and approved that this work configures Pi only. Deliver a
+Stow package with portable settings defaults, an explicitly invoked Factory
+skill, setup documentation, and instructions for Herdr's native Pi integration.
+Keep the existing mise installation and preserve current model/provider choices.
+No new orchestration service, worker adapter, terminal automation, or Factory
+repository changes belong in this implementation plan.
+
+The worker architecture below records the desired future experience. Sections
+explicitly labeled future describe compatibility goals, not deliverables of this
+Pi configuration change. Using Factory's existing CLI/manual workflow is in scope;
+implementing missing automatic behavior is not.
+
+Planning inspection found Pi 0.85.1, Herdr 0.9.0, an existing real global
+`settings.json`, and no installed Herdr Pi integration. Use tracked
+`pi/.pi/agent/settings.defaults.json` as a small merge source; keep Pi's mutable
+`settings.json` device-local rather than symlinking it to a tracked file. The
+defaults own only project trust, skill-command availability, and automatic
+compaction. Preserve other settings, including model/provider and packages.
+Use Stow with `--no-folding` to keep writable runtime directories on the device.
+
+The baseline adds no community extension packages. Their researched popularity
+and optional roles remain documented below. Install the native Herdr integration
+with Herdr's own command, retaining its generated extension on the device.
+The Factory skill uses `disable-model-invocation: true` so `/skill:factory`
+explicitly activates the coordinator workflow without affecting worker sessions.
 
 ## Goal and agreed experience
 
@@ -65,10 +93,11 @@ the relevant source before specifying an integration contract in detail.
 ### Personal Pi configuration
 
 Manage intentional global configuration through a dotfiles package targeting
-`~/.pi/agent`. Keep provider/model defaults, curated skills, prompts, and pinned
-package declarations under version control. Credentials, sessions, caches,
-downloaded packages, and machine-specific state remain outside tracked files.
-Check the dotfiles deployment convention before choosing exact tracked files.
+`~/.pi/agent`. Track the three portable defaults and the curated Factory skill.
+Existing provider/model choices and package declarations remain in the local
+mutable settings file. Credentials, sessions, caches, downloaded packages, and
+machine-specific state remain outside tracked files. Additional portable
+preferences can be promoted into defaults in a later change.
 
 Do not select a provider or model without checking the user's available
 credentials and preferences. That choice is independent of the Factory/Herdr
@@ -105,7 +134,7 @@ Pi RPC is not necessary for this human-facing coordinator: the user is running
 Pi interactively. RPC may be useful for a future worker adapter, but a headless
 RPC process does not by itself provide a worker TUI in a Herdr pane.
 
-### Factory-to-Herdr boundary
+### Future: Factory-to-Herdr boundary
 
 Add or reuse a terminal backend that launches a selected runtime inside its
 prepared attempt worktree and binds the attempt to exact session/workspace/tab/
@@ -123,7 +152,7 @@ Automatic launch, steering, progress, cancellation, and recovery must be verifie
 per runtime. Implement and verify Claude Code and Pi first; Hermes and OpenClaw
 remain compatibility targets until their control interfaces have been checked.
 
-### Direct interaction and concurrent delivery
+### Future: direct interaction and concurrent delivery
 
 Workers continue autonomously after direct user input. There is no exclusive
 human-control mode or hand-back action.
@@ -142,7 +171,7 @@ This reporting is a required integration behavior, not an existing guarantee
 that Factory observes every keystroke. Conflicting coordinator and user
 instructions should be surfaced for reconciliation rather than silently lost.
 
-### State, completion, and recovery
+### Future: state, completion, and recovery
 
 Use the Factory attempt as the durable identity for the worktree, worker
 endpoint, result artifacts, and any resumable harness session. A terminal status
@@ -203,20 +232,21 @@ different product and are not evidence about `benkim0414/factory`.
 
 ## Boundaries and rollout
 
-This dotfiles change will configure the personal Pi foundation and document the
+This dotfiles change configures the personal Pi foundation and documents the
 coordinator entry point. Factory lifecycle and Herdr backend changes belong in
-the Factory repository as separate implementation work. Do not imply that
+the Factory repository as separately scoped future work. Do not imply that
 installing Pi packages alone supplies that integration.
 
-Suggested sequence after spec approval:
+Sequence for the Pi configuration implementation plan:
 
-1. Inspect installed Pi/Herdr versions, dotfiles deployment, and Factory source;
-   resolve provider/model preferences and record exact compatibility assumptions.
-2. Configure global Pi and the explicitly loaded Factory coordinator skill.
-3. Prove one manual visible worker round trip through Factory's existing gates.
-4. Implement Herdr launch/delivery and completion reporting for Claude Code/Pi.
-5. Verify autonomous direct steering, concurrent messages, restart, and cancellation.
-6. Add other runtimes individually; add optional packages only for demonstrated needs.
+1. Add portable Pi defaults and a runtime-safe Stow package, retaining mise.
+2. Add the explicitly invoked skill for Factory's current CLI/manual workflow.
+3. Document safe deployment and install Herdr's Pi integration when applying setup.
+4. Verify skill discovery, preserved local settings, and visible Pi status in Herdr.
+
+Future Factory work can prove manual worker round trips, implement Herdr delivery,
+verify direct steering/recovery, and add runtimes individually. None of those
+features is a completion criterion for this Pi setup.
 
 This sequence is design guidance, not the detailed implementation plan. No
 runtime installs, credentials changes, worker launches, Factory code changes,
@@ -225,12 +255,21 @@ Worktrees isolate changes but do not sandbox processes. Before unattended worker
 execution, choose and validate the intended filesystem/network boundary rather
 than assuming Herdr or Pi supplies it.
 
-## Validation criteria
+## Pi setup validation criteria
 
 - A new shell resolves one intended mise-managed Pi installation; configuration
   deploys without tracking credentials or runtime state.
 - A coordinator Pi can create a Factory task, retrieve a prompt, and present the
-  current review packet; an ordinary Pi session does not acquire coordinator duties.
+  current review packet using documented existing commands when explicitly asked;
+  an ordinary Pi session does not acquire coordinator duties. Configuration smoke
+  testing uses read-only Factory status and does not create tasks or approvals.
+- Existing model/provider/package settings survive applying portable defaults.
+- Pi discovers `/skill:factory`; Herdr's native Pi status integration loads without
+  extension errors. No third-party package is required for this baseline.
+- Runtime directories remain real directories rather than symlinks into dotfiles.
+
+## Future Factory validation criteria (out of implementation scope)
+
 - Each launched worker uses the correct attempt worktree and recorded endpoint;
   spawning preserves the user's current terminal focus.
 - Direct user steering reaches both initial runtimes and work continues without
