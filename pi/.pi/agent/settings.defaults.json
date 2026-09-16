@@ -1,0 +1,7 @@
+{
+  "defaultProjectTrust": "ask",
+  "enableSkillCommands": true,
+  "compaction": {
+    "enabled": true
+  }
+}

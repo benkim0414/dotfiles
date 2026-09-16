@@ -76,3 +76,10 @@ codex/.codex/vendor_imports/
 codex/.codex/version.json
 # Playwright MCP browser output (snapshots, console logs)
 .playwright-mcp/
+
+# Pi runtime state stays device-local; portable defaults and our skill are tracked.
+/pi/.pi/agent/*
+!/pi/.pi/agent/settings.defaults.json
+!/pi/.pi/agent/skills/
+/pi/.pi/agent/skills/*
+!/pi/.pi/agent/skills/factory/
