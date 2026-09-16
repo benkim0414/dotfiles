@@ -13,6 +13,30 @@ an update as part of setup.
 - `~/.pi/agent/skills/` contains intentional portable skills; downloaded
   extensions, sessions, and authentication remain device-local.
 
+## Use Factory explicitly
+
+Ordinary `pi` remains the personal coding agent. For the Factory coordinator,
+open Pi in a Herdr pane, invoke `/skill:factory`, then identify the local
+`benkim0414/factory` checkout. The skill coordinates Factory's documented CLI
+and manual worker workflow; it does not automatically launch, supervise, steer,
+or cancel workers. Steps that require a worker pane or prompt delivery remain
+manual, and no automatic worker behavior is promised.
+
+The Factory skill is explicitly activated and is not automatically selected in
+normal Pi sessions or workers. Factory's existing status, ticket, attempt,
+worktree, and review records remain authoritative.
+
+## Package policy
+
+Start with Pi core and the curated Factory skill; do not install community
+extensions by default. The design shortlist in
+[`docs/superpowers/specs/2026-09-16-pi-factory-herdr-design.md`](../superpowers/specs/2026-09-16-pi-factory-herdr-design.md)
+lists optional web, MCP, question, todo, lens, background-task, subagent, and
+permission tools. Consult it only when an identified requirement calls for one.
+Before installing, review source, maintenance, license, dependencies, and
+compatibility, then pin an exact npm version or immutable Git ref. Herdr's
+native Pi integration is the only extension added by this plan.
+
 ## Deploy the package
 
 Run Stow from the durable dotfiles checkout, not from a temporary worktree that
