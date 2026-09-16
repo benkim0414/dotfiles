@@ -39,14 +39,16 @@ settings do not exist, initialize them from the defaults.
 
 Before editing the real file, make a recoverable device-local backup. Use the
 native file-edit mechanism to perform the merge after required approval. Do not
-log the full settings or read authentication files. The merge operation is:
+log the full settings or read authentication files. The following command is a
+fixture-only validation example: run it only with synthetic files, never with
+live settings paths, because it prints the merged JSON:
 
 ```sh
 jq -s '.[0] * .[1]' existing-settings.json settings.defaults.json
 ```
 
-In the real deployment, use `~/.pi/agent/settings.json` and
-`~/.pi/agent/settings.defaults.json` as the two inputs. Existing
+For the real deployment, after the required approval, use only the native
+file-edit mechanism against the active settings file. Existing
 `defaultProvider`, `defaultModel`, packages, resource paths, unknown keys, and
 additional `compaction` settings are preserved. Reapplying defaults
 deliberately restores `defaultProjectTrust`, `enableSkillCommands`, and
@@ -56,13 +58,12 @@ Do not dump live settings into the shell or logs. A safe procedure is:
 
 1. Check whether `~/.pi/agent/settings.json` exists and is a JSON object.
 2. Copy it to a timestamped backup in the same device-local directory.
-3. Merge the backup (or the existing file) with the defaults, writing through
-   the native file-edit mechanism.
+3. Apply the defaults to the active file through the native file-edit
+   mechanism, without logging settings.
 4. If no active file exists, initialize it from the defaults.
 
-The example names above are fixture names, not permission to read live
-settings. If the active file is malformed or not an object, stop and resolve it
-explicitly rather than overwriting it.
+If the active file is malformed or not an object, stop and resolve it explicitly
+rather than overwriting it.
 
 ## Verification
 
