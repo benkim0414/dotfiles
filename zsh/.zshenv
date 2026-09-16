@@ -10,6 +10,10 @@ export XDG_DATA_HOME="$HOME/.local/share"
 export XDG_CACHE_HOME="$HOME/.cache"
 export XDG_STATE_HOME="$HOME/.local/state"
 
+# Terminal-browser forwards browser paint frames to the terminal renderer. Keep
+# its default refresh rate modest, while allowing an explicit per-shell override.
+export TERMINAL_BROWSER_FPS="${TERMINAL_BROWSER_FPS:-30}"
+
 # Hermes runtime home is the versioned workspace checkout; keeping this in
 # .zshenv makes non-interactive zsh invocations use the same config and skills.
 export HERMES_HOME="$HOME/workspace/hermes"
