@@ -63,12 +63,12 @@ The installer owns its generated device-local extension at
 into this repository or edit it as a tracked configuration. Do not install
 Herdr integrations for other worker harnesses as part of Pi setup.
 
-Authentication and model selection remain Pi-local. In a Pi session, use
-`/login`, `/model`, and `/settings` interactively as needed, preserving the
-current provider, model, and other user defaults. If Pi is already configured,
-do not log in again or select a replacement provider. Do not put credentials in
-portable defaults or the Factory skill. Provider readiness that needs user
-interaction is separate from repository setup.
+Authentication remains Pi-local. The portable defaults select
+`openai-codex/gpt-5.6-sol` with `high` thinking for new sessions because Pi is
+the Factory coordinator on this device. The OAuth credential remains only in
+Pi's device-local authentication store; never put credentials in portable
+defaults or the Factory skill. Use `/login` only when provider readiness fails,
+and use `/model` when temporarily selecting another model for a session.
 
 For the live verification, restart Pi in a Herdr pane selected by the user.
 Check its extension-load output and confirm Herdr recognizes it as Pi. With an
@@ -102,10 +102,10 @@ configuration.
 ## Apply portable defaults
 
 Defaults are applied as a JSON deep merge: existing settings first, portable
-defaults second. This deliberately restores the three values owned by this
-package while retaining local preferences. The existing settings file must be
-a JSON object; invalid input or another JSON type stops the update. If active
-settings do not exist, initialize them from the defaults.
+defaults second. This deliberately restores the six values owned by this
+package while retaining unrelated local preferences. The existing settings
+file must be a JSON object; invalid input or another JSON type stops the update.
+If active settings do not exist, initialize them from the defaults.
 
 Before editing the real file, make a recoverable device-local backup. Use the
 native file-edit mechanism to perform the merge after required approval. Do not
@@ -119,10 +119,11 @@ jq -s '.[0] * .[1]' existing-settings.json settings.defaults.json
 
 For the real deployment, after the required approval, use only the native
 file-edit mechanism against the active settings file. Existing
-`defaultProvider`, `defaultModel`, packages, resource paths, unknown keys, and
-additional `compaction` settings are preserved. Reapplying defaults
-deliberately restores `defaultProjectTrust`, `enableSkillCommands`, and
-`compaction.enabled`; no custom sync script is needed for three values.
+packages, resource paths, unknown keys, and additional `compaction` settings
+are preserved. Reapplying defaults deliberately selects
+`openai-codex/gpt-5.6-sol` at `high` thinking and restores
+`defaultProjectTrust`, `enableSkillCommands`, and `compaction.enabled`; no
+custom sync script is needed.
 
 Do not dump live settings into the shell or logs. A safe procedure is:
 
@@ -143,10 +144,12 @@ Validate the tracked defaults without touching active settings:
 jq -e 'type == "object"' pi/.pi/agent/settings.defaults.json
 jq -n --slurpfile defaults pi/.pi/agent/settings.defaults.json '
   {defaultProvider:"fixture", defaultModel:"fixture-model",
+   defaultThinkingLevel:"low",
    packages:["fixture-package"], compaction:{enabled:false,keepRecentTokens:1234}}
   * $defaults[0]
-  | .defaultProvider == "fixture"
-    and .defaultModel == "fixture-model"
+  | .defaultProvider == "openai-codex"
+    and .defaultModel == "gpt-5.6-sol"
+    and .defaultThinkingLevel == "high"
     and .packages == ["fixture-package"]
     and .compaction.keepRecentTokens == 1234
     and .compaction.enabled == true
