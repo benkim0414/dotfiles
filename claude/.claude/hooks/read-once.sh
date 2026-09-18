@@ -98,23 +98,31 @@ set -euo pipefail
 #     from settings.json, so on macOS that is /bin/bash 3.2.57 -- read-once was
 #     entirely inert there, and its suite had been red and unnoticed.
 #
-# eval is safe here because every value passes through jq's @sh, which wraps it
-# in single quotes and escapes embedded quotes as '\''. Verified byte-exact
-# round-trip on 3.2 and 5.3 for values containing single and double quotes,
-# $(...), backticks, tabs, newlines and SOH, with nothing executed. It also
-# fixes a latent truncation: a command containing a newline no longer stops at
-# the first line, as a single `read` would.
+# Every interpolation is forced through `tostring` before @sh sees it. That is
+# load-bearing, not tidiness: @sh applied to a JSON *array* emits
+# space-separated words, so an array-valued field produced
+# `OFFSET='1' 'touch' 'X'` -- a command-prefix assignment followed by a
+# command, which eval duly executed, before the UUID gate below, with the
+# injected command's stdout becoming this hook's decision JSON. `tostring`
+# collapses arrays and objects to one JSON-text scalar, so @sh always emits
+# exactly one single-quoted word and embedded quotes become '\''.
+#
+# Verified byte-exact round-trip on 3.2 and 5.3 for values containing single
+# and double quotes, $(...), backticks, tabs, newlines, SOH and 200k
+# characters, with nothing executed. It also fixes a latent truncation: a
+# command containing a newline no longer stops at the first line, as a single
+# `read` would.
 # ---------------------------------------------------------------------------
 SESSION_ID="" TOOL_NAME="" FILE_PATH="" OFFSET=0 LIMIT=-1 COMMAND="" OUTPUT_MODE=""
 _fields="$(
   jq -r '
-    @sh "SESSION_ID=\(.session_id // "")",
-    @sh "TOOL_NAME=\(.tool_name // "")",
-    @sh "FILE_PATH=\(.tool_input.file_path // .tool_input.notebook_path // .tool_input.path // "")",
-    @sh "OFFSET=\(.tool_input.offset // 0)",
-    @sh "LIMIT=\(.tool_input.limit // -1)",
-    @sh "COMMAND=\(.tool_input.command // "")",
-    @sh "OUTPUT_MODE=\(.tool_input.output_mode // "")"
+    @sh "SESSION_ID=\((.session_id // "") | tostring)",
+    @sh "TOOL_NAME=\((.tool_name // "") | tostring)",
+    @sh "FILE_PATH=\((.tool_input.file_path // .tool_input.notebook_path // .tool_input.path // "") | tostring)",
+    @sh "OFFSET=\((.tool_input.offset // 0) | tostring)",
+    @sh "LIMIT=\((.tool_input.limit // -1) | tostring)",
+    @sh "COMMAND=\((.tool_input.command // "") | tostring)",
+    @sh "OUTPUT_MODE=\((.tool_input.output_mode // "") | tostring)"
   ' 2>/dev/null
 )" || true
 
@@ -123,6 +131,11 @@ _fields="$(
 eval "$_fields" 2>/dev/null || true
 
 [[ "$SESSION_ID" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]] || exit 0
+
+# OFFSET and LIMIT are interpolated into a JSON range array further down, so
+# a non-numeric value would emit malformed JSON. Fall back to the defaults.
+[[ "$OFFSET" =~ ^-?[0-9]+$ ]] || OFFSET=0
+[[ "$LIMIT" =~ ^-?[0-9]+$ ]] || LIMIT=-1
 
 # READ_ONCE_DISABLE=1: allow immediately, but log the bypass for audit.
 if [[ "${READ_ONCE_DISABLE:-0}" == "1" ]]; then
