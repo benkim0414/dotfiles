@@ -12,6 +12,19 @@
 # Outputs:   the mtime epoch seconds on stdout, or 0 if stat fails
 file_mtime() { stat -c %Y "$1" 2>/dev/null || stat -f %m "$1" 2>/dev/null || echo 0; }
 
+# Lowercase a string, portably.
+#
+# `${var,,}` is bash 4+. The hooks are invoked as `bash <path>` from
+# settings.json, so the interpreter is whatever `bash` resolves to on PATH --
+# on macOS that is /bin/bash 3.2.57, where `${var,,}` raises "bad substitution"
+# at expansion time. That failure is near-silent: the message goes to the
+# hook's stderr, the surrounding `if` sees an empty string, and the check it
+# guards simply never matches. `tr` costs a subprocess, which is noise beside
+# the jq forks these hooks already pay.
+# Arguments: $1 string
+# Outputs:   the string, lowercased
+to_lower() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]'; }
+
 # Run a command under a wall-clock timeout, portably.
 # Prefers GNU `timeout`; falls back to a perl alarm where timeout is absent.
 # Arguments: $1 timeout (seconds), $2.. command + args to run

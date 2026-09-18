@@ -7,6 +7,9 @@
 #   check_file_edit <path> <wt_root>     -- sensitive file edits
 #   check_web_fetch <url>                -- exfil / suspect-host URLs
 
+# shellcheck source=portability.sh
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/portability.sh"
+
 # --- check_bash -----------------------------------------------------------
 # Inspect a bash command for risky shapes the static deny/ask lists miss:
 # shell-expanded secret paths, rm -rf bypass forms, curl|sh, chained rm -rf,
@@ -123,7 +126,8 @@ check_file_edit() {
 # shellcheck disable=SC2016  # intentional literal $HOME / ${HOME} matching
 check_web_fetch() {
   local url="$1"
-  local url_lc="${url,,}"
+  local url_lc
+  url_lc="$(to_lower "$url")"
 
   # Suspect hosts: dynamic-DNS, paste, webhook receivers. Case-insensitive via lc copy.
   if [[ "$url_lc" =~ ^https?://([^/]*\.)?(requestbin\.com|webhook\.site|pipedream\.net|ngrok\.io|trycloudflare\.com)([/:?]|$) ]]; then
