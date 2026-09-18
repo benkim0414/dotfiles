@@ -85,22 +85,42 @@ set -euo pipefail
 
 # ---------------------------------------------------------------------------
 # Parse stdin once: all fields needed by any tool branch.
-# SOH (\x01) separated -- tab is IFS-whitespace and collapses empty fields
-# (e.g. Bash tool has no file_path, producing consecutive tabs that bash
-# merges, shifting all subsequent fields left).
+# jq emits one shell assignment per field, each value quoted by @sh, and the
+# block is eval'd. No separator is involved, which is deliberate -- every
+# candidate separator fails somewhere:
+#
+#   - Tab is IFS-whitespace, so consecutive tabs collapse. The Bash tool sends
+#     no file_path, and that empty field shifted every later field left.
+#   - SOH (\x01) fixes the collapse on bash 4+, but bash 3.2's `read` silently
+#     refuses to split on a control character: the separator stays inside the
+#     value, so all seven fields landed in SESSION_ID, the UUID check below
+#     failed, and the hook exited 0 on every call. Hooks run as `bash <path>`
+#     from settings.json, so on macOS that is /bin/bash 3.2.57 -- read-once was
+#     entirely inert there, and its suite had been red and unnoticed.
+#
+# eval is safe here because every value passes through jq's @sh, which wraps it
+# in single quotes and escapes embedded quotes as '\''. Verified byte-exact
+# round-trip on 3.2 and 5.3 for values containing single and double quotes,
+# $(...), backticks, tabs, newlines and SOH, with nothing executed. It also
+# fixes a latent truncation: a command containing a newline no longer stops at
+# the first line, as a single `read` would.
 # ---------------------------------------------------------------------------
 SESSION_ID="" TOOL_NAME="" FILE_PATH="" OFFSET=0 LIMIT=-1 COMMAND="" OUTPUT_MODE=""
-IFS=$'\x01' read -r SESSION_ID TOOL_NAME FILE_PATH OFFSET LIMIT COMMAND OUTPUT_MODE < <(
-  jq -r '[
-    (.session_id // ""),
-    (.tool_name // ""),
-    (.tool_input.file_path // .tool_input.notebook_path // .tool_input.path // ""),
-    ((.tool_input.offset // 0) | tostring),
-    ((.tool_input.limit // -1) | tostring),
-    (.tool_input.command // ""),
-    (.tool_input.output_mode // "")
-  ] | join("")' 2>/dev/null
-) || true
+_fields="$(
+  jq -r '
+    @sh "SESSION_ID=\(.session_id // "")",
+    @sh "TOOL_NAME=\(.tool_name // "")",
+    @sh "FILE_PATH=\(.tool_input.file_path // .tool_input.notebook_path // .tool_input.path // "")",
+    @sh "OFFSET=\(.tool_input.offset // 0)",
+    @sh "LIMIT=\(.tool_input.limit // -1)",
+    @sh "COMMAND=\(.tool_input.command // "")",
+    @sh "OUTPUT_MODE=\(.tool_input.output_mode // "")"
+  ' 2>/dev/null
+)" || true
+
+# Malformed input leaves the defaults in place, and the UUID check below then
+# exits 0 -- the hook must never block a tool call it could not parse.
+eval "$_fields" 2>/dev/null || true
 
 [[ "$SESSION_ID" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]] || exit 0
 

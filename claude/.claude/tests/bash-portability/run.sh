@@ -42,7 +42,11 @@ guarded="$(cd "$REPO" && git grep -lE 'BASH_VERSINFO\[0\][[:space:]]*<[[:space:]
 
 # Comment lines are excluded: this suite, portability.sh, and CLAUDE.md all
 # name these constructs while documenting them.
-hits="$(cd "$REPO" && git grep -nE "$BASH4" -- '*.sh' 'bin/.local/bin/*' \
+# This suite is excluded from its own scan: it names every banned
+# construct in order to search for them, so it would always flag itself.
+SELF=':!claude/.claude/tests/bash-portability'
+
+hits="$(cd "$REPO" && git grep -nE "$BASH4" -- '*.sh' 'bin/.local/bin/*' "$SELF" \
   2>/dev/null | grep -vE '^[^:]+:[0-9]+:[[:space:]]*#' || true)"
 
 # Drop hits from guarded files, matching on the path before the first colon.
@@ -60,6 +64,25 @@ else
   while IFS= read -r line; do
     [[ -n "$line" ]] && bad "bash 4+ construct: $line"
   done <<<"$hits"
+fi
+
+# A control character as an IFS separator is a separate 3.2 trap, and a
+# nastier one because the character is invisible in a diff. bash 3.2's `read`
+# accepts the assignment and then declines to split on it, leaving the
+# separator inside the first variable. read-once.sh joined seven fields on SOH
+# and every one of them landed in SESSION_ID, so the hook exited 0 on every
+# call. $'\t' and $'\n' are fine and are spelled with letters, so they do not
+# match these fixed strings.
+ctrl_ifs="$(cd "$REPO" && git grep -nF -e "IFS=\$'\\x" -e "IFS=\$'\\0" \
+  -- '*.sh' 'bin/.local/bin/*' "$SELF" 2>/dev/null \
+  | grep -vE '^[^:]+:[0-9]+:[[:space:]]*#' || true)"
+
+if [[ -z "$ctrl_ifs" ]]; then
+  ok "no control-character IFS separators"
+else
+  while IFS= read -r line; do
+    [[ -n "$line" ]] && bad "control-character IFS (bash 3.2 will not split on it): $line"
+  done <<<"$ctrl_ifs"
 fi
 
 # to_lower is the sanctioned replacement, so prove it works under the oldest
