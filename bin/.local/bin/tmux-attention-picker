@@ -9,10 +9,24 @@ set -euo pipefail
 # is /bin/bash 3.2.57, where `declare -A` fails with "invalid option" and the
 # lookups silently return nothing. Re-exec under a newer bash rather than
 # rewriting the data structures; the Brewfile already installs one.
+# A candidate is only used once it reports bash 4+ itself, and the sentinel
+# stops a second attempt: /usr/local/bin/bash is often a symlink to /bin/bash,
+# and exec'ing that unconditionally re-entered this block forever (measured at
+# ~550 execs/second, presenting as a silent hang with a pegged core inside the
+# tmux popup).
 if (( BASH_VERSINFO[0] < 4 )); then
-  for _newer_bash in /opt/homebrew/bin/bash /usr/local/bin/bash /usr/bin/bash; do
-    [[ -x "$_newer_bash" ]] && exec "$_newer_bash" "$0" "$@"
-  done
+  # Re-exec at most once. The sentinel suppresses only the retry, never the
+  # exit below: if we arrive here on bash < 4 a second time, the right outcome
+  # is the actionable message, not falling through into `declare -A`.
+  if [[ -z "${TMUX_ATTENTION_REEXEC:-}" ]]; then
+    export TMUX_ATTENTION_REEXEC=1
+    for _newer_bash in /opt/homebrew/bin/bash /usr/local/bin/bash /usr/bin/bash; do
+      [[ -x "$_newer_bash" ]] || continue
+      _cand_major="$("$_newer_bash" -c 'echo "${BASH_VERSINFO[0]}"' 2>/dev/null)" || continue
+      [[ "$_cand_major" =~ ^[0-9]+$ ]] || continue
+      (( _cand_major >= 4 )) && exec "$_newer_bash" "$0" "$@"
+    done
+  fi
   printf 'tmux-attention-picker needs bash 4+; found %s. Install one: brew install bash\n' \
     "$BASH_VERSION" >&2
   exit 1
