@@ -4,6 +4,20 @@
 # Shows directory, git branch, and status for each pane running Claude Code or Codex.
 set -euo pipefail
 
+# This script uses associative arrays (declare -A), which need bash 4+.
+# `#!/usr/bin/env bash` picks whatever bash is first on PATH, and on macOS that
+# is /bin/bash 3.2.57, where `declare -A` fails with "invalid option" and the
+# lookups silently return nothing. Re-exec under a newer bash rather than
+# rewriting the data structures; the Brewfile already installs one.
+if (( BASH_VERSINFO[0] < 4 )); then
+  for _newer_bash in /opt/homebrew/bin/bash /usr/local/bin/bash /usr/bin/bash; do
+    [[ -x "$_newer_bash" ]] && exec "$_newer_bash" "$0" "$@"
+  done
+  printf 'tmux-attention-picker needs bash 4+; found %s. Install one: brew install bash\n' \
+    "$BASH_VERSION" >&2
+  exit 1
+fi
+
 MAX_SESSIONS=50
 FLEX_FLIP_COLUMNS=120
 FLEX_FLIP_LINES=40
