@@ -38,8 +38,20 @@ else
   fi
 fi
 
+# Every check below shells out to git, so establish that git works here
+# first. Without this, a git failure leaves the result variables empty and
+# each assertion reports ok -- passing precisely when it cannot look.
+if ! (cd "$REPO" && git rev-parse --git-dir >/dev/null 2>&1); then
+  bad "$REPO is not a git repository; the checks below cannot run"
+  echo
+  echo "caveman-default-off: FAILURES"
+  exit 1
+fi
+
 # A repo-local config outranks the user config, so one committed anywhere in
 # this repo would silently re-enable compression for every session run here.
+# Git's default pathspec omits WM_PATHNAME, so '*' crosses '/' and these four
+# patterns cover every depth.
 repo_local="$(cd "$REPO" && git ls-files -- \
   '.caveman.json' '*/.caveman.json' \
   '.caveman/config.json' '*/.caveman/config.json')"
@@ -49,13 +61,31 @@ else
   bad "repo-local caveman config outranks user config: ${repo_local//$'\n'/ }"
 fi
 
-# The environment variable outranks every file, so an export in the shell
-# config would defeat the user config on every machine that stows zsh.
-if grep -rn 'CAVEMAN_DEFAULT_MODE' "$REPO/zsh" >/dev/null 2>&1; then
-  bad "CAVEMAN_DEFAULT_MODE set in the zsh package (env outranks user config)"
+# The environment variable outranks every file, so an assignment anywhere the
+# repo can export from defeats the user config. Search the whole repo rather
+# than one package: zsh is not the only export vector -- settings.base.json
+# has an env block, which is how CLAUDE_GIT_WORKFLOW is set. Match only
+# assignment-shaped occurrences, and exclude the docs and this suite, all of
+# which name the variable while documenting it.
+env_hits="$(cd "$REPO" && git grep -lE '(export[[:space:]]+)?CAVEMAN_DEFAULT_MODE=' -- \
+  . ':!docs' ':!CLAUDE.md' ':!claude/.claude/tests' 2>/dev/null)"
+if [[ -z "$env_hits" ]]; then
+  ok "CAVEMAN_DEFAULT_MODE not assigned anywhere in the repo"
 else
-  ok "CAVEMAN_DEFAULT_MODE not set in zsh package"
+  bad "CAVEMAN_DEFAULT_MODE assigned in: ${env_hits//$'\n'/ }"
 fi
+
+# The settings env block exports without an '=' sign, so the grep above
+# cannot see it.
+for settings in "$REPO/claude/.claude/settings.base.json" \
+                "$REPO/claude/.claude/settings.overlay.json"; do
+  [[ -f "$settings" ]] || continue
+  if jq -e '.env.CAVEMAN_DEFAULT_MODE // empty' "$settings" >/dev/null 2>&1; then
+    bad "CAVEMAN_DEFAULT_MODE exported from $(basename "$settings") env block"
+  else
+    ok "$(basename "$settings") env block does not set CAVEMAN_DEFAULT_MODE"
+  fi
+done
 
 echo
 if [[ $fail -eq 0 ]]; then
