@@ -62,7 +62,30 @@ three found by code review rather than by the tests themselves:
    empty, the emptiness was read as "nothing found", and the suite passed with
    the forbidden file sitting in the tree.
 
-A fourth variant is not a false pass but the same family: **silent
+A fourth instance appeared later the same day, in a test written to guard
+against a *different* problem, which shows how easily the pattern recurs even
+once you are looking for it:
+
+```bash
+# Wrong: reports ok for a package that does leak.
+if stow -n -v -d "$REPO" -t "$TARGET" "$pkg" 2>&1 | grep -qE '^LINK: tests'; then
+```
+
+Under `set -o pipefail`, `grep -q` exits at the first match, `stow` dies of
+`SIGPIPE` with status 141, and the non-zero pipeline status reads as "no
+match". Three of four leaking packages reported `ok`; the fourth failed only
+because its output was short enough that stow finished before grep exited.
+Capture first, then match:
+
+```bash
+out="$(stow -n -v -d "$REPO" -t "$TARGET" "$pkg" 2>&1)"
+if grep -qE '^(LINK|MKDIR): tests(/|$| )' <<<"$out"; then
+```
+
+**`cmd | grep -q` under `pipefail` is a false-pass generator**, and it is
+invisible whenever the producer is slow or its output long.
+
+A fifth variant is not a false pass but the same family: **silent
 exclusion.** An unanchored regex excluded 17 of 74 theme tokens from a contrast
 check while printing nothing about the exclusions. A genuinely failing token
 whose name merely contained `background` would have vanished from the report
@@ -93,6 +116,11 @@ fi
 **Never let one branch mean two things.** `grep` returning non-zero is the
 canonical trap. Prefer a form whose result distinguishes absent-from-broken, or
 constrain the search to a surface you have already asserted exists.
+
+**Never pipe a command into `grep -q` under `set -o pipefail`.** Capture the
+output into a variable first and match it with a here-string. The pipeline form
+turns a match into a failure whenever the producer is still writing, which
+looks exactly like no match.
 
 **Validate structure before reading values out of it.** A parser that finds the
 key it wants inside malformed input has told you nothing about whether the real
