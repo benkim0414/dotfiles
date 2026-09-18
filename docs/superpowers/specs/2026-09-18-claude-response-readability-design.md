@@ -281,9 +281,12 @@ where it matters. Do not spread hedges through the prose.
 
 ### 3. Theme edits — `claude/.claude/themes/catppuccin.json`
 
-The palette is saturated. After `subtle` takes Overlay2, the only unused
-Catppuccin shade is Overlay0 `#6c7086`. Role separation must reassign accents
-already in use, not draw from a free reservoir.
+The palette is saturated in the accents. Only two Mocha shades go unused, and
+both are neutral greys too dim to serve as a role colour: before the change
+Overlay2 `#9399b2` and Overlay0 `#6c7086`; after it, Overlay1 `#7f849c` (freed
+when `subtle` moves off it) and Overlay0. Every hue is spoken for either way,
+so role separation must reassign accents already in use rather than draw from
+a free reservoir.
 
 Most duplicate hexes are intentional. Excluding the `rainbow_*` and
 `*_FOR_SUBAGENTS_ONLY` enumerations, the remaining duplicates are largely a

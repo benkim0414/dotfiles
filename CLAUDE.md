@@ -222,11 +222,26 @@ Two constraints, both silent failures when broken:
 - `keep-coding-instructions: true` is mandatory. Without it a custom style
   discards Claude Code's built-in software-engineering instructions.
 
-Both are asserted by `claude/.claude/tests/output-style/run.sh`. To test a
-style change without touching stowed config, pass settings inline:
-`claude -p "..." --settings '{"outputStyle":"Readable"}'`. Project-level
-`.claude/output-styles/` is discovered too, which is the practical way to
-exercise a style that is not stowed yet.
+A third constraint is about precedence rather than syntax: `/output-style`
+and `/config` write their selection to **project-level**
+`.claude/settings.local.json`, which outranks the user-level
+`~/.claude/settings.json` that `claude-sync` generates. One picker invocation
+in a repo silently pins that repo to a different style. All three are
+asserted by `claude/.claude/tests/output-style/run.sh`.
+
+To exercise a style that is not stowed yet, the file must first be somewhere
+Claude Code discovers -- project-level `.claude/output-styles/` works -- and
+only then selected. `--settings` alone selects without supplying, so
+`claude -p "..." --settings '{"outputStyle":"Readable"}'` against a
+style Claude Code cannot find falls back to Default silently, which is the
+failure above rather than a test of it:
+
+```sh
+mkdir -p .claude/output-styles
+cp claude/.claude/output-styles/readable.md .claude/output-styles/
+CAVEMAN_DEFAULT_MODE=off claude -p "..." --settings '{"outputStyle":"Readable"}'
+rm -rf .claude/output-styles
+```
 
 Prose compression from the `caveman` plugin is defaulted off through the
 stowed `caveman/.config/caveman/config.json` (`{"defaultMode": "off"}`). The
@@ -248,7 +263,8 @@ Theme contrast and role separation are guarded by
 `claude/.claude/tests/theme-contrast/run.sh`, which asserts every foreground
 token clears WCAG AA (4.5:1) against the theme background, and that
 `permission` and `merged` stay visually distinct from `claude`. The palette
-is saturated -- Overlay0 is the only unused shade -- so the rule enforced is
+is saturated in the accents -- only Overlay0 and Overlay1 go unused, and both
+are neutral greys too dim to serve as a role colour -- so the rule enforced is
 "no shared hue between roles that co-occur", not "one hue per token".
 
 Design: `docs/superpowers/specs/2026-09-18-claude-response-readability-design.md`.
