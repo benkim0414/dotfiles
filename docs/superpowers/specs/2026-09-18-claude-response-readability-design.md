@@ -81,6 +81,37 @@ the fetched content truncated after `Proactive`. `/output-style concise` is
 confirmed valid. The remaining two names are unknown. Nothing in this design
 depends on them.
 
+### Output style name resolution
+
+The documentation does not state whether `outputStyle` resolves against the
+style's filename or its `name` frontmatter. Settled empirically with a probe
+style whose two identifiers were made deliberately different — filename
+`zzprobe.md`, frontmatter `name: QQProbe` — instructed to emit a unique marker
+token. Each candidate value was then run through
+`claude -p "what is 2+2" --settings '{"outputStyle":"<value>"}'`:
+
+| Value | Corresponds to | Marker emitted |
+| --- | --- | --- |
+| `QQProbe` | `name` frontmatter, exact | **yes** |
+| `zzprobe` | filename stem | no |
+| `qqprobe` | `name`, lowercased | no |
+
+**`outputStyle` matches the `name` frontmatter exactly and case-sensitively.**
+The filename is irrelevant once `name` is present.
+
+Two consequences for implementation:
+
+1. With `name: Readable`, the setting must be `"outputStyle": "Readable"`.
+   Writing `"readable"` would silently do nothing.
+2. **Failure is silent.** Both non-matching values produced a normal answer
+   with no warning and no error — Claude Code falls back to the Default style.
+   There is no signal distinguishing "style applied" from "style name wrong",
+   which is why this is asserted by test rather than left to inspection.
+
+The probe also confirmed that a project-level `.claude/output-styles/`
+directory is discovered, alongside the user-level `~/.claude/output-styles/`
+this design uses.
+
 ### Caveman can be defaulted off without losing cavecrew
 
 `src/hooks/caveman-config.js` documents and implements this resolution order:
@@ -158,8 +189,12 @@ claude/.claude/output-styles/readable.md  →  ~/.claude/output-styles/readable.
 Selection in `claude/.claude/settings.base.json`:
 
 ```json
-"outputStyle": "readable"
+"outputStyle": "Readable"
 ```
+
+The value is the style's `name` frontmatter, matched exactly and
+case-sensitively — see "Output style name resolution" below. It is **not** the
+filename stem.
 
 `outputStyle` is a scalar, so the existing `claude-sync` deep-merge handles it
 with overlay-wins semantics. No overlay sets it today.
@@ -309,16 +344,19 @@ Assertions, one per silent-breakage path:
 
 - Assert the frontmatter carries `keep-coding-instructions: true`. This is the
   field that fails silently and expensively.
-- Assert `settings.base.json` sets `outputStyle`, and that the value matches
-  the style file.
+- Assert `settings.base.json` sets `outputStyle` to a value that is
+  **byte-identical to the style file's `name` frontmatter**. Resolution is
+  case-sensitive and failure is silent, so a mismatch here disables the entire
+  change with no visible symptom. This assertion is the single highest-value
+  test in this design.
 
-**Open item to settle during implementation:** whether `outputStyle` resolves
-against the filename stem (`readable`) or the `name` frontmatter value
-(`Readable`). The documentation shows built-in usage (`/output-style concise`)
-but not the custom-file resolution rule. Settle empirically: set the key, run
-`/output-style` with no argument, confirm the picker marks Readable as current.
-If the two disagree, make the filename and `name` identical so either
-resolution works.
+An end-to-end check backs the static assertion, reusing the probe technique:
+
+```sh
+claude -p "what is 2+2" --settings '{"outputStyle":"Readable"}'
+```
+
+Confirm the response obeys the style rather than falling back to Default.
 
 ### Theme contrast
 
