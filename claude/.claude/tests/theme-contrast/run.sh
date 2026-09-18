@@ -55,6 +55,22 @@ for (const [token, hex] of Object.entries(o)) {
   if (r >= AA) ok(line); else bad(`${line} (want >= ${AA})`);
 }
 
+// Role separation. These pairs appear on screen together, so sharing a hue
+// makes them indistinguishable: a permission prompt rendered in the
+// assistant's own colour does not read as something awaiting a decision.
+// The palette is saturated, so the rule is not "one hue per token" but
+// "no shared hue between roles that co-occur".
+const SEPARATE = [['claude', 'permission'], ['claude', 'merged']];
+for (const [a, b] of SEPARATE) {
+  if (!o[a] || !o[b]) {
+    bad(`role separation: ${a} or ${b} is missing from the theme`);
+  } else if (o[a].toLowerCase() === o[b].toLowerCase()) {
+    bad(`${a} and ${b} both use ${o[a]} (must differ)`);
+  } else {
+    ok(`${a} ${o[a]} separated from ${b} ${o[b]}`);
+  }
+}
+
 process.exit(fail);
 NODE
 rc=$?

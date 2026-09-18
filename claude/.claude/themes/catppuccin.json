@@ -13,13 +13,13 @@
     "subtle":        "#9399b2",
     "background":    "#1e1e2e",
     "suggestion":    "#b4befe",
-    "permission":    "#cba6f7",
+    "permission":    "#f9e2af",
     "remember":      "#f5c2e7",
 
     "success":       "#a6e3a1",
     "error":         "#f38ba8",
     "warning":       "#f9e2af",
-    "merged":        "#cba6f7",
+    "merged":        "#94e2d5",
 
     "promptBorder":        "#b4befe",
     "promptBorderShimmer": "#bac2de",
@@ -62,7 +62,7 @@
     "bashBorderShimmer":  "#f9e2af",
     "permissionShimmer":  "#b4befe",
     "rememberShimmer":    "#f5e0dc",
-    "mergedShimmer":      "#f5c2e7",
+    "mergedShimmer":      "#89dceb",
 
     "rainbow_red":             "#f38ba8",
     "rainbow_orange":          "#fab387",
