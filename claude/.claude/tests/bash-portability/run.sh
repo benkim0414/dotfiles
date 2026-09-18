@@ -22,23 +22,66 @@ fail=0
 ok()  { printf '  ok   %s\n' "$1"; }
 bad() { printf '  FAIL %s\n' "$1"; fail=1; }
 
-if ! (cd "$REPO" && git rev-parse --git-dir >/dev/null 2>&1); then
-  bad "$REPO is not a git repository; this check cannot run"
+# Every scan below shells out to git, so establish that git works here first.
+# Distinguish "not a repo" from "git is broken": an unusable git toolchain (a
+# macOS Xcode licence prompt, for instance) exits non-zero too, and blaming the
+# repository sends the reader to the wrong place.
+if ! _git_err="$(cd "$REPO" && git rev-parse --git-dir 2>&1 >/dev/null)"; then
+  if [[ -n "$_git_err" ]]; then
+    bad "git is unusable here, so this check cannot run: $_git_err"
+  else
+    bad "$REPO is not a git repository; this check cannot run"
+  fi
   echo; echo "bash-portability: FAILURES"; exit 1
 fi
 
 # Bash 4+ constructs, with what to use instead:
 #   ${x,,} ${x^^} ${x,} ${x^}  -> to_lower from lib/portability.sh, or tr
-#   declare -A                 -> parallel arrays, or a different data shape
+#   ${a[k],,}                  -> same, on a subscripted element
+#   -A associative arrays      -> indexed arrays (numeric keys are sparse-safe),
+#                                 parallel arrays, or a different data shape
 #   mapfile / readarray        -> while IFS= read -r ... done < <(...)
-BASH4='\$\{[A-Za-z_][A-Za-z0-9_]*(,,|\^\^|,|\^)\}|declare[[:space:]]+-A[[:space:]]|mapfile|readarray'
+#   coproc                     -> a named pipe, or a background job
+#
+# The -A branch deliberately covers every declaring keyword and any flag
+# cluster containing A (declare -gA, local -Ar, ...). A bare `declare -A` regex
+# missed a live `local -A` in lib/notify-pane.sh.
+#
+# NOT yet detected: `local -n` / `declare -n` namerefs (bash 4.3+). There are
+# ten live sites in codex/.codex/hooks/, which codex invokes the same way
+# (`bash "$HOME/.codex/hooks/..."`), and atomic-commits.sh already dies there
+# with "local: -n: invalid option". Rewriting ten pass-by-reference sites is
+# its own change, so the detector lands with that fix rather than failing this
+# suite for a class this branch does not repair. Add the branch below when
+# codex is clean:
+#   |(declare|typeset|local)[[:space:]]+-[A-Za-z]*n([[:space:]]|$)
+BASH4='\$\{[A-Za-z_][A-Za-z0-9_]*(\[[^]]*\])?(,,|\^\^|,|\^)\}'
+BASH4="$BASH4"'|(declare|typeset|local|readonly|export)[[:space:]]+-[A-Za-z]*A([[:space:]]|$)'
+BASH4="$BASH4"'|mapfile|readarray|coproc[[:space:]]'
 
 # Files carrying their own BASH_VERSINFO guard are exempt: they have ensured a
 # bash 4+ interpreter before using bash 4 syntax, which is the actual rule. A
 # standalone script can re-exec under a newer bash; a hook sourced by another
 # hook cannot, so it must stay 3.2-clean.
-guarded="$(cd "$REPO" && git grep -lE 'BASH_VERSINFO\[0\][[:space:]]*<[[:space:]]*4' \
-  -- '*.sh' 'bin/.local/bin/*' 2>/dev/null || true)"
+#
+# The exemption requires executable code, not a mention. A comment reading
+# "BASH_VERSINFO[0] < 4" used to exempt an entire file, and the pattern also
+# rejected two legitimate spellings -- braced ${BASH_VERSINFO[0]} and the -lt
+# form -- so both are accepted now, and an `exec` must appear within a few
+# lines of the comparison.
+VERCHECK='BASH_VERSINFO\[0\]\}?["'"'"']?[[:space:]]*(<|-lt)[[:space:]]*4'
+guarded=""
+while IFS= read -r _cand; do
+  [[ -n "$_cand" ]] || continue
+  # Keep the comparison line plus the following window, and treat the guard as
+  # real only if it re-execs within it. A commented mention has no exec beneath
+  # it. The window is wide enough for a candidate loop that version-checks each
+  # entry before exec'ing, which is what the picker does.
+  if grep -hE -A15 "$VERCHECK" "$REPO/$_cand" 2>/dev/null \
+    | grep -qE '^[[:space:]]*[^#]*\bexec[[:space:]]'; then
+    guarded="${guarded}${_cand}"$'\n'
+  fi
+done <<<"$(cd "$REPO" && git grep -lE "$VERCHECK" -- '*.sh' 'bin/.local/bin/*' 2>/dev/null || true)"
 
 # Comment lines are excluded: this suite, portability.sh, and CLAUDE.md all
 # name these constructs while documenting them.
