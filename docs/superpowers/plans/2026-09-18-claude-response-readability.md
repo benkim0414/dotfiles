@@ -410,15 +410,17 @@ Expected: a `LINK: .config/caveman => ...` line and nothing else. No conflicts.
 
 No `mkdir -p ~/.config/caveman` pre-step is wanted here. Unlike `herdr`, the plugin writes only `config.json` to this directory — all runtime state (`.caveman-active`, `.caveman-sessions/`, `.caveman-*.jsonl`) goes to `~/.claude/` — so tree-folding into a directory symlink is safe and keeps the package self-contained.
 
-- [ ] **Step 7: Apply the stow and verify the symlink resolves**
+- [ ] **Step 7: Do NOT apply the stow from the worktree**
 
-```bash
-stow -d "$PWD" -t ~ caveman
-readlink -f ~/.config/caveman/config.json
-cat ~/.config/caveman/config.json
+Stow resolves links relative to the package directory it is given, so
+applying it here produces:
+
+```
+LINK: .config/caveman => ../workspace/dotfiles/.claude/worktrees/claude-response-readability/caveman/.config/caveman
 ```
 
-Expected: the path resolves into this repo, and the file contains `"defaultMode": "off"`.
+That target disappears when the worktree is removed. The real stow happens
+from the main checkout after merge — see Task 6, "Post-merge activation".
 
 - [ ] **Step 8: Commit**
 
@@ -693,36 +695,35 @@ Expected: PASS, ending with `output-style: all passed`:
   ok   survives the base+overlay merge as Readable
 ```
 
-- [ ] **Step 7: Regenerate live settings and confirm the key survives**
+- [ ] **Step 7: Do NOT run `claude-sync` from the worktree**
+
+`claude-sync` hardcodes `DOTFILES="${DOTFILES_DIR:-$HOME/workspace/dotfiles}"`,
+so it always reads the main checkout and will not see worktree-only changes.
+Running it here would regenerate `~/.claude/settings.json` from the old base
+and silently do nothing useful. It belongs in Task 6, "Post-merge activation".
+
+- [ ] **Step 8: Optional live smoke check, with a known limitation**
+
+The style is not stowed yet, so it is not discoverable at its package path.
+A project-level copy is discovered, and can be used to exercise it:
 
 ```bash
-claude-sync
-jq -r '.outputStyle' ~/.claude/settings.json
+mkdir -p .claude/output-styles
+cp claude/.claude/output-styles/readable.md .claude/output-styles/readable.md
+CAVEMAN_DEFAULT_MODE=off claude -p "In one sentence, what does git rebase do?" \
+  --settings '{"outputStyle":"Readable"}'
+rm -f .claude/output-styles/readable.md && rmdir .claude/output-styles
 ```
 
-Expected: `Readable`.
+**This check is weak and must not be treated as verification.** `Readable`'s
+rules are stylistic, so a short answer exercises almost none of them and the
+correct and incorrect `outputStyle` values produce near-identical output. The
+resolution semantics were already proven by the marker probe recorded in the
+spec; the static assertion in Step 6 is what guards them here.
 
-`claude-sync` also re-stows the `claude` package, which creates `~/.claude/output-styles` as a folded directory symlink into the repo. Confirm it:
-
-```bash
-readlink ~/.claude/output-styles
-```
-
-Expected: a path ending in `dotfiles/claude/.claude/output-styles`.
-
-- [ ] **Step 8: Verify end to end that the style actually applies**
-
-```bash
-claude -p "what is 2+2" --settings '{"outputStyle":"Readable"}'
-```
-
-Expected: a short answer that obeys the style. Then confirm the negative case still fails, which proves the check is meaningful rather than vacuous:
-
-```bash
-claude -p "what is 2+2" --settings '{"outputStyle":"readable"}'
-```
-
-Expected: a plain Default-style answer. If both behave identically, the style is not being picked up at all — stop and report.
+`CAVEMAN_DEFAULT_MODE=off` is required for this check to mean anything at
+all: with caveman active the response comes back fragmented even when the
+style has loaded, because caveman's hook injection overrides the style.
 
 - [ ] **Step 9: Commit**
 
@@ -884,9 +885,35 @@ git status --porcelain
 
 Expected: empty. Anything listed means a file was created but never staged — most likely a test script or the caveman config.
 
-- [ ] **Step 3: Manual end-to-end check**
+- [ ] **Step 3: Post-merge activation**
 
-Start a fresh Claude Code session in this worktree and confirm three things:
+Nothing in Tasks 1–5 is live yet: the theme, the style, and the caveman
+config all sit on the worktree branch, and both `stow` and `claude-sync`
+target the main checkout. Run these from `~/workspace/dotfiles` **after** the
+branch merges to `main`:
+
+```bash
+stow -n -v -t ~ caveman
+```
+
+Expected: `LINK: .config/caveman => ../workspace/dotfiles/caveman/.config/caveman`,
+with no worktree path in it, and no conflicts. Then apply and verify:
+
+```bash
+stow -t ~ caveman
+readlink -f ~/.config/caveman/config.json
+claude-sync
+jq -r '.outputStyle' ~/.claude/settings.json
+readlink ~/.claude/output-styles
+```
+
+Expected: the config path resolves into `~/workspace/dotfiles/caveman/`,
+`jq` prints `Readable`, and `~/.claude/output-styles` is a symlink ending in
+`dotfiles/claude/.claude/output-styles`.
+
+- [ ] **Step 4: Manual end-to-end check**
+
+Start a fresh Claude Code session and confirm three things:
 
 1. No caveman banner appears in the SessionStart output. Previously every session opened with `CAVEMAN MODE ACTIVE — level: full`.
 2. `/output-style` with no argument lists `Readable` and marks it as current.
