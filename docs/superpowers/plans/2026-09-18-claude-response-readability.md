@@ -37,7 +37,7 @@ Raises the one theme token that fails WCAG AA, and adds the regression test that
 - Consumes: nothing from earlier tasks.
 - Produces: `claude/.claude/tests/theme-contrast/run.sh`, an executable test that Task 2 extends with a role-separation block.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `claude/.claude/tests/theme-contrast/run.sh`:
 
@@ -112,13 +112,13 @@ fi
 exit $rc
 ```
 
-- [ ] **Step 2: Make it executable**
+- [x] **Step 2: Make it executable**
 
 ```bash
 chmod +x claude/.claude/tests/theme-contrast/run.sh
 ```
 
-- [ ] **Step 3: Run the test to verify it fails**
+- [x] **Step 3: Run the test to verify it fails**
 
 Run: `bash claude/.claude/tests/theme-contrast/run.sh`
 
@@ -130,7 +130,7 @@ Expected: FAIL. Exactly one failing line, and the summary `theme-contrast: FAILU
 
 If any token other than `subtle` fails, stop and report — the theme has drifted from what the spec audited.
 
-- [ ] **Step 4: Fix the failing token**
+- [x] **Step 4: Fix the failing token**
 
 In `claude/.claude/themes/catppuccin.json`, change the `subtle` entry:
 
@@ -140,7 +140,7 @@ In `claude/.claude/themes/catppuccin.json`, change the `subtle` entry:
 
 `#9399b2` is Catppuccin Mocha's Overlay2, so the value stays inside the palette. It measures 5.81:1 against `#1e1e2e`, up from 4.44:1.
 
-- [ ] **Step 5: Run the test to verify it passes**
+- [x] **Step 5: Run the test to verify it passes**
 
 Run: `bash claude/.claude/tests/theme-contrast/run.sh`
 
@@ -150,7 +150,7 @@ Expected: PASS, ending with `theme-contrast: all passed`. The `subtle` line shou
   ok   subtle                                 #9399b2   5.81:1
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add claude/.claude/tests/theme-contrast/run.sh claude/.claude/themes/catppuccin.json
@@ -184,7 +184,7 @@ Permission prompts and merge markers currently render in the assistant's own col
 - Consumes: `claude/.claude/tests/theme-contrast/run.sh` from Task 1, including its `o`, `ok`, `bad`, and `fail` bindings.
 - Produces: nothing later tasks depend on.
 
-- [ ] **Step 1: Extend the test with the failing assertion**
+- [x] **Step 1: Extend the test with the failing assertion**
 
 In `claude/.claude/tests/theme-contrast/run.sh`, insert this block immediately after the `for (const [token, hex] of Object.entries(o))` loop and immediately before `process.exit(fail);`:
 
@@ -207,7 +207,7 @@ for (const [a, b] of SEPARATE) {
 }
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `bash claude/.claude/tests/theme-contrast/run.sh`
 
@@ -218,7 +218,7 @@ Expected: FAIL. The contrast assertions still pass; the two new ones fail:
   FAIL claude and merged both use #cba6f7 (must differ)
 ```
 
-- [ ] **Step 3: Reassign the colliding tokens**
+- [x] **Step 3: Reassign the colliding tokens**
 
 In `claude/.claude/themes/catppuccin.json`, change these three entries:
 
@@ -240,7 +240,7 @@ Rationale, so the values are not arbitrary:
 - `merged` → `#94e2d5` Teal (11.01:1, AAA). Shared with `planMode`, which never appears beside a git merge marker.
 - `mergedShimmer` → `#89dceb` Sky (10.54:1, AAA), so the shimmer follows `merged` and the ramp stays coherent.
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `bash claude/.claude/tests/theme-contrast/run.sh`
 
@@ -251,7 +251,7 @@ Expected: PASS, ending with `theme-contrast: all passed`, including:
   ok   claude #cba6f7 separated from merged #94e2d5
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add claude/.claude/tests/theme-contrast/run.sh claude/.claude/themes/catppuccin.json
@@ -289,7 +289,7 @@ Stop prose compression at its source, while keeping the plugin enabled so its `c
 - Consumes: nothing from earlier tasks.
 - Produces: a stowable `caveman/` Stow package. No later task depends on it.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `caveman/tests/caveman-default-off/run.sh`:
 
@@ -362,13 +362,13 @@ fi
 exit $fail
 ```
 
-- [ ] **Step 2: Make it executable**
+- [x] **Step 2: Make it executable**
 
 ```bash
 chmod +x caveman/tests/caveman-default-off/run.sh
 ```
 
-- [ ] **Step 3: Run the test to verify it fails**
+- [x] **Step 3: Run the test to verify it fails**
 
 Run: `bash caveman/tests/caveman-default-off/run.sh`
 
@@ -380,7 +380,7 @@ Expected: FAIL, with the config-missing assertion failing and the other two pass
   ok   CAVEMAN_DEFAULT_MODE not set in zsh package
 ```
 
-- [ ] **Step 4: Create the Stow package**
+- [x] **Step 4: Create the Stow package**
 
 ```bash
 mkdir -p caveman/.config/caveman
@@ -394,13 +394,13 @@ Create `caveman/.config/caveman/config.json`:
 }
 ```
 
-- [ ] **Step 5: Run the test to verify it passes**
+- [x] **Step 5: Run the test to verify it passes**
 
 Run: `bash caveman/tests/caveman-default-off/run.sh`
 
 Expected: PASS, ending with `caveman-default-off: all passed`.
 
-- [ ] **Step 6: Stow the package, dry run first**
+- [x] **Step 6: Stow the package, dry run first**
 
 ```bash
 stow -n -v -d "$PWD" -t ~ caveman
@@ -410,7 +410,7 @@ Expected: a `LINK: .config/caveman => ...` line and nothing else. No conflicts.
 
 No `mkdir -p ~/.config/caveman` pre-step is wanted here. Unlike `herdr`, the plugin writes only `config.json` to this directory — all runtime state (`.caveman-active`, `.caveman-sessions/`, `.caveman-*.jsonl`) goes to `~/.claude/` — so tree-folding into a directory symlink is safe and keeps the package self-contained.
 
-- [ ] **Step 7: Do NOT apply the stow from the worktree**
+- [x] **Step 7: Do NOT apply the stow from the worktree**
 
 Stow resolves links relative to the package directory it is given, so
 applying it here produces:
@@ -422,7 +422,7 @@ LINK: .config/caveman => ../workspace/dotfiles/.claude/worktrees/claude-response
 That target disappears when the worktree is removed. The real stow happens
 from the main checkout after merge — see Task 6, "Post-merge activation".
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add caveman/.config/caveman/config.json caveman/tests/caveman-default-off/run.sh
@@ -464,7 +464,7 @@ The core deliverable: response-structure instructions that Claude Code sends wit
 - Consumes: nothing from earlier tasks.
 - Produces: the style `name` value `Readable`, which `settings.base.json` must match byte-for-byte.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `claude/.claude/tests/output-style/run.sh`:
 
@@ -563,13 +563,13 @@ fi
 exit $fail
 ```
 
-- [ ] **Step 2: Make it executable**
+- [x] **Step 2: Make it executable**
 
 ```bash
 chmod +x claude/.claude/tests/output-style/run.sh
 ```
 
-- [ ] **Step 3: Run the test to verify it fails**
+- [x] **Step 3: Run the test to verify it fails**
 
 Run: `bash claude/.claude/tests/output-style/run.sh`
 
@@ -581,7 +581,7 @@ Expected: FAIL with exactly:
 output-style: FAILURES
 ```
 
-- [ ] **Step 4: Create the output style**
+- [x] **Step 4: Create the output style**
 
 ```bash
 mkdir -p claude/.claude/output-styles
@@ -667,7 +667,7 @@ Say what you verified and what you did not, in one sentence, at the point
 where it matters. Do not spread hedges through the prose.
 ````
 
-- [ ] **Step 5: Select the style in settings**
+- [x] **Step 5: Select the style in settings**
 
 In `claude/.claude/settings.base.json`, add the `outputStyle` key immediately after the `defaultMode` line, so the head of the file reads:
 
@@ -682,7 +682,7 @@ In `claude/.claude/settings.base.json`, add the `outputStyle` key immediately af
 
 The value is `Readable` with a capital R, matching the style's `name` frontmatter byte-for-byte. `readable` would silently do nothing.
 
-- [ ] **Step 6: Run the test to verify it passes**
+- [x] **Step 6: Run the test to verify it passes**
 
 Run: `bash claude/.claude/tests/output-style/run.sh`
 
@@ -695,14 +695,14 @@ Expected: PASS, ending with `output-style: all passed`:
   ok   survives the base+overlay merge as Readable
 ```
 
-- [ ] **Step 7: Do NOT run `claude-sync` from the worktree**
+- [x] **Step 7: Do NOT run `claude-sync` from the worktree**
 
 `claude-sync` hardcodes `DOTFILES="${DOTFILES_DIR:-$HOME/workspace/dotfiles}"`,
 so it always reads the main checkout and will not see worktree-only changes.
 Running it here would regenerate `~/.claude/settings.json` from the old base
 and silently do nothing useful. It belongs in Task 6, "Post-merge activation".
 
-- [ ] **Step 8: Optional live smoke check, with a known limitation**
+- [x] **Step 8: Optional live smoke check, with a known limitation**
 
 The style is not stowed yet, so it is not discoverable at its package path.
 A project-level copy is discovered, and can be used to exercise it:
@@ -725,7 +725,7 @@ spec; the static assertion in Step 6 is what guards them here.
 all: with caveman active the response comes back fragmented even when the
 style has loaded, because caveman's hook injection overrides the style.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add claude/.claude/output-styles/readable.md claude/.claude/tests/output-style/run.sh claude/.claude/settings.base.json
@@ -764,7 +764,7 @@ Record the non-obvious constraints in `CLAUDE.md` so the next session does not r
 - Consumes: the file paths and behaviours established in Tasks 1–4.
 - Produces: nothing.
 
-- [ ] **Step 1: Add the Stow gotcha**
+- [x] **Step 1: Add the Stow gotcha**
 
 In `CLAUDE.md`, in the `# Stow gotchas` list, insert this bullet immediately after the `**Before stowing `herdr`**` bullet:
 
@@ -772,7 +772,7 @@ In `CLAUDE.md`, in the `# Stow gotchas` list, insert this bullet immediately aft
 - **`caveman` needs no pre-`mkdir`**: `~/.config/caveman/` holds only `config.json`; all runtime state (`.caveman-active`, `.caveman-sessions/`, `.caveman-*.jsonl`) is written to `~/.claude/`. Tree-folding into a directory symlink is therefore safe, unlike `herdr`, which rewrites its own config at runtime.
 ```
 
-- [ ] **Step 2: Add the package convention**
+- [x] **Step 2: Add the package convention**
 
 In `CLAUDE.md`, in the `# Package conventions` list, append this bullet after the bullet describing the `codex/` package:
 
@@ -780,7 +780,7 @@ In `CLAUDE.md`, in the `# Package conventions` list, append this bullet after th
 - The `caveman/` package stows one file, `~/.config/caveman/config.json`, pinning the caveman plugin's default mode to `off`. See "Response readability".
 ```
 
-- [ ] **Step 3: Add the Response readability subsection**
+- [x] **Step 3: Add the Response readability subsection**
 
 In `CLAUDE.md`, inside the `# Claude Code settings (layered merge)` section, add this subsection immediately before the `## Permission posture` subsection:
 
@@ -823,7 +823,7 @@ is saturated -- Overlay0 is the only unused shade -- so the rule enforced is
 Design: `docs/superpowers/specs/2026-09-18-claude-response-readability-design.md`.
 ```
 
-- [ ] **Step 4: Verify the three edits landed and nothing else changed**
+- [x] **Step 4: Verify the three edits landed and nothing else changed**
 
 ```bash
 git diff --stat CLAUDE.md
@@ -832,7 +832,7 @@ grep -n 'caveman' CLAUDE.md
 
 Expected: `CLAUDE.md` is the only changed file, and the `caveman` hits cover the Stow gotcha, the package convention, and the Response readability subsection.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add CLAUDE.md
@@ -864,7 +864,7 @@ Prove nothing else broke, then confirm the change works in a real session.
 - Consumes: every artifact from Tasks 1–5.
 - Produces: nothing.
 
-- [ ] **Step 1: Run every test in the suite**
+- [x] **Step 1: Run every test in the suite**
 
 ```bash
 for t in claude/.claude/tests/*/run.sh; do
@@ -877,7 +877,7 @@ Expected: every suite reports all passed. The pre-existing suites are `commit-sc
 
 `settings.base.json` changed in Task 4, so `mcp-permission-overlay` and `permission-policy` are the ones most likely to surface a regression. If either fails, stop and report before continuing.
 
-- [ ] **Step 2: Confirm the working tree is clean**
+- [x] **Step 2: Confirm the working tree is clean**
 
 ```bash
 git status --porcelain
