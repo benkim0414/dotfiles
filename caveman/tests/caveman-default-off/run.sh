@@ -14,7 +14,7 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO="$(cd "$HERE/../../../.." && pwd)"
+REPO="$(cd "$HERE/../../.." && pwd)"
 CONFIG="$REPO/caveman/.config/caveman/config.json"
 
 command -v jq >/dev/null 2>&1 || { echo "jq required" >&2; exit 2; }
@@ -68,7 +68,7 @@ fi
 # assignment-shaped occurrences, and exclude the docs and this suite, all of
 # which name the variable while documenting it.
 env_hits="$(cd "$REPO" && git grep -lE '(export[[:space:]]+)?CAVEMAN_DEFAULT_MODE=' -- \
-  . ':!docs' ':!CLAUDE.md' ':!claude/.claude/tests' 2>/dev/null)"
+  . ':!docs' ':!CLAUDE.md' ':!caveman/tests' ':!claude/.claude/tests' 2>/dev/null)"
 if [[ -z "$env_hits" ]]; then
   ok "CAVEMAN_DEFAULT_MODE not assigned anywhere in the repo"
 else
