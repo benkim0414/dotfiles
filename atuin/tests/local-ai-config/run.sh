@@ -17,7 +17,24 @@ ok() {
   printf 'ok %s\n' "$1"
 }
 
-python3 - "$ATUIN_CONFIG" <<'PY'
+# tomllib is stdlib only from Python 3.11, and macOS ships /usr/bin/python3
+# 3.9.6 -- so `python3` off PATH raises ModuleNotFoundError and the whole
+# suite dies before its first assertion. Pick the first interpreter that
+# actually imports tomllib instead of trusting PATH.
+PYTHON=""
+for _candidate in python3 \
+  /opt/homebrew/bin/python3 /opt/homebrew/bin/python3.13 \
+  /opt/homebrew/bin/python3.12 /opt/homebrew/bin/python3.11 \
+  /usr/local/bin/python3; do
+  if command -v "$_candidate" >/dev/null 2>&1 \
+    && "$_candidate" -c 'import tomllib' >/dev/null 2>&1; then
+    PYTHON="$_candidate"
+    break
+  fi
+done
+[[ -n "$PYTHON" ]] || fail "no python3 with tomllib (needs 3.11+); try: brew install python"
+
+"$PYTHON" - "$ATUIN_CONFIG" <<'PY'
 import sys
 import tomllib
 
@@ -69,7 +86,7 @@ ok "zsh initializes Atuin conservatively"
 [[ -f "$AI_SERVER_CONFIG" ]] \
   || fail "Atuin AI server config must exist"
 
-python3 - "$AI_SERVER_CONFIG" <<'PY'
+"$PYTHON" - "$AI_SERVER_CONFIG" <<'PY'
 import sys
 import tomllib
 
