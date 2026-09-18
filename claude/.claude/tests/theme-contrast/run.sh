@@ -33,10 +33,15 @@ function ratio(a, b) {
   return (l1 + 0.05) / (l2 + 0.05);
 }
 
-// Tokens naming a background fill rather than drawn text. These are measured
-// against the text drawn on them, not against the base background, so the
-// floor below does not apply to them.
-const FILL = /[Bb]ackground|^diffAdded|^diffRemoved|^selectionBg$|^rate_limit_/;
+// Tokens naming a background fill rather than drawn text. Contrast against
+// the base background is meaningless for these, so the floor below does not
+// apply. Checking each fill against the text drawn on top of it is a
+// separate question this suite does not answer.
+//
+// Anchored deliberately. An unanchored /[Bb]ackground/ would also swallow a
+// future foreground token whose name merely contains the word, dropping it
+// from the report with no trace.
+const FILL = /^background$|_background$|Background(Color|Hover)?$|^diff|^selectionBg$|^rate_limit_empty$/;
 
 // inverseText is background-coloured on purpose: it is drawn on top of a
 // coloured badge and never on the base background.
@@ -44,12 +49,17 @@ const ALLOW_LOW = new Set(['inverseText']);
 
 const AA = 4.5;
 let fail = 0;
-const ok  = (m) => console.log(`  ok   ${m}`);
-const bad = (m) => { console.log(`  FAIL ${m}`); fail = 1; };
+let skipped = 0;
+const ok   = (m) => console.log(`  ok   ${m}`);
+const bad  = (m) => { console.log(`  FAIL ${m}`); fail = 1; };
+// Every exclusion is printed. A silent skip is indistinguishable from a
+// token that was checked and passed.
+const skip = (m) => { console.log(`  skip ${m}`); skipped++; };
 
 for (const [token, hex] of Object.entries(o)) {
   if (typeof hex !== 'string' || !hex.startsWith('#')) continue;
-  if (FILL.test(token) || ALLOW_LOW.has(token)) continue;
+  if (FILL.test(token))      { skip(`${token.padEnd(38)} ${hex} (background fill)`); continue; }
+  if (ALLOW_LOW.has(token))  { skip(`${token.padEnd(38)} ${hex} (drawn on a coloured badge)`); continue; }
   const r = ratio(hex, bg);
   const line = `${token.padEnd(38)} ${hex} ${r.toFixed(2).padStart(6)}:1`;
   if (r >= AA) ok(line); else bad(`${line} (want >= ${AA})`);
@@ -71,6 +81,7 @@ for (const [a, b] of SEPARATE) {
   }
 }
 
+console.log(`\n  ${skipped} token(s) skipped as fills; see the skip lines above`);
 process.exit(fail);
 NODE
 rc=$?
