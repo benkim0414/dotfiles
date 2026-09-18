@@ -1,6 +1,33 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# This hook uses namerefs (local -n), which need bash 4.3+. Codex registers it
+# as `bash "$HOME/.codex/hooks/worktree-guard.sh"`, naming the interpreter, so the shebang
+# above is never consulted and the hook runs under whatever bash is first on
+# PATH. On macOS that is /bin/bash 3.2.57, where `local -n` fails with
+# "invalid option" and the function returns 2 -- which `set -e` turns into a
+# dead hook, and a PreToolUse hook that dies reads as permissive.
+#
+# The comparison is against 4.3 rather than 4, because namerefs postdate 4.0
+# and a major-only check would wrongly accept 4.0-4.2. Each candidate is
+# version-checked before exec, and the sentinel bounds this to one attempt:
+# /usr/local/bin/bash is often a symlink to /bin/bash, and exec'ing it blindly
+# would loop. The sentinel suppresses only the retry, never the exit below.
+if (( BASH_VERSINFO[0] < 4 || (BASH_VERSINFO[0] == 4 && BASH_VERSINFO[1] < 3) )); then
+  if [[ -z "${CODEX_HOOK_REEXEC:-}" ]]; then
+    export CODEX_HOOK_REEXEC=1
+    for _cand_bash in /opt/homebrew/bin/bash /usr/local/bin/bash /usr/bin/bash; do
+      [[ -x "$_cand_bash" ]] || continue
+      _cand_ver="$("$_cand_bash" -c 'echo $((BASH_VERSINFO[0] * 100 + BASH_VERSINFO[1]))' 2>/dev/null)" || continue
+      [[ "$_cand_ver" =~ ^[0-9]+$ ]] || continue
+      (( _cand_ver >= 403 )) && exec "$_cand_bash" "$0" "$@"
+    done
+  fi
+  printf '%s needs bash 4.3+ for namerefs; found %s. Install one: brew install bash\n' \
+    "${0##*/}" "$BASH_VERSION" >&2
+  exit 1
+fi
+
 input="$(cat)"
 tool_name="$(jq -r '.tool_name // ""' <<<"$input" 2>/dev/null || true)"
 cwd="$(jq -r '.cwd // empty' <<<"$input" 2>/dev/null || true)"
@@ -35,10 +62,22 @@ require_approval() {
   exit 0
 }
 
+# Resolve PATH to a physical, symlink-free absolute path, whether or not it
+# exists yet.
+#
+# Walking up to the nearest existing ancestor is load-bearing. Resolving only
+# one level and otherwise returning the path untouched left a bypass: on macOS
+# $TMPDIR and /var are symlinks, so an unresolved /var/folders/... path can
+# never prefix-match a worktree root that `pwd -P` already resolved to
+# /private/var/folders/..., and the guard allowed the write. Creating a file
+# inside a directory that does not exist yet is the ordinary case for an agent,
+# so the gap was reachable on every "new file in a new directory" write.
+#
+# Arguments: $1 path, existing or not
+# Outputs:   the resolved absolute path
 canonical_path() {
   local path="$1"
-  local dir
-  local base
+  local dir base suffix depth
 
   if [[ -d "$path" ]]; then
     (cd "$path" && pwd -P)
@@ -46,9 +85,26 @@ canonical_path() {
   fi
 
   dir="$(dirname "$path")"
-  base="$(basename "$path")"
+  suffix="$(basename "$path")"
+
+  # Climb until an existing ancestor turns up, collecting the components that
+  # do not exist yet. Bounded against a pathological path.
+  depth=0
+  while [[ ! -d "$dir" && "$dir" != "/" && "$dir" != "." && $depth -lt 64 ]]; do
+    suffix="$(basename "$dir")/$suffix"
+    dir="$(dirname "$dir")"
+    depth=$((depth + 1))
+  done
+
   if [[ -d "$dir" ]]; then
-    printf '%s/%s\n' "$(cd "$dir" && pwd -P)" "$base"
+    base="$(cd "$dir" && pwd -P)"
+    # `pwd -P` at the root prints "/", so joining with another slash would
+    # produce a doubled separator.
+    if [[ "$base" == "/" ]]; then
+      printf '/%s\n' "$suffix"
+    else
+      printf '%s/%s\n' "$base" "$suffix"
+    fi
   else
     printf '%s\n' "$path"
   fi

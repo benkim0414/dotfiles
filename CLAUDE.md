@@ -162,6 +162,15 @@ Design: `docs/superpowers/specs/2026-07-09-herdr-tmux-keybindings-design.md`.
 - The `caveman/` package stows one file, `~/.config/caveman/config.json`, pinning the caveman plugin's default mode to `off`. See "Response readability".
 - The `codex/` package stows a minimal global `~/.codex/config.toml`. Stable Codex settings live in `codex/.codex/config.base.toml`; run `codex-sync` to regenerate the gitignored `config.toml` before stowing or after editing the base config. Codex writes UI notices, plugin state, and local project trust entries into `config.toml`, so that generated file is intentionally ignored.
 
+  **The codex worktree guard does not restrain shell commands.** Its shell and
+  MCP-executor branch is a stub (`exit 0`), so every `Bash` call is allowed --
+  `rm -rf`, `git push --force`, and `git checkout -B main` inside the protected
+  main worktree all pass. Only `Write`-style tools are guarded. 20 of the
+  hook's 75 functions, roughly 700 lines, are unreachable, and they are the
+  machinery that branch would need. Treat the guard as covering direct writes
+  only until that is resolved:
+  `docs/solutions/tooling-decisions/codex-worktree-guard-shell-branch-is-a-stub-2026-09-18.md`.
+
 # Claude Code settings (layered merge)
 
 Base settings live in `claude/.claude/settings.base.json`. A single

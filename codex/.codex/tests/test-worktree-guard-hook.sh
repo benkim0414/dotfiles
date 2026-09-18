@@ -1,5 +1,28 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
+
+# Report which assertion aborted the run. -E (errtrace) is required: an ERR
+# trap is not inherited by functions without it, and every assertion here
+# fails inside a helper.
+#
+# Every assertion here signals failure by letting a bare `jq -e` trip `set -e`,
+# so a failure used to print nothing whatsoever -- the script just stopped, and
+# the only clue was the exit status. Do not "fix" that by dropping `set -e`:
+# the callers echo "ok ..." unconditionally, so without -e every assertion
+# reports success and the suite becomes a liar. This trap keeps -e and names
+# the failing line and command instead.
+_report_err() {
+  local status=$?
+  printf '\nFAIL (exit %s) at %s:%s\n  command: %s\n' \
+    "$status" "${BASH_SOURCE[0]##*/}" "$LINENO" "$BASH_COMMAND" >&2
+  # The failing jq lives inside a helper, so name the call site too -- that is
+  # the line identifying which scenario actually failed.
+  local i
+  for ((i = 1; i < ${#FUNCNAME[@]}; i++)); do
+    printf '  in %s() called at line %s\n' "${FUNCNAME[i]}" "${BASH_LINENO[i-1]}" >&2
+  done
+}
+trap _report_err ERR
 
 HOOK_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/hooks"
 HOOK="$HOOK_ROOT/worktree-guard.sh"
