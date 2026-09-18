@@ -251,7 +251,7 @@ session. Resolution order is the `CAVEMAN_DEFAULT_MODE` env var, then a
 repo-local `.caveman/config.json` or `.caveman.json` found by walking up from
 the working directory, then the user config, then `full` -- so a stray
 repo-local file or an exported env var silently overrides the default.
-`claude/.claude/tests/caveman-default-off/run.sh` guards all three.
+`caveman/tests/caveman-default-off/run.sh` guards all three.
 
 **caveman overrides the output style when both are active.** Measured: with
 caveman at `full`, responses came back fragmented even though the Readable

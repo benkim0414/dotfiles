@@ -328,7 +328,7 @@ Two changes were considered and **rejected**:
 
 ### Caveman resolves to `off`
 
-New test at `claude/.claude/tests/caveman-default-off/run.sh`, following the
+New test at `caveman/tests/caveman-default-off/run.sh`, following the
 `commit-scope` / `permission-policy` convention. It asserts our artifact and
 its preconditions rather than plugin internals, because the plugin lives in a
 hash-named cache directory that moves on every update.

@@ -4,7 +4,7 @@
 
 **Goal:** Make Claude Code responses readable by defaulting caveman prose compression off, adding a custom output style that governs response structure, and fixing two theme colour problems.
 
-**Architecture:** Three independent configuration changes in the dotfiles repo, each guarded by a bash test under `claude/.claude/tests/`. A new `caveman/` Stow package pins the plugin's default mode to `off` without disabling the plugin. A new `claude/.claude/output-styles/readable.md` supplies response-structure instructions and is selected via `outputStyle` in `settings.base.json`. Four hex edits in `claude/.claude/themes/catppuccin.json` clear WCAG AA and separate colliding role colours.
+**Architecture:** Three independent configuration changes in the dotfiles repo, each guarded by a bash test living in the package it guards — `claude/.claude/tests/` for the claude ones, `caveman/tests/` for the caveman one, matching the `atuin/tests/`, `bin/tests/`, `zsh/tests/` precedent. A new `caveman/` Stow package pins the plugin's default mode to `off` without disabling the plugin. A new `claude/.claude/output-styles/readable.md` supplies response-structure instructions and is selected via `outputStyle` in `settings.base.json`. Four hex edits in `claude/.claude/themes/catppuccin.json` clear WCAG AA and separate colliding role colours.
 
 **Tech Stack:** GNU Stow, bash, `jq`, `node` (for WCAG luminance maths), Claude Code settings JSON, Catppuccin Mocha palette.
 
@@ -18,7 +18,7 @@
 - WCAG thresholds: AA normal text `4.5:1`, AAA `7.0:1`.
 - **Never edit `~/.claude/` directly.** All edits happen in the repo; symlinks make them live.
 - **Stage specific files only.** Never `git add -A`, `git add .`, `git add -u`, `git commit -a`, or `git commit -am`. Hook-enforced.
-- Conventional commits, `type(scope): description`. Use scope `claude` — it is this repo's established component scope (124 uses in history) and passes the S1–S4 scope signals. Never use `spec`, `plan`, `docs`, or the repo name.
+- Conventional commits, `type(scope): description`. Scope names the affected component: `claude` for changes to the `claude/` package (124 uses in history), `caveman` for changes confined to the new `caveman/` package — a peer of `herdr` (18 uses) and `ghostty` (6). Never use `spec`, `plan`, `docs`, or the repo name.
 - Every commit message ends with the `Co-Authored-By` trailer shown in each commit step.
 - Test scripts follow the repo convention: `#!/usr/bin/env bash`, `set -uo pipefail`, an `ok`/`bad` counter, a summary line, `exit 0` on success and `exit 1` on any failure.
 - Comments in shell follow the existing house style: full sentences explaining *why*, not restating the code.
@@ -283,7 +283,7 @@ Stop prose compression at its source, while keeping the plugin enabled so its `c
 
 **Files:**
 - Create: `caveman/.config/caveman/config.json`
-- Create: `claude/.claude/tests/caveman-default-off/run.sh`
+- Create: `caveman/tests/caveman-default-off/run.sh`
 
 **Interfaces:**
 - Consumes: nothing from earlier tasks.
@@ -291,7 +291,7 @@ Stop prose compression at its source, while keeping the plugin enabled so its `c
 
 - [ ] **Step 1: Write the failing test**
 
-Create `claude/.claude/tests/caveman-default-off/run.sh`:
+Create `caveman/tests/caveman-default-off/run.sh`:
 
 ```bash
 #!/usr/bin/env bash
@@ -365,12 +365,12 @@ exit $fail
 - [ ] **Step 2: Make it executable**
 
 ```bash
-chmod +x claude/.claude/tests/caveman-default-off/run.sh
+chmod +x caveman/tests/caveman-default-off/run.sh
 ```
 
 - [ ] **Step 3: Run the test to verify it fails**
 
-Run: `bash claude/.claude/tests/caveman-default-off/run.sh`
+Run: `bash caveman/tests/caveman-default-off/run.sh`
 
 Expected: FAIL, with the config-missing assertion failing and the other two passing:
 
@@ -396,7 +396,7 @@ Create `caveman/.config/caveman/config.json`:
 
 - [ ] **Step 5: Run the test to verify it passes**
 
-Run: `bash claude/.claude/tests/caveman-default-off/run.sh`
+Run: `bash caveman/tests/caveman-default-off/run.sh`
 
 Expected: PASS, ending with `caveman-default-off: all passed`.
 
@@ -425,7 +425,7 @@ from the main checkout after merge — see Task 6, "Post-merge activation".
 - [ ] **Step 8: Commit**
 
 ```bash
-git add caveman/.config/caveman/config.json claude/.claude/tests/caveman-default-off/run.sh
+git add caveman/.config/caveman/config.json caveman/tests/caveman-default-off/run.sh
 git commit -F - <<'EOF'
 feat(claude): default caveman prose compression to off
 
@@ -811,7 +811,7 @@ session. Resolution order is the `CAVEMAN_DEFAULT_MODE` env var, then a
 repo-local `.caveman/config.json` or `.caveman.json` found by walking up from
 the working directory, then the user config, then `full` -- so a stray
 repo-local file or an exported env var silently overrides the default.
-`claude/.claude/tests/caveman-default-off/run.sh` guards all three.
+`caveman/tests/caveman-default-off/run.sh` guards all three.
 
 Theme contrast and role separation are guarded by
 `claude/.claude/tests/theme-contrast/run.sh`, which asserts every foreground
@@ -919,4 +919,4 @@ Start a fresh Claude Code session and confirm three things:
 2. `/output-style` with no argument lists `Readable` and marks it as current.
 3. A normal response comes back as paragraphs and headings, with articles and connectives intact, rather than fragments.
 
-Report the outcome of each. Item 1 is the one to watch: if the banner still appears, the stow did not take effect or a higher-priority source is overriding the user config — re-run `bash claude/.claude/tests/caveman-default-off/run.sh` and check `readlink -f ~/.config/caveman/config.json`.
+Report the outcome of each. Item 1 is the one to watch: if the banner still appears, the stow did not take effect or a higher-priority source is overriding the user config — re-run `bash caveman/tests/caveman-default-off/run.sh` and check `readlink -f ~/.config/caveman/config.json`.
