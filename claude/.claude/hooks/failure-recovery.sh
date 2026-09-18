@@ -31,7 +31,7 @@ IFS=$'\t' read -r TOOL_NAME TOOL_ERROR <<<"$(
 [[ -z "$TOOL_ERROR" ]] && exit 0
 
 # Convert to lowercase for matching.
-error_lower="${TOOL_ERROR,,}"
+error_lower="$(to_lower "$TOOL_ERROR")"
 guidance=""
 
 # --- Pattern: deleted CWD / path does not exist ---

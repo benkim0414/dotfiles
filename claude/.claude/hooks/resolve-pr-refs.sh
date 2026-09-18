@@ -40,8 +40,8 @@ fi
 
 [[ -z "$PROMPT" ]] && exit 0
 
-# Convert to lowercase for case-insensitive matching (bash 4+).
-prompt_lower="${PROMPT,,}"
+# Convert to lowercase for case-insensitive matching.
+prompt_lower="$(to_lower "$PROMPT")"
 
 context=""
 

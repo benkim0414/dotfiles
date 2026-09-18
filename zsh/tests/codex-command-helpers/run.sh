@@ -88,21 +88,33 @@ t_missing_arguments_do_not_invoke_codex() {
 t_cmderr_rejects_terminal_stdin() {
   setup_case
 
-  {
-    printf '%s\n' 'zmodload zsh/zpty || exit 2'
-    printf '%s\n' 'zpty -b cmderr_pty zsh -f'
-    printf '%s\n' "zpty -w cmderr_pty 'source \"$HELPER\"; cmderr; print -- \"cmderr_status=\$?\"'"
-    printf '%s\n' "zpty -w cmderr_pty \$'\\n'"
-    printf '%s\n' 'sleep 0.1'
-    printf '%s\n' 'zpty -r cmderr_pty first'
-    printf '%s\n' 'zpty -r cmderr_pty second'
-    printf '%s\n' 'zpty -r cmderr_pty third'
-    printf '%s\n' 'print -r -- "$first$second$third"'
-    printf '%s\n' 'zpty -d cmderr_pty'
-  } >"$TMP/cmderr-pty.zsh"
+  # The pty hosts an interactive zsh, so its output stream also carries the
+  # prompt and bracketed-paste escapes, and how those split across reads
+  # depends on timing and on how long the hostname in the prompt is. Reading a
+  # fixed three chunks therefore captured prompt bytes instead of the result.
+  # Read until the sentinel appears, with a deadline.
+  cat >"$TMP/cmderr-pty.zsh" <<'PTY'
+zmodload zsh/zpty || exit 2
+zpty -b cmderr_pty zsh -f
+zpty -w cmderr_pty "source \"$CODEX_TEST_HELPER\"; cmderr; print -- \"cmderr_status=\$?\""
+zpty -w cmderr_pty $'\n'
+
+out=""
+for _ in {1..100}; do
+  chunk=""
+  if zpty -r cmderr_pty chunk; then
+    out+="$chunk"
+  fi
+  [[ "$out" == *cmderr_status=* ]] && break
+  sleep 0.05
+done
+print -r -- "$out"
+zpty -d cmderr_pty
+PTY
 
   local output status
   output=$(HOME="$TMP/home" PATH="$TMP/bin:/usr/bin:/bin" CODEX_TEST_LOG="$TMP/log" CODEX_TEST_ARGS="$TMP/args" CODEX_TEST_STDIN="$TMP/stdin" \
+    CODEX_TEST_HELPER="$HELPER" \
     zsh -f "$TMP/cmderr-pty.zsh" 2>&1)
   status=$?
   if [[ $status -eq 0 && "$output" == *cmderr_status=1[!0-9]* ]] && [[ ! -s "$TMP/log" ]]; then

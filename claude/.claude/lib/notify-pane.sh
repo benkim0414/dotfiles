@@ -21,15 +21,20 @@ notify_resolve_pane_id() {
   # Outside tmux there is nothing to resolve.
   [[ -n "${TMUX:-}" ]] || return 0
 
-  # Build pid -> ppid map in one pass.
-  local -A ppid_map=()
+  # Build pid -> ppid map in one pass. Indexed rather than associative:
+  # `local -A` is bash 4+, and this lib is sourced by notify.sh, which
+  # settings.json launches as `bash <path>` -- /bin/bash 3.2.57 on macOS.
+  # The subscripts are pids, so a sparse indexed array holds the same data.
+  local -a ppid_map=()
   local pid ppid
   while read -r pid ppid; do
-    [[ -n "$pid" ]] && ppid_map[$pid]=$ppid
+    # Numeric guard: an indexed subscript is evaluated arithmetically, so a
+    # non-numeric pid would be an error rather than a missing key.
+    [[ "$pid" =~ ^[0-9]+$ ]] && ppid_map[$pid]=$ppid
   done < <(ps -eo pid=,ppid= 2>/dev/null || true)
 
   # Collect ancestor pids by walking up from this process (bounded depth).
-  local -A ancestors=()
+  local -a ancestors=()
   local cur="$PPID" depth=0
   while [[ -n "$cur" && "$cur" != 0 ]] && (( depth < 10 )); do
     ancestors[$cur]=1
@@ -40,7 +45,7 @@ notify_resolve_pane_id() {
   # Return the pane whose pane_pid is one of our ancestors.
   local pane_pid pane_id
   while IFS=$'\t' read -r pane_pid pane_id; do
-    if [[ -n "${ancestors[$pane_pid]:-}" ]]; then
+    if [[ "$pane_pid" =~ ^[0-9]+$ ]] && [[ -n "${ancestors[$pane_pid]:-}" ]]; then
       printf '%s\n' "$pane_id"
       return 0
     fi
