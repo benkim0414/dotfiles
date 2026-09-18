@@ -334,6 +334,29 @@ operations specific to that repo. Example:
 
 Local settings override base on a per-key basis (arrays concatenate).
 
+### Hook shell constraint (bash 3.2)
+
+Hook registrations name the interpreter -- `bash $HOME/.claude/hooks/<x>.sh`,
+16 of them across `settings.base.json` and `codex/.codex/config.base.toml` --
+so **the shebang is never consulted** and the hook runs under whatever `bash`
+is first on `PATH`. On macOS that is `/bin/bash` 3.2.57. Every hook, and every
+lib a hook sources, must therefore be bash 3.2 syntax; fixing the shebang does
+not help.
+
+Bash 4 syntax fails *silently* here: `${x,,}` yields an empty string so the
+guarded `if` never matches, `declare -A` degrades to an indexed array, and a
+control-character `IFS` is accepted but not split on. A PreToolUse hook that
+exits 0 without output means allow, so a broken hook is indistinguishable from
+a permissive one. Three hooks were entirely dead this way --
+`check_web_fetch`, `read-once`, and `notify-pane` pane resolution.
+
+Lowercase via `to_lower` from `claude/.claude/lib/portability.sh`. Test a hook
+the way its config invokes it (`bash <path>`, or `/bin/bash <path>` explicitly)
+-- a green run under Homebrew's bash 5 proves nothing.
+`claude/.claude/tests/bash-portability/run.sh` enforces this; namerefs are the
+one known gap, pending the codex fix. Full detail:
+`docs/solutions/conventions/hooks-run-under-macos-system-bash-3-2-2026-09-18.md`.
+
 ### Semantic policy hook
 
 `~/.claude/hooks/permission-policy.sh` runs on PreToolUse for
