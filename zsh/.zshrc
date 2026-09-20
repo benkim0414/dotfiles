@@ -98,3 +98,10 @@ fi
 sz() { source ~/.zshrc }
 
 bwu() { export BW_SESSION="$(bw unlock --raw)" }
+
+h() {
+  HERDR_AGENT=hermes sudo \
+    --preserve-env=HERDR_ENV,HERDR_PANE_ID,HERDR_BIN_PATH,HERDR_SOCKET_PATH \
+    -u hermes -H \
+    /home/hermes/.local/bin/hermes "$@"
+}
