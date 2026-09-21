@@ -43,8 +43,13 @@ if [[ ! -d "$PWD" ]]; then
   exit 2
 fi
 
-# ~90% of Bash calls are non-git — skip them without spawning jq or sourcing libs.
-if [[ "$INPUT" != *'"git '* ]]; then
+# Most Bash calls never mention git — skip those without spawning jq or
+# sourcing libs. Deliberately matches `git ` anywhere in the payload rather
+# than only at the start of the command: `cd x && git add -A` and
+# `time git commit -am ...` must reach the guards below. A payload that
+# merely mentions git in prose costs one extra jq fork and then falls
+# through, because every guard tests the parsed .tool_input.command.
+if [[ "$INPUT" != *'git '* ]]; then
   exit 0
 fi
 
