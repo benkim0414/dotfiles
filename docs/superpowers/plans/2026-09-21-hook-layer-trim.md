@@ -900,13 +900,37 @@ git commit -m "refactor(claude): rename git-safety hook to commit-guard"
 
 ---
 
-### Task 5: Trim `lib/session.sh` and `lib/portability.sh`, and fix the symlink defect
+### Task 5: Delete the no-pr caller hooks, trim the libs, and fix the symlink defect
 
-`workflow_no_pr` lost its last caller in Task 3. `run_timeout`'s only caller is `git-session-start.sh`, which Task 6 deletes -- removing it now is safe because nothing else calls it.
+`workflow_no_pr` and `run_timeout` are both about to lose their callers, but
+not the ones an earlier draft of this plan assumed. The full caller set,
+measured rather than guessed:
 
-**Two commits.** Steps 1-9 are the trim. Steps 10-14 fix a defect found while writing the Task 1 suite: `worktree_kind` and `check_worktree_pending` compare a symlink-resolved path against an unresolved one, so a main checkout reached through a symlink is misreported as a linked worktree and worktree isolation silently switches off.
+| Function | Callers | Registered? |
+| --- | --- | --- |
+| `workflow_no_pr` | `restore-git-context.sh:47,52` | yes -- `PostCompact` |
+| | `worktree-exited.sh:15` | yes -- `PostToolUse`/`ExitWorktree` |
+| | `git-session-start.sh:160` | no -- unregistered by Task 2 |
+| `run_timeout` | `resolve-pr-refs.sh:75,96` | yes -- `UserPromptSubmit`, fires on every message |
+| | `git-session-start.sh:118` | no |
+
+Deleting either function while any of those hooks is still on disk and
+registered leaves it sourcing a lib symbol that no longer exists, which under
+`set -euo pipefail` aborts the hook on every `PostCompact` and every user
+prompt. So this task deletes the callers first, in their own commit.
+
+**Three commits, in this order.** The callers must die before the functions they call, or the tree is broken between commits.
+
+1. Delete the four hooks that call `workflow_no_pr` or `run_timeout`, plus their registrations.
+2. Delete the two now-orphaned lib functions and their test cases.
+3. Fix the symlink defect found while writing the Task 1 suite: `worktree_kind` and `check_worktree_pending` compare a symlink-resolved path against an unresolved one, so a main checkout reached through a symlink is misreported as a linked worktree and worktree isolation silently switches off.
 
 **Files:**
+- Delete: `claude/.claude/hooks/restore-git-context.sh` (calls `workflow_no_pr`; registered on `PostCompact`)
+- Delete: `claude/.claude/hooks/resolve-pr-refs.sh` (calls `run_timeout`; registered on `UserPromptSubmit`)
+- Delete: `claude/.claude/hooks/worktree-exited.sh` (calls `workflow_no_pr`; registered on `PostToolUse`/`ExitWorktree`)
+- Delete: `claude/.claude/hooks/git-session-start.sh` (calls both; already unregistered by Task 2)
+- Modify: `claude/.claude/settings.base.json` -- remove the `UserPromptSubmit`, `PostCompact`, and `PostToolUse`/`ExitWorktree` registrations
 - Modify: `claude/.claude/lib/session.sh` -- delete `workflow_no_pr`; `pwd -P` in two comparisons
 - Modify: `claude/.claude/lib/portability.sh` -- delete `run_timeout`
 - Delete: `claude/.claude/tests/session-lib/cases/30-workflow-no-pr-set.sh`
@@ -917,32 +941,66 @@ git commit -m "refactor(claude): rename git-safety hook to commit-guard"
 - Consumes: nothing new.
 - Produces: `lib/session.sh` exporting `emit_context`, `emit_context_with_msg`, `parse_session_id`, `pending_file`, `check_worktree_pending`, `cwd_repo_hint`, `worktree_kind`, and the `STATE_DIR` global. `lib/portability.sh` exporting `file_mtime` and `to_lower`.
 
-- [ ] **Step 1: Confirm `workflow_no_pr` has no caller**
+- [ ] **Step 1: Confirm the caller set before deleting anything**
 
 ```bash
 grep -rn 'workflow_no_pr' claude/ bin/ --include='*.sh' --include='*.json'
+grep -rn 'run_timeout' claude/ bin/ --include='*.sh' --include='*.json'
 ```
 
-Expected: only `claude/.claude/lib/session.sh` (the definition and its comment block), `claude/.claude/hooks/worktree-exited.sh`, and the two test cases named above.
+Expected, and nothing else: the two definitions in `lib/session.sh` and
+`lib/portability.sh`, the four hooks in the table above, and the two
+`session-lib` test cases. If a caller appears that is not in that table,
+**stop and report it** — the whole point of this step is that an earlier
+draft of this plan got the caller set wrong.
 
-`worktree-exited.sh` is deleted in Task 6. If it still appears here, that is expected at this point -- step 3 handles the ordering.
+- [ ] **Step 2: Delete the four caller hooks**
 
-- [ ] **Step 2: Delete the two obsolete test cases**
+```bash
+git rm claude/.claude/hooks/restore-git-context.sh \
+       claude/.claude/hooks/resolve-pr-refs.sh \
+       claude/.claude/hooks/worktree-exited.sh \
+       claude/.claude/hooks/git-session-start.sh
+```
+
+- [ ] **Step 3: Remove their three registrations**
+
+In `claude/.claude/settings.base.json`, delete:
+
+- the entire `"UserPromptSubmit"` key and its array (`resolve-pr-refs.sh` was its only entry)
+- the entire `"PostCompact"` key and its array (`restore-git-context.sh` was its only entry)
+- the `PostToolUse` entry whose matcher is `ExitWorktree` (`worktree-exited.sh`), leaving the other `PostToolUse` entries in place
+
+`git-session-start.sh` needs no registration change — Task 2 already
+repointed `SessionStart` to `arm-worktree-guard.sh`.
+
+Validate before moving on:
+
+```bash
+jq empty claude/.claude/settings.base.json && echo "valid JSON"
+jq -r '.hooks | keys[]' claude/.claude/settings.base.json
+```
+
+The key list must no longer contain `UserPromptSubmit` or `PostCompact`.
+
+- [ ] **Step 3b: Commit the caller deletions on their own**
+
+This is commit 1 of three. The tree must work at this point: the functions
+still exist, and nothing calls them any more.
+
+```bash
+git add claude/.claude/settings.base.json
+git commit -m "refactor(claude): delete the hooks that depend on no-pr mode and run_timeout"
+```
+
+`git rm` already staged the four file deletions.
+
+- [ ] **Step 3c: Delete the two obsolete test cases**
 
 ```bash
 git rm claude/.claude/tests/session-lib/cases/30-workflow-no-pr-set.sh \
        claude/.claude/tests/session-lib/cases/31-workflow-no-pr-unset.sh
 ```
-
-- [ ] **Step 3: Delete `worktree-exited.sh` now, not in Task 6**
-
-It is the last caller of `workflow_no_pr`, so removing the function without it would leave a broken hook registered until Task 6 lands. Delete both together:
-
-```bash
-git rm claude/.claude/hooks/worktree-exited.sh
-```
-
-Then remove its `PostToolUse` registration from `claude/.claude/settings.base.json` -- the entry whose matcher is `ExitWorktree`.
 
 - [ ] **Step 4: Delete `workflow_no_pr` from the lib**
 
@@ -1003,18 +1061,20 @@ Expected: `6 passed, 0 failed`.
 shellcheck --severity=warning claude/.claude/lib/session.sh claude/.claude/lib/portability.sh
 ```
 
-- [ ] **Step 9: Commit**
+- [ ] **Step 9: Commit the lib trim**
+
+This is commit 2 of three. `settings.base.json` is **not** in this commit —
+its registration removals belong to commit 1.
 
 ```bash
 git add claude/.claude/lib/session.sh \
-        claude/.claude/lib/portability.sh \
-        claude/.claude/settings.base.json
-git commit -m "refactor(claude): drop workflow_no_pr, run_timeout, and the exit reminder"
+        claude/.claude/lib/portability.sh
+git commit -m "refactor(claude): drop the now-orphaned workflow_no_pr and run_timeout"
 ```
 
-`git rm` already staged the three deletions, so they ride along in this commit.
+`git rm` already staged the two test-case deletions, so they ride along here.
 
-**This task produces a second commit.** Steps 10-14 fix a defect found while
+**This task produces a third commit.** Steps 10-14 fix a defect found while
 writing the Task 1 suite. It is a behaviour change, not a trim, so it is
 committed separately.
 
@@ -1134,7 +1194,7 @@ git commit -m "fix(claude): compare physical paths when detecting a linked workt
 The bulk deletion. Everything removed here is unreachable from the three enforcements.
 
 **Files:**
-- Delete: `claude/.claude/hooks/read-once.sh`, `read-once-gc.sh`, `notify.sh`, `git-session-start.sh`, `resolve-pr-refs.sh`, `failure-recovery.sh`, `audit-log.sh`, `permission-policy.sh`, `restore-git-context.sh`
+- Delete: `claude/.claude/hooks/read-once.sh`, `read-once-gc.sh`, `notify.sh`, `failure-recovery.sh`, `audit-log.sh`, `permission-policy.sh`
 - Delete: `claude/.claude/lib/read-once-cache.sh`, `permission-policy.sh`, `notify-pane.sh`
 - Delete: `claude/.claude/tests/read-once/`, `claude/.claude/tests/permission-policy/`, `claude/.claude/tests/notify-pane/`
 - Modify: `claude/.claude/settings.base.json` -- the `hooks` object
@@ -1149,13 +1209,14 @@ The bulk deletion. Everything removed here is unreachable from the three enforce
 git rm claude/.claude/hooks/read-once.sh \
        claude/.claude/hooks/read-once-gc.sh \
        claude/.claude/hooks/notify.sh \
-       claude/.claude/hooks/git-session-start.sh \
-       claude/.claude/hooks/resolve-pr-refs.sh \
        claude/.claude/hooks/failure-recovery.sh \
        claude/.claude/hooks/audit-log.sh \
-       claude/.claude/hooks/permission-policy.sh \
-       claude/.claude/hooks/restore-git-context.sh
+       claude/.claude/hooks/permission-policy.sh
 ```
+
+`git-session-start.sh`, `resolve-pr-refs.sh`, `restore-git-context.sh`, and
+`worktree-exited.sh` are **not** here — Task 5 deleted them, because they call
+`workflow_no_pr` or `run_timeout` and had to go before those functions did.
 
 ```bash
 git rm claude/.claude/lib/read-once-cache.sh \
