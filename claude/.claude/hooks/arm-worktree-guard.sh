@@ -28,13 +28,15 @@ git rev-parse --git-dir >/dev/null 2>&1 || exit 0
 # Already isolated — do not arm.
 [[ "$(worktree_kind)" == "linked" ]] && exit 0
 
-mkdir -p "$STATE_DIR"
+mkdir -p "$STATE_DIR" 2>/dev/null || exit 0
 # Sweep markers from sessions abandoned more than 24 hours ago.
 find "$STATE_DIR" -name 'pending-*' -mmin +1440 -delete 2>/dev/null || true
 
-touch "$STATE_DIR/pending-${SESSION_ID}"
+touch "$STATE_DIR/pending-${SESSION_ID}" 2>/dev/null || exit 0
 
 BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)
 emit_context_with_msg "SessionStart" \
   "Main worktree (branch: ${BRANCH}). Call EnterWorktree() before any edits." \
-  "[git-workflow] Main worktree (branch: ${BRANCH}). Call EnterWorktree() before any edits."
+  "[git-workflow] Main worktree (branch: ${BRANCH}). Call EnterWorktree() before any edits." || true
+
+exit 0
