@@ -79,7 +79,7 @@ check_worktree_pending() {
   # Self-healing: if already in a linked worktree, clear the stale marker.
   local git_abs git_com
   git_abs=$(git rev-parse --absolute-git-dir 2>/dev/null || true)
-  git_com=$(cd "$(git rev-parse --git-common-dir 2>/dev/null)" 2>/dev/null && pwd || true)
+  git_com=$(cd "$(git rev-parse --git-common-dir 2>/dev/null)" 2>/dev/null && pwd -P || true)
   if [[ -n "$git_abs" && -n "$git_com" && "$git_abs" != "$git_com" ]]; then
     rm -f "$pf"
     return 0
@@ -123,7 +123,7 @@ worktree_kind() {
   }
   local abs common
   abs=$(git rev-parse --absolute-git-dir 2>/dev/null || true)
-  common=$(cd "$(git rev-parse --git-common-dir 2>/dev/null)" 2>/dev/null && pwd || true)
+  common=$(cd "$(git rev-parse --git-common-dir 2>/dev/null)" 2>/dev/null && pwd -P || true)
   if [[ -n "$abs" && -n "$common" && "$abs" != "$common" ]]; then
     printf 'linked'
   else
