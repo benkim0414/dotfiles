@@ -24,18 +24,3 @@ file_mtime() { stat -c %Y "$1" 2>/dev/null || stat -f %m "$1" 2>/dev/null || ech
 # Arguments: $1 string
 # Outputs:   the string, lowercased
 to_lower() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]'; }
-
-# Run a command under a wall-clock timeout, portably.
-# Prefers GNU `timeout`; falls back to a perl alarm where timeout is absent.
-# Arguments: $1 timeout (seconds), $2.. command + args to run
-# Outputs:   the command's own stdout/stderr
-# Returns:   the command's exit status, or 124 (timeout) when it is killed
-run_timeout() {
-  local t=$1
-  shift
-  if command -v timeout >/dev/null 2>&1; then
-    timeout "$t" "$@"
-  else
-    perl -e 'alarm shift @ARGV; exec @ARGV' "$t" "$@"
-  fi
-}
