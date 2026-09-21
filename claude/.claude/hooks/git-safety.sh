@@ -5,7 +5,7 @@
 # Matcher: Bash
 # Exit:    0 = allow (warnings → stdout/context); 2 = block (stderr → Claude)
 #
-# Enforces git-main-guard (no commit/push/merge on main) and commit-guard
+# Enforces git-main-guard (no commit on main) and commit-guard
 # (atomicity + commit-scope signals via lib/commit-scope.sh) with a single jq
 # invocation. Worktree isolation for file edits is handled by the dedicated
 # worktree-guard.sh hook (matcher: Write|Edit|NotebookEdit).
@@ -54,7 +54,7 @@ COMMAND=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // ""')
 # =====================================================================
 # NOTE: Worktree isolation for file-editing tools (Write, Edit,
 # NotebookEdit) is enforced by the dedicated worktree-guard.sh hook.
-# This hook only enforces git-command guards (no commit/push/merge on main).
+# This hook only enforces git-command guards (no commit on main).
 
 # Fast exit for non-git commands (the vast majority of Bash calls).
 if [[ ! "$COMMAND" =~ git[[:space:]]+(add|commit|push|merge|rebase|cherry-pick) ]]; then
@@ -90,7 +90,7 @@ if [[ "$COMMAND" =~ git[[:space:]]+commit ]]; then
   fi
 fi
 
-# --- Compute git context once (shared by all main-branch guards below) ---
+# --- Compute git context once (shared by the main-branch guard below) ---
 BRANCH="" MAIN_BRANCH="main"
 if git rev-parse --git-dir >/dev/null 2>&1; then
   BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)
