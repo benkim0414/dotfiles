@@ -346,7 +346,7 @@ Local settings override base on a per-key basis (arrays concatenate).
 ### Hook shell constraint (bash 3.2)
 
 Hook registrations name the interpreter -- `bash $HOME/.claude/hooks/<x>.sh`,
-16 of them across `settings.base.json` and `codex/.codex/config.base.toml` --
+6 of them across `settings.base.json` and `codex/.codex/config.base.toml` --
 so **the shebang is never consulted** and the hook runs under whatever `bash`
 is first on `PATH`. On macOS that is `/bin/bash` 3.2.57. Every hook, and every
 lib a hook sources, must therefore be bash 3.2 syntax; fixing the shebang does
@@ -356,8 +356,9 @@ Bash 4 syntax fails *silently* here: `${x,,}` yields an empty string so the
 guarded `if` never matches, `declare -A` degrades to an indexed array, and a
 control-character `IFS` is accepted but not split on. A PreToolUse hook that
 exits 0 without output means allow, so a broken hook is indistinguishable from
-a permissive one. Three hooks were entirely dead this way --
-`check_web_fetch`, `read-once`, and `notify-pane` pane resolution.
+a permissive one. Three hooks were entirely dead this way before being found; all three have
+since been deleted for unrelated reasons, but the failure mode has not
+changed.
 
 Lowercase via `to_lower` from `claude/.claude/lib/portability.sh`. Test a hook
 the way its config invokes it (`bash <path>`, or `/bin/bash <path>` explicitly)
@@ -366,40 +367,11 @@ the way its config invokes it (`bash <path>`, or `/bin/bash <path>` explicitly)
 one known gap, pending the codex fix. Full detail:
 `docs/solutions/conventions/hooks-run-under-macos-system-bash-3-2-2026-09-18.md`.
 
-### Semantic policy hook
-
-`~/.claude/hooks/permission-policy.sh` runs on PreToolUse for
-`Bash|Write|Edit|NotebookEdit|WebFetch`. It catches risky
-shapes that the regex `allow`/`deny`/`ask` lists cannot express:
-
-- shell-expanded secret paths (`$HOME/.ssh/*`, absolute `/Users/ben/.ssh/*`)
-- `rm -rf` deny-list bypass forms (`\rm`, `command rm`, quoted forms,
-  leading whitespace)
-- curl/wget piped into a shell; base64/tar/gpg piped to curl/wget
-- direct edits to live `~/.claude/` outside the dotfiles repo
-- shell-init and persistence file edits (`~/.zshrc`, `~/.bashrc`,
-  `~/.gitconfig`, LaunchAgents, crontab)
-- WebFetch to dynamic-DNS / paste / webhook hosts, oversized query
-  strings, base64-shaped payloads, URLs that reference local paths
-
-The hook only emits `permissionDecision: "ask"` -- never `deny`. Hard
-blocks stay in `permissions.deny` so they remain visible and version-
-controlled. Disable the hook for a single shell with
-`CLAUDE_PERMISSION_POLICY=off`; revert the PreToolUse registration in
-`settings.base.json` for a permanent rollback.
-
-Lib + tests follow the existing `commit-scope` convention:
-
-- `claude/.claude/lib/permission-policy.sh` -- pattern matchers
-- `claude/.claude/hooks/permission-policy.sh` -- dispatcher
-- `claude/.claude/tests/permission-policy/run.sh` -- run with
-  `bash run.sh` to verify all 13 cases pass
-
 # Commit scope
 
 Scope identifies WHAT the commit changes, not WHERE the artifact lives.
 Read the file contents before choosing scope. The
-`claude/.claude/hooks/git-safety.sh` hook emits a non-blocking warning
+`claude/.claude/hooks/commit-guard.sh` hook emits a non-blocking warning
 when the declared scope fails any of these signals (see
 `claude/.claude/lib/commit-scope.sh` for the canonical implementation):
 

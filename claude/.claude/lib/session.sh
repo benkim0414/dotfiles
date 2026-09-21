@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # session.sh — shared session utilities for Claude Code hooks: structured
-#              context injection, session-id parsing, and worktree/workflow
-#              detection. Source this file; do not execute it directly.
+#              context injection, session-id parsing, and worktree detection.
+#              Source this file; do not execute it directly.
 
 # shellcheck source=portability.sh
 source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/portability.sh"
@@ -79,7 +79,7 @@ check_worktree_pending() {
   # Self-healing: if already in a linked worktree, clear the stale marker.
   local git_abs git_com
   git_abs=$(git rev-parse --absolute-git-dir 2>/dev/null || true)
-  git_com=$(cd "$(git rev-parse --git-common-dir 2>/dev/null)" 2>/dev/null && pwd || true)
+  git_com=$(cd "$(git rev-parse --git-common-dir 2>/dev/null)" 2>/dev/null && pwd -P || true)
   if [[ -n "$git_abs" && -n "$git_com" && "$git_abs" != "$git_com" ]]; then
     rm -f "$pf"
     return 0
@@ -123,21 +123,10 @@ worktree_kind() {
   }
   local abs common
   abs=$(git rev-parse --absolute-git-dir 2>/dev/null || true)
-  common=$(cd "$(git rev-parse --git-common-dir 2>/dev/null)" 2>/dev/null && pwd || true)
+  common=$(cd "$(git rev-parse --git-common-dir 2>/dev/null)" 2>/dev/null && pwd -P || true)
   if [[ -n "$abs" && -n "$common" && "$abs" != "$common" ]]; then
     printf 'linked'
   else
     printf 'main'
   fi
-}
-
-# --- Workflow mode ---
-
-# Test whether the session runs in no-pr workflow mode. Single source for the
-# CLAUDE_GIT_WORKFLOW env-var name and its "no-pr" contract; a future rename or
-# added mode changes only this function.
-# Globals:   CLAUDE_GIT_WORKFLOW (read)
-# Returns:   0 when no-pr mode, 1 otherwise
-workflow_no_pr() {
-  [[ "${CLAUDE_GIT_WORKFLOW:-}" == "no-pr" ]]
 }

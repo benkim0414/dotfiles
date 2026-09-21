@@ -108,8 +108,12 @@
       "Bash(git push -f *)",
       "Bash(git push --force-with-lease *)",
       "Bash(git reset --hard *)",
+      "Bash(git reset --hard)",
       "Bash(git clean -f*)",
+      "Bash(git clean -f)",
       "Bash(git branch -D *)",
+      "Bash(git checkout .)",
+      "Bash(git restore .)",
       "Bash(gh repo delete *)",
       "Bash(gh repo archive *)",
       "Bash(gh release delete *)",
@@ -190,39 +194,18 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash $HOME/.claude/hooks/git-session-start.sh"
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash $HOME/.claude/hooks/resolve-pr-refs.sh",
-            "timeout": 10
+            "command": "bash $HOME/.claude/hooks/arm-worktree-guard.sh"
           }
         ]
       }
     ],
     "PreToolUse": [
       {
-        "matcher": "Read|NotebookRead|mcp__qmd__get|Bash|Grep",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash $HOME/.claude/hooks/read-once.sh",
-            "timeout": 3
-          }
-        ]
-      },
-      {
         "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
-            "command": "bash $HOME/.claude/hooks/git-safety.sh"
+            "command": "bash $HOME/.claude/hooks/commit-guard.sh"
           }
         ]
       },
@@ -234,25 +217,6 @@
             "command": "bash $HOME/.claude/hooks/worktree-guard.sh"
           }
         ]
-      },
-      {
-        "matcher": "Bash|Write|Edit|NotebookEdit|WebFetch",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash $HOME/.claude/hooks/permission-policy.sh"
-          }
-        ]
-      },
-      {
-        "matcher": "AskUserQuestion|ExitPlanMode",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash $HOME/.claude/hooks/notify.sh",
-            "async": true
-          }
-        ]
       }
     ],
     "PostToolUse": [
@@ -262,70 +226,6 @@
           {
             "type": "command",
             "command": "bash $HOME/.claude/hooks/worktree-entered.sh"
-          }
-        ]
-      },
-      {
-        "matcher": "ExitWorktree",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash $HOME/.claude/hooks/worktree-exited.sh"
-          }
-        ]
-      },
-      {
-        "matcher": "Bash|Write|Edit|NotebookEdit|CronCreate|CronDelete|RemoteTrigger|Read|NotebookRead|Grep|mcp__qmd__get|mcp__qmd__multi_get",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash $HOME/.claude/hooks/audit-log.sh",
-            "async": true
-          }
-        ]
-      }
-    ],
-    "PostToolUseFailure": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash $HOME/.claude/hooks/failure-recovery.sh",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "PostCompact": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash $HOME/.claude/hooks/restore-git-context.sh",
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "Notification": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash $HOME/.claude/hooks/notify.sh",
-            "async": true
-          }
-        ]
-      }
-    ],
-    "SessionEnd": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash $HOME/.claude/hooks/read-once-gc.sh",
-            "timeout": 3
           }
         ]
       }
