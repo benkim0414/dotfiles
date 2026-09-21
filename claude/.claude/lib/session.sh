@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # session.sh — shared session utilities for Claude Code hooks: structured
-#              context injection, session-id parsing, and worktree/workflow
-#              detection. Source this file; do not execute it directly.
+#              context injection, session-id parsing, and worktree detection.
+#              Source this file; do not execute it directly.
 
 # shellcheck source=portability.sh
 source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/portability.sh"
