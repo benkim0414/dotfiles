@@ -395,6 +395,52 @@ Lib + tests follow the existing `commit-scope` convention:
 - `claude/.claude/tests/permission-policy/run.sh` -- run with
   `bash run.sh` to verify all 13 cases pass
 
+# Commit scope
+
+Scope identifies WHAT the commit changes, not WHERE the artifact lives.
+Read the file contents before choosing scope. The
+`claude/.claude/hooks/git-safety.sh` hook emits a non-blocking warning
+when the declared scope fails any of these signals (see
+`claude/.claude/lib/commit-scope.sh` for the canonical implementation):
+
+- **S1 - Universal container**: scope is a filesystem-convention
+  container name (`docs`, `src`, `lib`, `bin`, `tests`, `scripts`,
+  `packages`, `apps`, etc.) AND scope is not already in the repo's
+  `git log` history.
+- **S2 - Repo basename**: scope equals the current repository's
+  directory name (e.g. scope `myapp` in repo `myapp/`). No history
+  escape - repo names never identify a component.
+- **S3 - Path-segment match**: scope (or its `+s` plural form) equals
+  a directory segment of the staged file paths, AND scope is not in
+  `git log` history. Catches `docs(spec)` when staging under
+  `docs/superpowers/specs/`, `docs(openspec)` when staging under
+  `openspec/changes/`, and any future framework that publishes to a
+  documentation directory.
+- **S4 - New-scope advisory** (soft): scope is allowed by S1-S3 but is
+  not in `git log` history. Verify the scope names a component, not an
+  artifact directory.
+
+Real scopes are whatever component names appear in the current repo's
+`git log`. Examples below use `<component>` placeholders; substitute
+your repo's actual components.
+
+## Examples
+
+```text
+# Good
+feat(<component>): <description>                 # scope names the affected component
+docs(<component>): update <component> docs       # same
+docs: <repo-wide policy change>                  # unscoped when no concrete component dominates
+
+# Bad
+feat(spec): <description>                        # 'spec' = artifact type (S3: matches 'specs/' segment)
+feat(plan): <description>                        # 'plan' = artifact type (S3: matches 'plans/' segment)
+docs(<repo-name>): <description>                 # repo name = location (S2)
+docs(openspec): <description>                    # framework name (S3: matches 'openspec/' segment)
+docs(docs): <description>                        # universal container (S1)
+feat(<component>): change X and Y                # "and" = two changes -> split
+```
+
 # Brewfile rules
 
 - CLI tools: `brew "<name>"` -- keep sorted alphabetically.
