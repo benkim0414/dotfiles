@@ -4,6 +4,14 @@ tags: [permissions, auto-mode, hooks, security]
 problem_type: hardening
 ---
 
+> **Superseded 2026-09-21.** The hook layer described below was removed when
+> the hooks were trimmed to four (worktree isolation, atomic commits, commit
+> scope). `hooks/permission-policy.sh`, `lib/permission-policy.sh`,
+> `tests/permission-policy/` and `hooks/git-safety.sh` no longer exist;
+> `hooks/git-safety.sh` became `hooks/commit-guard.sh`. The `permissions`
+> layer in `settings.base.json` described here is unchanged and still stands
+> on its own. See `docs/superpowers/specs/2026-09-21-hook-layer-trim-design.md`.
+
 # Hardening Claude Code auto mode
 
 ## Problem
