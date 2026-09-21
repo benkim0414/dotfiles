@@ -1624,15 +1624,15 @@ rules described there are unaffected and stay.
 +`claude/.claude/hooks/commit-guard.sh` hook emits a non-blocking warning
 ```
 
-- [ ] **Step 5: Update the staging rule in `CLAUDE.md`**
+- [ ] **Step 5: (removed — no such text exists)**
 
-Find the line ending `Hook-enforced.` in the secrets/staging guidance and make
-the enforcer explicit:
+An earlier draft of this step told you to find a line ending `Hook-enforced.`
+in the staging guidance and name the enforcing hook. That phrase is in
+neither `CLAUDE.md` nor `claude/.claude/CLAUDE.md` — verified with
+`grep -in 'hook.enforced'` across both, which returns nothing. It came from a
+version of `CLAUDE.md` that the earlier global-config trim already rewrote.
 
-```
--Hook-enforced.
-+Enforced by `claude/.claude/hooks/commit-guard.sh`.
-```
+Nothing to do. Skip to step 5b.
 
 - [ ] **Step 5b: Fix the two stale `git-safety` references in surviving files**
 
