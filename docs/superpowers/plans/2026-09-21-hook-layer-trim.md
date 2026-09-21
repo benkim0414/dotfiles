@@ -1232,7 +1232,29 @@ git rm -r claude/.claude/tests/read-once claude/.claude/tests/permission-policy 
 
 - [ ] **Step 3: Replace the `hooks` object**
 
-In `claude/.claude/settings.base.json`, replace the entire `"hooks": { ... }` value (currently lines 191-337) with:
+In `claude/.claude/settings.base.json`, replace the entire `"hooks": { ... }`
+value with the block below. The object starts at the line `  "hooks": {` and
+ends at its matching `  },` — do not trust a line number here, since Task 5
+already removed the `UserPromptSubmit` and `PostCompact` keys and shortened it.
+
+For reference, the registrations present when you start are these eleven, of
+which you keep four:
+
+```
+SessionStart         -                                bash $HOME/.claude/hooks/arm-worktree-guard.sh   KEEP
+PreToolUse           Read|NotebookRead|mcp__qmd__get|Bash|Grep   .../read-once.sh                      drop
+PreToolUse           Bash                             .../commit-guard.sh                              KEEP
+PreToolUse           Write|Edit|NotebookEdit          .../worktree-guard.sh                            KEEP
+PreToolUse           Bash|Write|Edit|NotebookEdit|WebFetch       .../permission-policy.sh              drop
+PreToolUse           AskUserQuestion|ExitPlanMode     .../notify.sh                                    drop
+PostToolUse          EnterWorktree                    .../worktree-entered.sh                          KEEP
+PostToolUse          Bash|Write|Edit|...              .../audit-log.sh                                 drop
+PostToolUseFailure   -                                .../failure-recovery.sh                          drop
+Notification         -                                .../notify.sh                                    drop
+SessionEnd           -                                .../read-once-gc.sh                              drop
+```
+
+Replacement:
 
 ```json
   "hooks": {
@@ -1343,7 +1365,8 @@ Expected: `6 passed, 0 failed`.
 cd claude/.claude/tests/session-lib && bash run.sh
 ```
 
-Expected: `5 passed, 0 failed`.
+Expected: `6 passed, 0 failed` — 7 original cases, minus the 2 `no-pr` cases
+Task 5 deleted, plus the symlink regression case Task 5 added.
 
 - [ ] **Step 8: Run the remaining suites**
 
