@@ -49,12 +49,6 @@ fi
 
 COMMAND=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // ""')
 
-# Per-repo opt-out of PR workflow.
-# Canonical gate: workflow_no_pr in lib/session.sh. Inlined here so the hot
-# path (~90% of Bash calls) never sources a lib.
-NO_PR=false
-[[ "${CLAUDE_GIT_WORKFLOW:-}" == "no-pr" ]] && NO_PR=true
-
 # =====================================================================
 # Git guards — only relevant for git add/commit/push/merge/rebase/cherry-pick
 # =====================================================================
@@ -110,94 +104,6 @@ if [[ "$COMMAND" =~ git[[:space:]]+commit && "$BRANCH" == "$MAIN_BRANCH" ]]; the
   echo "BLOCKED: Cannot commit directly on '${MAIN_BRANCH}'." >&2
   echo "Call EnterWorktree() and commit on the isolated feature branch." >&2
   exit 2
-fi
-
-# --- Block merge/rebase/cherry-pick on main (enforce PR workflow) ---
-# These bypass the PR review process by bringing changes into main locally.
-if [[ "$NO_PR" != "true" && "$COMMAND" =~ git[[:space:]]+(merge|rebase|cherry-pick) && "$BRANCH" == "$MAIN_BRANCH" ]]; then
-  echo "BLOCKED: Cannot merge/rebase/cherry-pick directly on '${MAIN_BRANCH}'." >&2
-  echo "" >&2
-  echo "  Push your feature branch and open a PR instead:" >&2
-  echo "    git push origin <branch>   # from within the worktree" >&2
-  echo "    gh pr create" >&2
-  exit 2
-fi
-
-# --- Allow remote branch deletion (not a push to any branch) ---
-if [[ "$COMMAND" =~ git[[:space:]]+push[[:space:]]+[^[:space:]]+[[:space:]]+(--delete|-d)[[:space:]]+([^[:space:]]+) ]]; then
-  delete_target="${BASH_REMATCH[2]}"
-  if [[ "$delete_target" != "$MAIN_BRANCH" ]]; then
-    exit 0
-  fi
-  # Deleting main falls through to the block below.
-fi
-
-# --- Block push to main (checks destination ref, not just current branch) ---
-# Allows pushing a feature branch even when HEAD is main (e.g., after ExitWorktree).
-if [[ "$NO_PR" != "true" && "$COMMAND" =~ git[[:space:]]+push ]]; then
-  block_push=false
-
-  # Case 1: On main with no explicit non-main destination.
-  if [[ "$BRANCH" == "$MAIN_BRANCH" ]]; then
-    if [[ "$COMMAND" =~ git[[:space:]]+push([[:space:]]+-[^[:space:]]+)*[[:space:]]+(origin)[[:space:]]+([^[:space:]]+) ]]; then
-      dest="${BASH_REMATCH[3]}"
-      # Block only if the explicit refspec targets main (e.g., main or feat:main).
-      if [[ "$dest" == "$MAIN_BRANCH" || "$dest" =~ :${MAIN_BRANCH}$ ]]; then
-        block_push=true
-      fi
-      # else: explicit non-main destination while on main → ALLOW (pushes feature branch)
-    else
-      # No explicit destination: bare `git push` or `git push origin` defaults to main.
-      block_push=true
-    fi
-  fi
-
-  # Case 2: Explicit main destination from any branch (e.g., inside a worktree on
-  # a feature branch running `git push origin main` or `git push origin feat:main`).
-  if [[ "$block_push" != "true" ]]; then
-    if [[ "$COMMAND" =~ git[[:space:]]+push([[:space:]]+-[^[:space:]]+)*[[:space:]]+(origin)[[:space:]]+([^[:space:]]+:)?(${MAIN_BRANCH})([[:space:]]|$) ]]; then
-      block_push=true
-    fi
-  fi
-
-  # Case 3: With push.default=upstream the branch's tracked remote may be origin/main
-  # (EnterWorktree creates branches that track main). A bare `git push origin <branch>`
-  # or `git push` without an explicit same-name refspec would silently redirect there.
-  upstream_main_tracking=false
-  if [[ "$block_push" != "true" && "$BRANCH" != "$MAIN_BRANCH" ]]; then
-    upstream_ref=$(git rev-parse --abbrev-ref "${BRANCH}@{upstream}" 2>/dev/null || true)
-    if [[ "$upstream_ref" == "origin/${MAIN_BRANCH}" ]]; then
-      # Allow only when an explicit same-name (non-main) refspec is given,
-      # e.g. git push origin HEAD:feature or git push origin feature:feature.
-      if [[ "$COMMAND" =~ git[[:space:]]+push([[:space:]]+-[^[:space:]]+)*[[:space:]]+(origin)[[:space:]]+([^[:space:]]+:[^[:space:]]+) ]]; then
-        dest_refspec="${BASH_REMATCH[3]}"
-        if [[ "$dest_refspec" =~ :${MAIN_BRANCH}$ ]]; then
-          block_push=true # Explicit push to main via src:main — block.
-        fi
-        # else: explicit non-main refspec overrides tracking — ALLOW.
-      else
-        # No explicit refspec: push.default=upstream would silently target origin/main.
-        block_push=true
-        upstream_main_tracking=true
-      fi
-    fi
-  fi
-
-  if [[ "$block_push" == "true" ]]; then
-    echo "BLOCKED: Cannot push directly to '${MAIN_BRANCH}'." >&2
-    echo "" >&2
-    if [[ "$upstream_main_tracking" == "true" ]]; then
-      echo "  Your branch '${BRANCH}' tracks origin/${MAIN_BRANCH}." >&2
-      echo "  With push.default=upstream this push would silently target origin/${MAIN_BRANCH}." >&2
-      echo "" >&2
-      echo "  Use an explicit refspec to create a new remote branch instead:" >&2
-      echo "    git push origin HEAD:${BRANCH}" >&2
-    else
-      echo "  Push to your feature branch: git push origin <branch>:<branch>" >&2
-      echo "  Then open a PR:              gh pr create" >&2
-    fi
-    exit 2
-  fi
 fi
 
 # --- Inject staged file context at commit time ---
