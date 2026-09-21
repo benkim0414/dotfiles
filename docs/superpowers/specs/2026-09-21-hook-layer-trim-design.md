@@ -130,9 +130,12 @@ Consequently these become dead code and are deleted in the same change:
   `tmux/.config/tmux/tmux.conf`
 
 `tmux-attention` is an established commit scope in this repo, so this is
-retiring a named component, not sweeping a leftover. Keeping the three scripts
-against a future Codex producer is the alternative; it means shipping a status
-bar that is permanently blank.
+retiring a named component, not sweeping a leftover. That retirement is
+wanted independently of this change: herdr is now the primary agent workspace
+manager (`CLAUDE.md` > herdr) and has replaced the attention switcher. The
+alternative -- keeping the three scripts against a future Codex producer --
+means shipping a permanently blank status bar for a feature already
+superseded.
 
 ### D4 -- No other SessionStart, PostCompact, UserPromptSubmit, or Notification hook
 
@@ -435,9 +438,11 @@ lands while `zsh/.zshenv` holds four unrotated live credentials
 `MDB_MCP_CONNECTION_STRING`). Rotating those is the mitigation and is tracked
 separately; it is not a reason to keep 220 lines of hook.
 
-**Retiring tmux-attention is a one-way door in practice.** D3 deletes a
-working, named component. Restoring it means rewriting a notification hook,
-not reverting a config line. The three scripts remain in git history.
+**Retiring tmux-attention is deliberate, not collateral.** herdr replaced it
+as the agent workspace manager, so the attention badge and picker are
+superseded rather than lost. Restoring the component would mean rewriting a
+notification hook, not reverting a config line; the three scripts remain in
+git history if that is ever wanted.
 
 **No workflow reminder beyond the arming line.** `arm-worktree-guard.sh`
 emits "Call EnterWorktree() before any edits" and nothing else. The
