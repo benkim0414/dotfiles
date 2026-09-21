@@ -10,7 +10,7 @@ Reduce the Claude Code hook layer to exactly the three enforcements that are
 worth enforcing mechanically -- worktree isolation, atomic commits, and
 conventional commits -- and delete everything else.
 
-Target: 2 hook registrations and ~570 lines, down from 14 registrations and
+Target: 4 hook registrations and ~715 lines, down from 14 registrations and
 2,443 lines of hook and lib code.
 
 ## Problem
@@ -27,9 +27,9 @@ Two specific costs justify acting now rather than leaving it:
 layer -- to save tokens. `git-session-start.sh` is filed under "context
 injection" but line 157 is the only writer of the marker that makes
 `worktree-guard.sh` work. Nothing in either file's name or documentation says
-so. A future trim that deleted `git-session-start.sh` as "just context" would
-have left `worktree-guard.sh` registered, passing all 0 of its tests, and
-enforcing nothing -- the failure shape already documented in
+so. A trim that deleted `git-session-start.sh` as "just context" would leave
+`worktree-guard.sh` registered, passing all 0 of its tests, and enforcing
+nothing -- the failure shape already documented in
 `docs/solutions/conventions/assertions-that-pass-when-they-cannot-check-2026-09-18.md`.
 
 **Every hook is a bash 3.2 liability.** Per
@@ -39,6 +39,23 @@ PreToolUse hook that exits 0 without output is indistinguishable from a
 permissive one. Three hooks were entirely dead this way before being found.
 Fewer hooks is fewer places for that to happen.
 
+## The two markers
+
+The word "marker" names two unrelated files in this layer. They are decided
+differently, so they are separated here before the decisions reference them.
+
+| | Worktree marker | Attention marker |
+| --- | --- | --- |
+| Path | `~/.claude/session-worktrees/pending-<session-id>` | `~/.cache/claude/attention/<TMUX_PANE>` |
+| Contents | empty | `pane_id`, `pane_label`, `notification_type`, `project`, `cwd` |
+| Written by | `git-session-start.sh:157` | `notify.sh:112` |
+| Read by | `worktree-guard.sh:15`, `:29` | `bin/.local/bin/tmux-attention{,-badge,-picker}` |
+| Cleared by | `worktree-entered.sh:22` | `resolve-pr-refs.sh:27` |
+| Means | "this session still owes a worktree" | "this tmux pane needs the user" |
+
+The worktree marker is **kept** (D2). The attention marker is **deleted**
+(D3).
+
 ## Decisions
 
 ### D1 -- The keep set is defined by the three enforcements
@@ -46,59 +63,90 @@ Fewer hooks is fewer places for that to happen.
 | File | Enforces |
 | --- | --- |
 | `hooks/commit-guard.sh` | atomic commits, conventional commit scope, no commit on main |
-| `hooks/worktree-guard.sh` | worktree isolation |
+| `hooks/worktree-guard.sh` | worktree isolation (block half) |
+| `hooks/arm-worktree-guard.sh` | worktree isolation (arm half) |
+| `hooks/worktree-entered.sh` | worktree isolation (clear half) |
 | `lib/commit-scope.sh` | the S1-S4 scope signals |
-| `lib/git-context.sh` | `emit_context`, `cwd_repo_hint`, `worktree_kind` |
+| `lib/session.sh` | session id, marker path, worktree detection, context emit |
 | `lib/portability.sh` | `file_mtime`, `to_lower` |
 
 Nothing else survives. Convenience, observability, and ergonomics are not
 enforcement and are not worth a hook each.
 
-### D2 -- The worktree guard becomes markerless
+### D2 -- The worktree marker stays; `git-session-start.sh` is split, not deleted
 
-Today the guard is two halves: `git-session-start.sh:157` touches
-`$HOME/.claude/session-worktrees/pending-<session-id>`, and
-`worktree-guard.sh` blocks while that file exists.
-`worktree-entered.sh` deletes it. The split exists only because the guard was
-written to need a session id.
+The guard is three parts and stays three parts: something arms the marker at
+session start, `worktree-guard.sh` blocks while it exists, and
+`worktree-entered.sh` clears it on `EnterWorktree`.
 
-It does not. A linked worktree is detectable at edit time from git alone:
-`git rev-parse --absolute-git-dir` differs from `git rev-parse
---git-common-dir`. The guard decides for itself:
+A markerless guard was considered and rejected. It would decide at edit time
+from `git rev-parse --absolute-git-dir` against `--git-common-dir`, needing no
+session state -- but it also blocks main-checkout edits permanently, where the
+marker design deliberately stops blocking once a worktree has been entered
+this session. That escape is worth the state file.
 
-```bash
-[[ "${CLAUDE_WORKTREE_GUARD:-on}" == "off" ]] && exit 0
-git rev-parse --git-dir >/dev/null 2>&1 || exit 0
-[[ "$(worktree_kind)" == "linked" ]] && exit 0
-# file_path resolves outside the repo working tree -> exit 0
-# otherwise -> block
+`git-session-start.sh` therefore cannot be deleted whole. It is replaced by
+`hooks/arm-worktree-guard.sh`, ~30 lines, doing only what the guard needs:
+
+```
+in a git repo?            -> no: exit 0
+bare repo?                -> yes: exit 0
+linked worktree?          -> yes: exit 0
+sweep pending-* older than 24h
+touch pending-$SESSION_ID
+emit "Main worktree (branch: X). Call EnterWorktree() before any edits."
 ```
 
-This deletes the state directory, the session-id parsing, the 24-hour stale
-marker sweep, the self-healing branch in `check_worktree_pending`, the
-SessionStart/first-edit race, and `worktree-entered.sh` entirely.
+The 24-hour sweep is kept because it is the only thing that stops
+`~/.claude/session-worktrees/` accumulating one file per abandoned session.
 
-**Behaviour change, accepted:** today, entering a worktree once clears the
-marker and main-checkout edits are allowed for the rest of that session.
-Markerless, they are always blocked. The guard matches only
-`Write|Edit|NotebookEdit`, so `git merge`, `rm`, and `stow` via Bash are
-unaffected; the change bites only when editing a file in the main checkout
-after a merge.
+Dropped from the original 169 lines: merged-branch fetch/checkout/pull, the
+linked-worktree listing, the daily cache and audit-log GC, and the `MODE:
+no-pr` chain (see D5).
 
-**Escape hatch changes shape:** `rm <marker>` is replaced by
-`CLAUDE_WORKTREE_GUARD=off`, matching the existing `CLAUDE_PERMISSION_POLICY=off`
-convention.
+`worktree-guard.sh` (50 lines) and `worktree-entered.sh` (24 lines) are
+unchanged. `lib/session.sh` keeps `parse_session_id`, `pending_file`,
+`check_worktree_pending`, and `STATE_DIR`, and so keeps its name.
 
-### D3 -- No SessionStart hook at all
+### D3 -- The attention marker goes, and takes the tmux-attention feature with it
 
-With no marker to arm, nothing needs to run at session start.
-`git-session-start.sh` is deleted whole rather than reduced to a stub.
+`notify.sh` (192) writes it, `lib/notify-pane.sh` (55) resolves the pane id
+for it, and `resolve-pr-refs.sh` (115) clears it. All three are deleted.
 
-The `MODE: no-pr` announcement goes with it, along with merged-branch
-auto-checkout, the linked-worktree listing, and the daily cache/audit GC. See
-Risks for what that costs.
+**This is not a graceful degradation.** `tmux-attention` reads two source
+directories, `~/.cache/claude/attention` and `~/.cache/codex/attention`, and
+the codex one does not exist -- nothing writes it, and
+`codex/.codex/config.base.toml` registers no notification hook. Removing
+Claude's producer leaves the entire component with no input: the status-bar
+badge reads empty forever and the picker always reports "No panes need
+attention."
 
-### D4 -- `no-pr` mode is deleted, not defaulted
+Consequently these become dead code and are deleted in the same change:
+
+- `bin/.local/bin/tmux-attention`
+- `bin/.local/bin/tmux-attention-badge`
+- `bin/.local/bin/tmux-attention-picker`
+- the `status-right` `#()` call and any key binding referencing them in
+  `tmux/.config/tmux/tmux.conf`
+
+`tmux-attention` is an established commit scope in this repo, so this is
+retiring a named component, not sweeping a leftover. Keeping the three scripts
+against a future Codex producer is the alternative; it means shipping a status
+bar that is permanently blank.
+
+### D4 -- No other SessionStart, PostCompact, UserPromptSubmit, or Notification hook
+
+Beyond `arm-worktree-guard.sh`, nothing runs on a lifecycle event.
+`restore-git-context.sh` (PostCompact), `resolve-pr-refs.sh`
+(UserPromptSubmit), `notify.sh` (Notification), `read-once-gc.sh`
+(SessionEnd), `audit-log.sh` and `worktree-exited.sh` (PostToolUse), and
+`failure-recovery.sh` (PostToolUseFailure) are all deleted.
+
+The worktree marker survives compaction on its own -- it is a file -- so
+dropping `restore-git-context.sh` does not desynchronise the guard from what
+Claude believes. It costs the re-injected orientation text only.
+
+### D5 -- `no-pr` mode is deleted, not defaulted
 
 `CLAUDE_GIT_WORKFLOW=no-pr` gates exactly two branches in `git-safety.sh`:
 merge/rebase/cherry-pick on main (line 117) and push to main (line 137).
@@ -113,25 +161,26 @@ Push-to-main is not left unguarded -- `Bash(git push origin main*)`,
 `Bash(git push * main*)`, and `Bash(git push * master*)` remain in
 `permissions.ask` and still prompt.
 
-This also removes `workflow_no_pr` from the lib and the `NO_PR` inline check
-from the hot path.
+This removes `workflow_no_pr` from `lib/session.sh` and the `NO_PR` inline
+check from the hot path. It also removes the only branch in
+`worktree-exited.sh`, which D4 deletes anyway.
 
-### D5 -- Rename two files for accuracy
+### D6 -- Rename one file for accuracy
 
-| Now | Becomes | Why |
-| --- | --- | --- |
-| `hooks/git-safety.sh` | `hooks/commit-guard.sh` | it guards commits; "safety" names nothing |
-| `lib/session.sh` | `lib/git-context.sh` | after D2 and D4 it holds no session state |
+`hooks/git-safety.sh` becomes `hooks/commit-guard.sh`. It guards commits --
+atomicity, scope, no commit on main -- and "safety" names nothing.
 
-`worktree-guard.sh`, `lib/commit-scope.sh`, and `lib/portability.sh` keep their
-names -- each already says what it is.
+`worktree-guard.sh`, `worktree-entered.sh`, `lib/session.sh`,
+`lib/commit-scope.sh`, and `lib/portability.sh` keep their names. The new
+arming hook is `arm-worktree-guard.sh` so that grepping `worktree-guard`
+finds both halves.
 
 `lib/portability.sh` keeps `to_lower` despite having no caller after this
 change. `CLAUDE.md` names it as *the* bash-3.2 lowercase escape hatch, and the
 next hook that needs one should find it there rather than reinvent `${x,,}`.
 `run_timeout` is dropped -- its only caller was `git-session-start.sh`.
 
-### D6 -- The semantic permission hook goes; the glob lists stay
+### D7 -- The semantic permission hook goes; the glob lists stay
 
 `permission-policy.sh` plus its lib is 220 lines catching shapes a glob cannot
 express: shell-expanded secret paths (`$HOME/.ssh/*`), `rm -rf` deny-list
@@ -144,7 +193,7 @@ It is deleted. The 52 `permissions.deny` and 84 `permissions.ask` rules in
 secret-file rule and `Bash(rm -rf *)`. The loss is bounded to the bypass forms
 and shell-expanded paths. See Risks.
 
-### D7 -- Fill the mattpocock gaps as rules, do not adopt the skill
+### D8 -- Fill the mattpocock gaps as rules, do not adopt the skill
 
 `mattpocock/skills` `git-guardrails-claude-code` is one 24-line PreToolUse
 Bash hook with nine `grep -qE` patterns and a hard `exit 2`.
@@ -162,7 +211,7 @@ allowlist and no bypass, which breaks the normal path in every repo, and it
 covers none of worktree isolation, main-branch protection, the `git add -A`
 ban, or commit scope.
 
-### D8 -- The codex hook layer is untouched
+### D9 -- The codex hook layer is untouched
 
 `codex/.codex/config.base.toml` registers `atomic-commits.sh` and
 `worktree-guard.sh` from `~/.codex/hooks/`, which are physically separate files
@@ -173,54 +222,53 @@ stays open.
 
 ## Changes
 
-### 1. `hooks/worktree-guard.sh` -- rewrite markerless
+### 1. `hooks/git-session-start.sh` -> `hooks/arm-worktree-guard.sh`
 
-50 -> ~30 lines. Per D2. Drops `parse_session_id`, `STATE_DIR`, the
-`compgen -G` fast exit, and the `check_worktree_pending` delegation. Adds the
-`CLAUDE_WORKTREE_GUARD` env check and an inline block message naming that
-escape hatch.
+169 -> ~30 lines. Per D2. Keeps the `worktree_kind` short-circuit, the 24-hour
+`pending-*` sweep, the `touch`, and one `emit_context_with_msg` call. Drops
+everything else.
 
 ### 2. `hooks/git-safety.sh` -> `hooks/commit-guard.sh` -- rename and trim
 
-296 -> ~270 lines. Per D4 and D5: remove the `NO_PR` variable, its inline
+296 -> ~270 lines. Per D5 and D6: remove the `NO_PR` variable, its inline
 `CLAUDE_GIT_WORKFLOW` read, and the `"$NO_PR" != "true" &&` condition from
-both the merge/rebase/cherry-pick guard and the push guard. Update the
-`source` path for the renamed lib. No change to the `git add`, `git commit -a`,
-commit-on-main, or scope logic.
+both the merge/rebase/cherry-pick guard and the push guard. No change to the
+`git add`, `git commit -a`, commit-on-main, or scope logic.
 
-### 3. `lib/session.sh` -> `lib/git-context.sh` -- rename and trim
+### 3. `hooks/worktree-guard.sh`, `hooks/worktree-entered.sh` -- unchanged
 
-143 -> ~50 lines. Keep `emit_context`, `cwd_repo_hint`, `worktree_kind`.
-Delete `emit_context_with_msg`, `parse_session_id`, `pending_file`,
-`check_worktree_pending`, `workflow_no_pr`, and `STATE_DIR`.
+50 and 24 lines. Per D2. Only their `source` paths are checked, and
+`lib/session.sh` keeps its name, so nothing moves.
 
-### 4. `lib/portability.sh` -- trim
+### 4. `lib/session.sh` -- trim
+
+143 -> ~120 lines. Keep `emit_context`, `emit_context_with_msg`,
+`parse_session_id`, `pending_file`, `check_worktree_pending`, `cwd_repo_hint`,
+`worktree_kind`, `STATE_DIR`. Delete `workflow_no_pr` (D5).
+
+### 5. `lib/portability.sh` -- trim
 
 41 -> ~25 lines. Keep `file_mtime` and `to_lower`; delete `run_timeout`.
 
-### 5. `claude/.claude/settings.base.json` -- 14 registrations to 2
-
-Remove every `hooks` entry except the two PreToolUse registrations, and point
-the Bash matcher at the renamed script:
+### 6. `claude/.claude/settings.base.json` -- 14 registrations to 4
 
 ```
-PreToolUse  Bash                       bash $HOME/.claude/hooks/commit-guard.sh
-PreToolUse  Write|Edit|NotebookEdit    bash $HOME/.claude/hooks/worktree-guard.sh
+SessionStart                          bash $HOME/.claude/hooks/arm-worktree-guard.sh
+PreToolUse   Bash                     bash $HOME/.claude/hooks/commit-guard.sh
+PreToolUse   Write|Edit|NotebookEdit  bash $HOME/.claude/hooks/worktree-guard.sh
+PostToolUse  EnterWorktree            bash $HOME/.claude/hooks/worktree-entered.sh
 ```
 
-Removed events entirely: `SessionStart`, `UserPromptSubmit`, `PostToolUse`,
-`PostToolUseFailure`, `PostCompact`, `Notification`, `SessionEnd`.
+Removed events entirely: `UserPromptSubmit`, `PostToolUseFailure`,
+`PostCompact`, `Notification`, `SessionEnd`. `permissions`, `env`,
+`enabledPlugins`, `extraKnownMarketplaces`, and `outputStyle` are untouched.
 
-`permissions`, `env`, `enabledPlugins`, `extraKnownMarketplaces`, and
-`outputStyle` are untouched.
-
-### 6. Delete 11 hooks and 3 libs -- 1,718 lines
+### 7. Delete 9 hooks and 3 libs -- 1,525 lines
 
 | File | Lines |
 | --- | --- |
 | `hooks/read-once.sh` | 539 |
 | `hooks/notify.sh` | 192 |
-| `hooks/git-session-start.sh` | 169 |
 | `lib/permission-policy.sh` | 162 |
 | `hooks/resolve-pr-refs.sh` | 115 |
 | `lib/read-once-cache.sh` | 114 |
@@ -230,67 +278,93 @@ Removed events entirely: `SessionStart`, `UserPromptSubmit`, `PostToolUse`,
 | `hooks/restore-git-context.sh` | 57 |
 | `lib/notify-pane.sh` | 55 |
 | `hooks/read-once-gc.sh` | 49 |
-| `hooks/worktree-entered.sh` | 24 |
 | `hooks/worktree-exited.sh` | 19 |
 
-### 7. Tests
+Plus `git-session-start.sh` (169), replaced rather than removed -- change 1.
+
+### 8. Delete the tmux-attention component
+
+Per D3: `bin/.local/bin/tmux-attention`, `tmux-attention-badge`, and
+`tmux-attention-picker`, plus all four references in
+`tmux/.config/tmux/tmux.conf`:
+
+```
+53: bind-key a run-shell "tmux-attention"
+54: bind-key A display-popup -E -w 80% -h 80% "tmux-attention-picker"
+78: set -g status-right "#[fg=#f38ba8]#(tmux-attention-badge)#[default] "
+85: set-hook -g pane-focus-in "run-shell -b 'tmux-attention --clear-focused'"
+```
+
+Line 78 must be **replaced with `set -g status-right ""`**, not deleted. It is
+the base assignment; lines 79-80 are `set -ag` appends for the catppuccin
+session and host segments. Deleting line 78 makes the first append land on
+tmux's built-in default `status-right` (pane title and clock), which would
+appear in the status bar as a visible regression rather than a removal.
+
+### 9. Tests
 
 Delete `tests/read-once/` (19 cases), `tests/permission-policy/` (13 cases),
 `tests/notify-pane/` (6 cases).
 
-Rename `tests/session-lib/` -> `tests/git-context/` and drop the cases for
-deleted functions, including `30-workflow-no-pr-set.sh` and
-`31-workflow-no-pr-unset.sh`.
+Trim `tests/session-lib/` (7 cases): drop `30-workflow-no-pr-set.sh` and
+`31-workflow-no-pr-unset.sh`. Keep the name -- the lib keeps its name.
 
 Keep `tests/commit-scope/` (32 cases) and `tests/bash-portability/`, updating
-any path references to the renamed files.
+path references to `commit-guard.sh`.
 
-**Add a `tests/worktree-guard/` suite.** The rewritten guard currently has no
-test of its own, and its failure mode is silent permissiveness. The suite must
-assert the *block* branch, not only the allow branches -- see V1.
+**Add a `tests/worktree-guard/` suite.** The guard has no test of its own
+today, and its failure mode is silent permissiveness. It must assert the
+*block* branch, not only the allow branches -- see V1.
 
 The three non-hook suites (`output-style/`, `theme-contrast/`,
 `mcp-permission-overlay/`) are untouched.
 
-### 8. `claude/.claude/hooks/README.md` -- rewrite
+### 10. `claude/.claude/hooks/README.md` -- rewrite
 
-116 lines documenting 12 hooks and 5 libs. Rewrite for 2 hooks and 3 libs.
+116 lines documenting 12 hooks and 5 libs. Rewrite for 4 hooks and 3 libs.
 
-### 9. `CLAUDE.md` (dotfiles project file) -- update stale passages
+### 11. `CLAUDE.md` (dotfiles project file) -- update stale passages
 
 At minimum: the "Hook shell constraint (bash 3.2)" section (it cites "16 of
 them across `settings.base.json` and `codex/.codex/config.base.toml`"); the
 entire "Semantic policy hook" section; the `git-safety.sh` reference in
 "Commit scope"; and "Hook-enforced." in the staging rule. Grep for
-`git-safety`, `permission-policy`, `read-once`, `session.sh`, and
-`git-session-start` before declaring this done.
+`git-safety`, `permission-policy`, `read-once`, `git-session-start`, and
+`tmux-attention` before declaring this done.
 
 ## Verification
 
 ### V1 -- The worktree guard blocks, and is seen to block (blocking)
 
-The whole point of D2 is that a guard which cannot enforce must not look like
-one that can. Assert all four branches with the hook invoked the way its
-config invokes it (`bash <path>`, not the shebang):
+A guard that cannot enforce must not look like one that can. Assert every
+branch with the hook invoked the way its config invokes it (`bash <path>`,
+not the shebang):
 
-1. Main checkout, `file_path` inside the repo -> **exit 2**, message names
-   `CLAUDE_WORKTREE_GUARD=off`.
-2. Linked worktree, same path -> exit 0.
-3. Main checkout, `file_path` outside the repo working tree -> exit 0.
-4. `CLAUDE_WORKTREE_GUARD=off` in the main checkout -> exit 0.
+1. Marker present, `file_path` inside the repo, main checkout -> **exit 2**.
+2. Marker present, linked worktree -> exit 0, and the stale marker is removed
+   (the self-healing branch in `check_worktree_pending`).
+3. Marker present, `file_path` outside the repo working tree -> exit 0.
+4. No marker -> exit 0.
 
 Case 1 is the one that matters. A suite containing only 2-4 passes against a
 guard that has been deleted.
 
-### V2 -- The commit guard still enforces all three
+### V2 -- The arm hook actually arms
+
+Pipe a SessionStart payload with a known session id and assert
+`~/.claude/session-worktrees/pending-<id>` exists afterwards in a main
+checkout, and does **not** exist when run from a linked worktree. This is the
+coupling that D2 preserves; it is currently asserted by nothing.
+
+### V3 -- The commit guard still enforces all three
 
 Pipe representative payloads to `commit-guard.sh` and assert exit 2 for:
 `git add -A`, `git add .`, `git add --all`, `git add --update`,
 `git commit -a`, `git commit -am "x"`, and `git commit` while HEAD is main.
 Assert exit 0 for `git merge <branch>` on main and `git push origin main`
-(D4 removed those gates).
+(D5 removed those gates).
 
-### V3 -- Suites pass
+### V4 -- Suites pass
 
 Run each as its own plain command (the worktree-isolation guard refuses loops
 and heredocs):
@@ -298,47 +372,53 @@ and heredocs):
 ```sh
 cd claude/.claude/tests/commit-scope && bash run.sh
 cd claude/.claude/tests/worktree-guard && bash run.sh
-cd claude/.claude/tests/git-context && bash run.sh
+cd claude/.claude/tests/session-lib && bash run.sh
 cd claude/.claude/tests/bash-portability && bash run.sh
 cd claude/.claude/tests/mcp-permission-overlay && bash run.sh
 cd claude/.claude/tests/output-style && bash run.sh
 cd claude/.claude/tests/theme-contrast && bash run.sh
 ```
 
-### V4 -- No dangling references to deleted files
+`bin/tests/stow-hygiene/run.sh` must also pass after change 8 touches `bin/`.
+
+### V5 -- No dangling references to deleted files
 
 ```sh
-grep -rn 'git-safety\|permission-policy\|read-once\|notify-pane\|git-session-start\|resolve-pr-refs\|failure-recovery\|restore-git-context\|audit-log\|worktree-entered\|worktree-exited\|lib/session\.sh\|workflow_no_pr\|session-worktrees' \
-  --include='*.sh' --include='*.json' --include='*.md' claude/ bin/ CLAUDE.md
+grep -rn 'git-safety\|permission-policy\|read-once\|notify-pane\|notify\.sh\|git-session-start\|resolve-pr-refs\|failure-recovery\|restore-git-context\|audit-log\|worktree-exited\|workflow_no_pr\|tmux-attention\|claude/attention' \
+  --include='*.sh' --include='*.json' --include='*.conf' --include='*.md' \
+  claude/ bin/ tmux/ CLAUDE.md
 ```
 
 Frozen plan and spec documents under `docs/superpowers/` are expected hits and
-are left alone. Anything under `claude/`, `bin/`, or `CLAUDE.md` is a real
-dangling pointer and must be fixed -- this is the bug the previous branch
+are left alone. Anything under `claude/`, `bin/`, `tmux/`, or `CLAUDE.md` is a
+real dangling pointer and must be fixed -- this is the bug the previous branch
 shipped and had to correct.
 
-### V5 -- No dangling symlinks after restow
+### V6 -- No dangling symlinks after restow
 
-Deleting and renaming stowed files leaves dead links in `~/.claude/hooks/` and
-`~/.claude/lib/`, exactly as `CLAUDE.company.md` did. **After merge, from the
-main checkout only** (never from a worktree -- `CLAUDE.md` > Stow gotchas):
+Deleting and renaming stowed files leaves dead links in `~/.claude/hooks/`,
+`~/.claude/lib/`, and `~/.local/bin/`, exactly as `CLAUDE.company.md` did.
+**After merge, from the main checkout only** (never from a worktree --
+`CLAUDE.md` > Stow gotchas):
 
 ```sh
-cd ~/workspace/dotfiles && stow -t ~ -R claude
-find ~/.claude/hooks ~/.claude/lib -type l ! -exec test -e {} \; -print
+cd ~/workspace/dotfiles && stow -t ~ -R claude && stow -t ~ -R bin && stow -t ~ -R tmux
+find ~/.claude/hooks ~/.claude/lib ~/.local/bin -type l ! -exec test -e {} \; -print
 ```
 
 The `find` must print nothing. Then run `claude-sync` to regenerate
-`~/.claude/settings.json` with the two remaining registrations, and confirm
-with `jq '.hooks' ~/.claude/settings.json`.
+`~/.claude/settings.json` and confirm with `jq '.hooks' ~/.claude/settings.json`
+that four registrations remain.
 
-### V6 -- bash 3.2
+### V7 -- bash 3.2
 
-Both surviving hooks and all three libs run under `/bin/bash` explicitly:
+Every surviving hook and lib parses under `/bin/bash` explicitly:
 
 ```sh
 /bin/bash -n claude/.claude/hooks/commit-guard.sh
 /bin/bash -n claude/.claude/hooks/worktree-guard.sh
+/bin/bash -n claude/.claude/hooks/arm-worktree-guard.sh
+/bin/bash -n claude/.claude/hooks/worktree-entered.sh
 ```
 
 A green run under Homebrew bash 5 proves nothing. `tests/bash-portability/`
@@ -347,7 +427,7 @@ covers the syntax scan.
 ## Risks
 
 **Loss of the semantic permission layer while live secrets are unrotated.**
-D6 removes the check for shell-expanded secret paths (`$HOME/.ssh/*`,
+D7 removes the check for shell-expanded secret paths (`$HOME/.ssh/*`,
 `/Users/ben/.ssh/*`) and the `rm -rf` bypass forms (`\rm`, `command rm`). The
 literal-path `deny` globs stay, so the common forms are still blocked. This
 lands while `zsh/.zshenv` holds four unrotated live credentials
@@ -355,21 +435,23 @@ lands while `zsh/.zshenv` holds four unrotated live credentials
 `MDB_MCP_CONNECTION_STRING`). Rotating those is the mitigation and is tracked
 separately; it is not a reason to keep 220 lines of hook.
 
-**No workflow reminder at session start or after compaction.** D3 removes
-both. The superpowers chain must be carried in a project `CLAUDE.md` or
-remembered. Long sessions lose worktree orientation after a compaction.
+**Retiring tmux-attention is a one-way door in practice.** D3 deletes a
+working, named component. Restoring it means rewriting a notification hook,
+not reverting a config line. The three scripts remain in git history.
+
+**No workflow reminder beyond the arming line.** `arm-worktree-guard.sh`
+emits "Call EnterWorktree() before any edits" and nothing else. The
+superpowers chain and `MODE: no-pr` must be carried in a project `CLAUDE.md`
+or remembered, and long sessions lose orientation after a compaction.
 
 **No merged-branch auto-checkout.** After merging a branch on the remote, the
 main checkout stays on the stale branch until checked out by hand.
 
 **`~/.cache/claude` is no longer swept.** `commit-guard.sh` writes
-`commit-scopes-*` cache files with a 60-second TTL. These are rewritten rather
-than appended and amount to one small file per repo, so the growth is bounded.
+`commit-scopes-*` files with a 60-second TTL. These are rewritten rather than
+appended and amount to one small file per repo, so growth is bounded.
 `~/.claude/logs/` stops being pruned, but nothing writes to it once
 `audit-log.sh` is gone; the existing 8.8 MB archive is left in place.
-
-**No attention notification.** Ghostty OSC 777 and the tmux bell stop firing
-on `AskUserQuestion` and `ExitPlanMode`.
 
 **Higher token use.** `read-once.sh` suppressed re-reads of files already in
 context. Removing it trades 702 lines of hook for some context churn.
