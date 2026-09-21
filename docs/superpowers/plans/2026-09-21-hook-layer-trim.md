@@ -1673,6 +1673,36 @@ grep -n 'read-once\|permission-policy\|audit-log\|notify\|resolve-pr-refs\|failu
 
 Expected: no output. Fix any hit before continuing.
 
+- [ ] **Step 6b: Two orphans the earlier draft of this plan missed**
+
+The step 7 sweep surfaces these, and neither is named anywhere else. Both
+are real dangling pointers, so fix them here.
+
+**`claude/.claude/docs/read-once.md`** — a 55-line operator guide for the
+deleted hook, opening with a "Source:" list of three files that no longer
+exist. `claude/.claude/docs/` is stowed (`~/.claude/docs` symlinks to it), so
+this is live documentation for machinery that is gone. Delete the whole file:
+
+```bash
+git rm claude/.claude/docs/read-once.md
+```
+
+Leave `claude/.claude/docs/superpowers-workflow.md` alone. It documents a
+workflow rather than deleted code; the only thing that changed is that no
+hook auto-references it any more.
+
+**`tmux/.config/tmux/tmux.conf:12`** — the comment justifying
+`allow-passthrough all` names a deleted hook:
+
+```
+-# 'all' lets Claude Code notify.sh send OSC 777 from background panes to Ghostty
++# 'all' lets background panes emit OSC escapes (e.g. OSC 52 clipboard) to Ghostty
+```
+
+Reword the comment only. The `set -g allow-passthrough all` line below it
+stays — passthrough is still wanted for OSC 52 clipboard, which the lines
+just below it configure.
+
 - [ ] **Step 7: Full dangling-reference sweep**
 
 ```bash
@@ -1681,8 +1711,30 @@ grep -rn 'git-safety\|permission-policy\|read-once\|notify-pane\|notify\.sh\|git
   claude/ bin/ tmux/ CLAUDE.md
 ```
 
-Expected: no output. Hits under `docs/` are frozen plan and spec documents and
-are left alone -- this sweep deliberately does not search there.
+Expected: no output **except** the two categories below, which are correct as
+they stand and must not be "fixed".
+
+**History stated as history, in `claude/.claude/tests/bash-portability/run.sh`**
+(3 hits, at lines 11, 48, 115). These are inline war stories explaining why
+each bash-4 pattern is scanned for: `check_web_fetch` was dead this way,
+`notify-pane.sh` had a live `local -A`, `read-once.sh` joined fields on SOH.
+The files are gone; the incidents still happened, and genericising them would
+strip the evidence that justifies the check. A past-tense claim about a
+deleted file is not a dangling pointer.
+
+This is the distinction to apply, and it is why `CLAUDE.md`'s equivalent
+sentence gets reworded in step 2 while these do not: a **current-state**
+document that names a nonexistent file sends the reader hunting for it; an
+**historical** note that says "this once broke" does not.
+
+**`read-once` as a commit-scope fixture string**, in
+`tests/commit-scope/cases/20-suggest-from-date-slug.sh` and
+`64-hook-emits-suggest-from-date-slug.sh`. Here `read-once` is test data — a
+scope name that genuinely appears in this repo's `git log` — not a claim that
+any hook exists. Unrelated to the deleted file that shares the name.
+
+Hits under `docs/` are frozen plan and spec documents and are left alone --
+this sweep deliberately does not search there.
 
 - [ ] **Step 8: Run every suite one final time**
 
