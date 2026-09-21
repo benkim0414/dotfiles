@@ -345,6 +345,8 @@ git commit -m "test(claude): characterize the worktree guard's block and allow b
 - Create: `claude/.claude/tests/arm-worktree-guard/cases/10-skips-in-linked-worktree.sh`
 - Create: `claude/.claude/tests/arm-worktree-guard/cases/20-skips-outside-git.sh`
 - Create: `claude/.claude/tests/arm-worktree-guard/cases/30-sweeps-stale-markers.sh`
+- Create: `claude/.claude/tests/arm-worktree-guard/cases/40-skips-without-session-id.sh`
+- Create: `claude/.claude/tests/arm-worktree-guard/cases/50-skips-bare-repo.sh`
 - Modify: `claude/.claude/settings.base.json` -- repoint the `SessionStart` registration
 
 **Interfaces:**
@@ -472,6 +474,45 @@ status=$(run_arm "$plain" "$(session_start_json)")
 assert_marker_absent
 ```
 
+`cases/40-skips-without-session-id.sh` — note this asserts that **no marker of
+any name** exists, not just `pending-$SID`. A regression flipping `-n` to `-z`
+on the hook's session-id check would write `pending-` with an empty suffix,
+which `assert_marker_absent` would miss entirely:
+
+```bash
+#!/usr/bin/env bash
+set -uo pipefail
+source "$TEST_HOME/helpers.sh"
+
+repo="$CASE_TMP/repo"
+make_repo "$repo"
+
+json=$(jq -cn '{session_id:"not-a-uuid", hook_event_name:"SessionStart"}')
+status=$(run_arm "$repo" "$json")
+[[ "$status" == "0" ]] || { echo "  hook exited $status; expected 0" >&2; exit 1; }
+
+if find "$STATE_DIR" -name 'pending-*' | grep -q .; then
+  echo "  hook armed a marker despite having no usable session id" >&2
+  exit 1
+fi
+```
+
+`cases/50-skips-bare-repo.sh`:
+
+```bash
+#!/usr/bin/env bash
+set -uo pipefail
+source "$TEST_HOME/helpers.sh"
+
+bare="$CASE_TMP/bare.git"
+mkdir -p "$bare"
+(cd "$bare" && git init -q --bare)
+
+status=$(run_arm "$bare" "$(session_start_json)")
+[[ "$status" == "0" ]] || { echo "  hook exited $status; expected 0" >&2; exit 1; }
+assert_marker_absent
+```
+
 `cases/30-sweeps-stale-markers.sh`:
 
 ```bash
@@ -539,16 +580,23 @@ git rev-parse --git-dir >/dev/null 2>&1 || exit 0
 # Already isolated — do not arm.
 [[ "$(worktree_kind)" == "linked" ]] && exit 0
 
-mkdir -p "$STATE_DIR"
+# Every fallible call is guarded: a SessionStart hook must exit 0 on every
+# path. A trailing bare `exit 0` would NOT be enough -- under `set -e` a
+# failing command aborts before the next line runs, so each call guards
+# itself. A touch failure therefore fails open (unarmed) rather than
+# blocking the session, which is the correct direction here.
+mkdir -p "$STATE_DIR" 2>/dev/null || exit 0
 # Sweep markers from sessions abandoned more than 24 hours ago.
 find "$STATE_DIR" -name 'pending-*' -mmin +1440 -delete 2>/dev/null || true
 
-touch "$STATE_DIR/pending-${SESSION_ID}"
+touch "$STATE_DIR/pending-${SESSION_ID}" 2>/dev/null || exit 0
 
 BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)
 emit_context_with_msg "SessionStart" \
   "Main worktree (branch: ${BRANCH}). Call EnterWorktree() before any edits." \
-  "[git-workflow] Main worktree (branch: ${BRANCH}). Call EnterWorktree() before any edits."
+  "[git-workflow] Main worktree (branch: ${BRANCH}). Call EnterWorktree() before any edits." || true
+
+exit 0
 ```
 
 Make it executable:
@@ -563,7 +611,7 @@ chmod +x claude/.claude/hooks/arm-worktree-guard.sh
 cd claude/.claude/tests/arm-worktree-guard && bash run.sh
 ```
 
-Expected: `4 passed, 0 failed`.
+Expected: `6 passed, 0 failed`.
 
 If `00-arms-in-main-checkout` fails with the hook exiting non-zero, the likely cause is `set -euo pipefail` combined with `[[ ... ]] && exit 0` as the final command of a conditional -- confirm `worktree_kind` returns a non-empty string.
 
@@ -945,7 +993,7 @@ Expected: `5 passed, 0 failed`.
 cd claude/.claude/tests/arm-worktree-guard && bash run.sh
 ```
 
-Expected: `4 passed, 0 failed`.
+Expected: `6 passed, 0 failed`.
 
 - [ ] **Step 8: Lint**
 
@@ -1063,7 +1111,7 @@ path, so it passed before the fix and must still pass after it.
 cd claude/.claude/tests/arm-worktree-guard && bash run.sh
 ```
 
-Expected: `4 passed, 0 failed`.
+Expected: `6 passed, 0 failed`.
 
 ```bash
 cd claude/.claude/tests/commit-scope && bash run.sh
@@ -1228,7 +1276,7 @@ Expected: `5 passed, 0 failed`.
 cd claude/.claude/tests/arm-worktree-guard && bash run.sh
 ```
 
-Expected: `4 passed, 0 failed`.
+Expected: `6 passed, 0 failed`.
 
 ```bash
 cd claude/.claude/tests/session-lib && bash run.sh
