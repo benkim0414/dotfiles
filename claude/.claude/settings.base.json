@@ -226,7 +226,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash $HOME/.claude/hooks/git-safety.sh"
+            "command": "bash $HOME/.claude/hooks/commit-guard.sh"
           }
         ]
       },

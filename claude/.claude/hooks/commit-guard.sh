@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
-# git-safety.sh — guard git Bash calls: main-branch + commit scope/atomicity.
+# commit-guard.sh — guard git Bash calls: commit atomicity, scope, no commit on main.
 #
 # Event:   PreToolUse
 # Matcher: Bash
 # Exit:    0 = allow (warnings → stdout/context); 2 = block (stderr → Claude)
 #
-# Enforces git-main-guard (no commit on main) and commit-guard
-# (atomicity + commit-scope signals via lib/commit-scope.sh) with a single jq
-# invocation. Worktree isolation for file edits is handled by the dedicated
-# worktree-guard.sh hook (matcher: Write|Edit|NotebookEdit).
+# Blocks commit on main, enforces staging atomicity (no `git add -A`, no
+# `git commit -a`), and emits non-blocking commit-scope warnings via
+# lib/commit-scope.sh -- all with a single jq invocation. Worktree isolation
+# for file edits is handled by the dedicated worktree-guard.sh hook
+# (matcher: Write|Edit|NotebookEdit).
 set -euo pipefail
 
 # --- Read stdin once; fast-exit for non-git commands ---

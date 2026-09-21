@@ -7,7 +7,7 @@ set -uo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export TEST_HOME="$HERE"
 export LIB="$HERE/../../lib/commit-scope.sh"
-export HOOK="$HERE/../../hooks/git-safety.sh"
+export HOOK="$HERE/../../hooks/commit-guard.sh"
 
 [[ -f "$LIB"  ]] || { echo "missing lib: $LIB"   >&2; exit 2; }
 [[ -f "$HOOK" ]] || { echo "missing hook: $HOOK" >&2; exit 2; }
