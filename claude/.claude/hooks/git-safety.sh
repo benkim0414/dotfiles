@@ -243,7 +243,7 @@ fi
 
 # Banned-scope emit (S1/S2/S3 via is_banned_scope) — separate from staged-context.
 if [[ -n "$declared_scope" ]] && is_banned_scope "$declared_scope" "$staged"; then
-  emit_context "PreToolUse" "Scope check: scope='${declared_scope}' is BANNED (filesystem container, repo basename, or path-segment match). Scope names a component, not a location. See CLAUDE.md > Commit rules > Scope."
+  emit_context "PreToolUse" "Scope check: scope='${declared_scope}' is BANNED (filesystem container, repo basename, or path-segment match). Scope names a component, not a location. See CLAUDE.md > Commit scope."
 fi
 
 repo_path=$(git rev-parse --show-toplevel 2>/dev/null || true)
@@ -289,7 +289,7 @@ if [[ -n "${declared_scope:-}" ]] \
   ctx+=". NEW SCOPE: '${declared_scope}' not in git log history; suggested from paths is '${suggested:-<none>}'. Verify scope names a component."
 fi
 
-ctx+=". Pick scope by component, not artifact path. See CLAUDE.md > Commit rules > Scope."
+ctx+=". Pick scope by component, not artifact path. See CLAUDE.md > Commit scope."
 
 emit_context "PreToolUse" "$ctx"
 
