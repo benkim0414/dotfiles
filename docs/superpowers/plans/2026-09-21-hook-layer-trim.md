@@ -114,7 +114,12 @@ set -uo pipefail
 
 : "${HOOK:?HOOK must be set by run.sh}"
 
-CASE_TMP="$(mktemp -d -t worktree-guard-test.XXXXXX)"
+# Resolve to the physical path: on macOS mktemp lives under /var -> /private/var.
+# `git rev-parse --absolute-git-dir` resolves symlinks but `cd <dir> && pwd`
+# does not, so an unresolved fixture path makes the guard read a main checkout
+# as a linked worktree and allow the edit. Same convention, same reason, as
+# claude/.claude/tests/session-lib/helpers.sh:12.
+CASE_TMP="$(cd "$(mktemp -d -t worktree-guard-test.XXXXXX)" && pwd -P)"
 cleanup() { rm -rf "$CASE_TMP"; }
 trap cleanup EXIT
 
@@ -284,9 +289,16 @@ printf '#!/usr/bin/env bash\nexit 0\n' > claude/.claude/hooks/worktree-guard.sh
 cd claude/.claude/tests/worktree-guard && bash run.sh
 ```
 
-Expected: `4 passed, 1 failed`, with `failed cases: 10-marker-blocks-repo-file`.
+Expected: `3 passed, 2 failed`, with
+`failed cases: 10-marker-blocks-repo-file 30-linked-worktree-self-heals`.
 
-If all five still pass, the suite is not testing the guard -- stop and fix it before restoring.
+Two cases go red, not one, because a bare `exit 0` removes two distinct
+behaviours: case 10 loses the block, and case 30 loses the self-healing
+marker deletion that its second assertion checks. Both are real properties
+of the guard, so two failures is the stronger signal.
+
+If all five still pass, the suite is not testing the guard -- stop and fix it
+before restoring.
 
 Restore:
 
@@ -359,7 +371,11 @@ set -uo pipefail
 
 : "${HOOK:?HOOK must be set by run.sh}"
 
-CASE_TMP="$(mktemp -d -t arm-guard-test.XXXXXX)"
+# Physical path — see the note in tests/worktree-guard/helpers.sh and
+# tests/session-lib/helpers.sh:12. An unresolved /var/folders path makes
+# worktree_kind misread a main checkout as linked, so the hook would skip
+# arming and case 00 would fail for the wrong reason.
+CASE_TMP="$(cd "$(mktemp -d -t arm-guard-test.XXXXXX)" && pwd -P)"
 cleanup() { rm -rf "$CASE_TMP"; }
 trap cleanup EXIT
 
@@ -836,15 +852,18 @@ git commit -m "refactor(claude): rename git-safety hook to commit-guard"
 
 ---
 
-### Task 5: Trim `lib/session.sh` and `lib/portability.sh`
+### Task 5: Trim `lib/session.sh` and `lib/portability.sh`, and fix the symlink defect
 
 `workflow_no_pr` lost its last caller in Task 3. `run_timeout`'s only caller is `git-session-start.sh`, which Task 6 deletes -- removing it now is safe because nothing else calls it.
 
+**Two commits.** Steps 1-9 are the trim. Steps 10-14 fix a defect found while writing the Task 1 suite: `worktree_kind` and `check_worktree_pending` compare a symlink-resolved path against an unresolved one, so a main checkout reached through a symlink is misreported as a linked worktree and worktree isolation silently switches off.
+
 **Files:**
-- Modify: `claude/.claude/lib/session.sh` -- delete `workflow_no_pr`
+- Modify: `claude/.claude/lib/session.sh` -- delete `workflow_no_pr`; `pwd -P` in two comparisons
 - Modify: `claude/.claude/lib/portability.sh` -- delete `run_timeout`
 - Delete: `claude/.claude/tests/session-lib/cases/30-workflow-no-pr-set.sh`
 - Delete: `claude/.claude/tests/session-lib/cases/31-workflow-no-pr-unset.sh`
+- Create: `claude/.claude/tests/session-lib/cases/23-worktree-kind-main-via-symlink.sh`
 
 **Interfaces:**
 - Consumes: nothing new.
@@ -946,6 +965,119 @@ git commit -m "refactor(claude): drop workflow_no_pr, run_timeout, and the exit 
 ```
 
 `git rm` already staged the three deletions, so they ride along in this commit.
+
+**This task produces a second commit.** Steps 10-14 fix a defect found while
+writing the Task 1 suite. It is a behaviour change, not a trim, so it is
+committed separately.
+
+- [ ] **Step 10: Write the failing regression test**
+
+`worktree_kind` compares `git rev-parse --absolute-git-dir`, which resolves
+symlinks, against `cd "$(git rev-parse --git-common-dir)" && pwd`, which does
+not. In a **main** checkout reached through a symlinked path the two differ,
+so the function returns `linked`. `check_worktree_pending` then treats the
+pending marker as stale, deletes it, and allows the edit -- worktree
+isolation silently off.
+
+Measured on this machine: `absolute-git-dir` gave
+`/private/var/folders/.../repo/.git` while `common + pwd` gave
+`/var/folders/.../repo/.git`.
+
+Create `claude/.claude/tests/session-lib/cases/23-worktree-kind-main-via-symlink.sh`:
+
+```bash
+#!/usr/bin/env bash
+set -uo pipefail
+source "$TEST_HOME/helpers.sh"
+
+# A MAIN checkout whose path is reached through a symlink must still report
+# "main". git rev-parse --absolute-git-dir resolves symlinks; `cd ... && pwd`
+# does not, so an asymmetric comparison reports "linked" here and silently
+# disables worktree isolation.
+#
+# This case deliberately does NOT canonicalise: the unresolved path IS the
+# input under test. helpers.sh canonicalises CASE_TMP, so build the
+# unresolved path explicitly.
+raw="$(mktemp -d -t wk-symlink.XXXXXX)"
+trap 'rm -rf "$raw"' EXIT
+mkdir -p "$raw/repo"
+( cd "$raw/repo" \
+  && git init -q -b main \
+  && git config user.email "test@example.com" \
+  && git config user.name "Test" \
+  && git config core.hooksPath /dev/null \
+  && git commit -q --allow-empty -m "chore(seed): initial" )
+
+got=$( cd "$raw/repo" && source "$LIB" && worktree_kind )
+[[ "$got" == "main" ]] \
+  || { echo "  worktree_kind returned '$got' for a main checkout reached via a symlink; want 'main'" >&2; exit 1; }
+```
+
+- [ ] **Step 11: Run it to verify it fails**
+
+```bash
+cd claude/.claude/tests/session-lib && bash run.sh
+```
+
+Expected: `5 passed, 1 failed`, with `failed cases: 23-worktree-kind-main-via-symlink`
+and the message `worktree_kind returned 'linked' ... want 'main'`.
+
+If it passes already, `mktemp` on this machine is not returning a symlinked
+path. Report that rather than proceeding -- the fix would then be unverified.
+
+- [ ] **Step 12: Make both comparisons symmetric**
+
+In `claude/.claude/lib/session.sh`, in `worktree_kind`:
+
+```bash
+-  common=$(cd "$(git rev-parse --git-common-dir 2>/dev/null)" 2>/dev/null && pwd || true)
++  common=$(cd "$(git rev-parse --git-common-dir 2>/dev/null)" 2>/dev/null && pwd -P || true)
+```
+
+And in `check_worktree_pending`, which repeats the same comparison:
+
+```bash
+-  git_com=$(cd "$(git rev-parse --git-common-dir 2>/dev/null)" 2>/dev/null && pwd || true)
++  git_com=$(cd "$(git rev-parse --git-common-dir 2>/dev/null)" 2>/dev/null && pwd -P || true)
+```
+
+`pwd -P` is POSIX and present in bash 3.2. Do not switch to `realpath` --
+it is not on stock macOS.
+
+- [ ] **Step 13: Run every affected suite**
+
+```bash
+cd claude/.claude/tests/session-lib && bash run.sh
+```
+
+Expected: `6 passed, 0 failed`.
+
+```bash
+cd claude/.claude/tests/worktree-guard && bash run.sh
+```
+
+Expected: `5 passed, 0 failed`. This suite canonicalises its own fixture
+path, so it passed before the fix and must still pass after it.
+
+```bash
+cd claude/.claude/tests/arm-worktree-guard && bash run.sh
+```
+
+Expected: `4 passed, 0 failed`.
+
+```bash
+cd claude/.claude/tests/commit-scope && bash run.sh
+```
+
+Expected: `35 passed, 0 failed`.
+
+- [ ] **Step 14: Commit the fix separately**
+
+```bash
+git add claude/.claude/lib/session.sh \
+        claude/.claude/tests/session-lib/cases/23-worktree-kind-main-via-symlink.sh
+git commit -m "fix(claude): compare physical paths when detecting a linked worktree"
+```
 
 ---
 
