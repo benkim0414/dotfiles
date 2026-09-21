@@ -55,6 +55,14 @@ fi
 
 COMMAND=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // ""')
 
+# Strip from the -m argument onward, so a banned form quoted inside a commit
+# message is not mistaken for a command. Known limitation: this also hides
+# anything chained AFTER the message, so `git commit -m "x" && git add -A`
+# is not caught. The common shape puts staging first (`git add -A && git
+# commit -m "x"`), which is still caught. The -a guard below has always
+# made this same trade.
+cmd_no_msg=$(printf '%s' "$COMMAND" | sed 's/ -m ["'"'"'$].*//')
+
 # =====================================================================
 # Git guards — only relevant for git add/commit/push/merge/rebase/cherry-pick
 # =====================================================================
@@ -68,7 +76,7 @@ if [[ ! "$COMMAND" =~ git[[:space:]]+(add|commit|push|merge|rebase|cherry-pick) 
 fi
 
 # --- Block blanket staging commands ---
-if [[ "$COMMAND" =~ git[[:space:]]+add[[:space:]]+(-A|--all|--update|-u|\.(\ |$)) ]]; then
+if [[ "$cmd_no_msg" =~ git[[:space:]]+add[[:space:]]+(-A|--all|--update|-u|\.(\ |$)) ]]; then
   echo "BLOCKED: Stage specific files instead of everything." >&2
   echo "" >&2
   echo "  Use: git add <file1> <file2> ..." >&2
@@ -83,9 +91,9 @@ fi
 
 # --- Block git commit -a (bypasses selective staging) ---
 if [[ "$COMMAND" =~ git[[:space:]]+commit ]]; then
-  # Strip the -m argument content to avoid false positives where -a appears
-  # inside the commit message string (e.g., git commit -m "add -a flag support").
-  cmd_no_msg=$(printf '%s' "$COMMAND" | sed 's/ -m ["'"'"'$].*//')
+  # cmd_no_msg (hoisted above) already strips the -m argument content to
+  # avoid false positives where -a appears inside the commit message string
+  # (e.g., git commit -m "add -a flag support").
   if [[ "$cmd_no_msg" =~ git[[:space:]]+commit[[:space:]]+.*(-a(\ |$)|-am(\ |$)|--all) ]]; then
     echo "BLOCKED: Do not use 'git commit -a' — it bypasses selective staging." >&2
     echo "" >&2
