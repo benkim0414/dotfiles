@@ -199,17 +199,6 @@
         ]
       }
     ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash $HOME/.claude/hooks/resolve-pr-refs.sh",
-            "timeout": 10
-          }
-        ]
-      }
-    ],
     "PreToolUse": [
       {
         "matcher": "Read|NotebookRead|mcp__qmd__get|Bash|Grep",
@@ -270,15 +259,6 @@
         ]
       },
       {
-        "matcher": "ExitWorktree",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash $HOME/.claude/hooks/worktree-exited.sh"
-          }
-        ]
-      },
-      {
         "matcher": "Bash|Write|Edit|NotebookEdit|CronCreate|CronDelete|RemoteTrigger|Read|NotebookRead|Grep|mcp__qmd__get|mcp__qmd__multi_get",
         "hooks": [
           {
@@ -296,17 +276,6 @@
             "type": "command",
             "command": "bash $HOME/.claude/hooks/failure-recovery.sh",
             "timeout": 5
-          }
-        ]
-      }
-    ],
-    "PostCompact": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash $HOME/.claude/hooks/restore-git-context.sh",
-            "timeout": 10
           }
         ]
       }
