@@ -55,13 +55,18 @@ fi
 
 COMMAND=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // ""')
 
-# Strip from the -m argument onward, so a banned form quoted inside a commit
-# message is not mistaken for a command. Known limitation: this also hides
-# anything chained AFTER the message, so `git commit -m "x" && git add -A`
-# is not caught. The common shape puts staging first (`git add -A && git
-# commit -m "x"`), which is still caught. The -a guard below has always
-# made this same trade.
-cmd_no_msg=$(printf '%s' "$COMMAND" | sed 's/ -m ["'"'"'$].*//')
+# Strip from the message argument onward, so a banned form quoted inside a
+# commit message is not mistaken for a command. Two passes: plain ` -m `
+# drops the whole ` -m "..."` tail (nothing downstream looks for a bare -m),
+# and the combined short form ` -am ` drops only the message, KEEPING the
+# `-am` token itself -- the -a/-am detection below matches against this same
+# cmd_no_msg and needs `-am` still visible. `git commit -am "mentions git
+# add"` must neither read back as a real `git add` nor lose its `-am` flag.
+# Known limitation: this also hides anything chained AFTER the message, so
+# `git commit -m "x" && git add -A` is not caught. The common shape puts
+# staging first (`git add -A && git commit -m "x"`), which is still caught.
+cmd_no_msg=$(printf '%s' "$COMMAND" \
+  | sed -e 's/ -m ["'"'"'$].*//' -e 's/\( -am\) ["'"'"'$].*/\1/')
 
 # =====================================================================
 # Git guards — only relevant for git add/commit/push/merge/rebase/cherry-pick
@@ -70,7 +75,12 @@ cmd_no_msg=$(printf '%s' "$COMMAND" | sed 's/ -m ["'"'"'$].*//')
 # NotebookEdit) is enforced by the dedicated worktree-guard.sh hook.
 # This hook only enforces git-command guards (no commit on main).
 
-# Fast exit for non-git commands (the vast majority of Bash calls).
+# Fast exit for non-git commands (the vast majority of Bash calls). This is
+# a "does this text MENTION one of these verbs" pre-filter, not a "does this
+# command DO X" decision, so it deliberately matches raw $COMMAND rather
+# than cmd_no_msg: under-matching here would silently skip every guard
+# below for a real git action, while over-matching only costs a few more
+# regex tests that themselves match cmd_no_msg correctly.
 if [[ ! "$COMMAND" =~ git[[:space:]]+(add|commit|push|merge|rebase|cherry-pick) ]]; then
   exit 0
 fi
@@ -86,11 +96,16 @@ if [[ "$cmd_no_msg" =~ git[[:space:]]+add[[:space:]]+(-A|--all|--update|-u|\.(\ 
   exit 2
 fi
 
-# Allowed git-add — no branch checks needed.
-[[ "$COMMAND" =~ git[[:space:]]+add ]] && exit 0
+# Allowed git-add — no branch checks needed. "Does this command run
+# git add" is a DO-check, so it matches cmd_no_msg: a `git commit -am`
+# whose MESSAGE merely mentions "git add" must not hit this early exit
+# and skip the -a guard below.
+[[ "$cmd_no_msg" =~ git[[:space:]]+add ]] && exit 0
 
 # --- Block git commit -a (bypasses selective staging) ---
-if [[ "$COMMAND" =~ git[[:space:]]+commit ]]; then
+# DO-check ("is this a commit"), so it gates on cmd_no_msg like the check
+# inside it, not on raw $COMMAND.
+if [[ "$cmd_no_msg" =~ git[[:space:]]+commit ]]; then
   # cmd_no_msg (hoisted above) already strips the -m argument content to
   # avoid false positives where -a appears inside the commit message string
   # (e.g., git commit -m "add -a flag support").
@@ -114,14 +129,20 @@ if git rev-parse --git-dir >/dev/null 2>&1; then
 fi
 
 # --- Block commit on main ---
-if [[ "$COMMAND" =~ git[[:space:]]+commit && "$BRANCH" == "$MAIN_BRANCH" ]]; then
+# DO-check + a blocking exit, so it must not fire from message text (e.g. a
+# `git merge ... -m "...git commit..."` merge-commit message) -- match
+# cmd_no_msg.
+if [[ "$cmd_no_msg" =~ git[[:space:]]+commit && "$BRANCH" == "$MAIN_BRANCH" ]]; then
   echo "BLOCKED: Cannot commit directly on '${MAIN_BRANCH}'." >&2
   echo "Call EnterWorktree() and commit on the isolated feature branch." >&2
   exit 2
 fi
 
 # --- Inject staged file context at commit time ---
-if [[ ! "$COMMAND" =~ git[[:space:]]+commit ]]; then
+# DO-check gating whether this is actually a commit; a non-commit command
+# (e.g. a merge) whose message happens to mention "commit" must not trigger
+# commit-time context injection -- match cmd_no_msg.
+if [[ ! "$cmd_no_msg" =~ git[[:space:]]+commit ]]; then
   exit 0
 fi
 
@@ -146,6 +167,10 @@ source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${
 source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}")")/../lib/commit-scope.sh"
 
 # Parse declared scope from commit message (only scoped form counts).
+# Deliberate exception to the cmd_no_msg rule used everywhere else in this
+# file: this is the one place that WANTS the message text, so it must read
+# raw $COMMAND -- cmd_no_msg has already stripped the very content being
+# extracted here.
 scope_msg=""
 msg_pat_dquote='-m[[:space:]]+"([^"]*)"'
 msg_pat_squote="-m[[:space:]]+'([^']*)'"
