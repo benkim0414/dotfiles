@@ -10,7 +10,7 @@ Reduce the Claude Code hook layer to exactly the three enforcements that are
 worth enforcing mechanically -- worktree isolation, atomic commits, and
 conventional commits -- and delete everything else.
 
-Target: 4 hook registrations and ~715 lines, down from 14 registrations and
+Target: 4 hook registrations and ~650 lines, down from 14 registrations and
 2,443 lines of hook and lib code.
 
 ## Problem
@@ -233,10 +233,22 @@ everything else.
 
 ### 2. `hooks/git-safety.sh` -> `hooks/commit-guard.sh` -- rename and trim
 
-296 -> ~270 lines. Per D5 and D6: remove the `NO_PR` variable, its inline
-`CLAUDE_GIT_WORKFLOW` read, and the `"$NO_PR" != "true" &&` condition from
-both the merge/rebase/cherry-pick guard and the push guard. No change to the
-`git add`, `git commit -a`, commit-on-main, or scope logic.
+296 -> ~205 lines. Per D5 and D6, four spans go:
+
+| Lines | What |
+| --- | --- |
+| 53-56 | the `NO_PR` variable and its inline `CLAUDE_GIT_WORKFLOW` read |
+| 115-124 | the merge/rebase/cherry-pick-on-main guard |
+| 126-133 | the `git push --delete` pre-filter -- dead once the push guard goes, since its only job is letting deletions escape it |
+| 135-201 | the push-to-main guard, its `BLOCKED` message, and the `block_push` refspec logic |
+
+Deleting only the `"$NO_PR" != "true" &&` condition would invert the
+behaviour, not remove it: the remaining `if [[ $COMMAND =~ git merge && $BRANCH
+== $MAIN_BRANCH ]]` would block every local merge to main, which is the normal
+flow here. D5 says both operations become unconditionally allowed, so the
+guards go.
+
+No change to the `git add`, `git commit -a`, commit-on-main, or scope logic.
 
 ### 3. `hooks/worktree-guard.sh`, `hooks/worktree-entered.sh` -- unchanged
 
