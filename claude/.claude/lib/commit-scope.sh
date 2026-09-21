@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # commit-scope.sh — signal-driven commit-scope validation, repo-agnostic.
-#                   Sourced by hooks/git-safety.sh and tests/commit-scope.
+#                   Sourced by hooks/commit-guard.sh and tests/commit-scope.
 #
 # Four signals (computed against the current repo's filesystem + git log):
 #   S1 universal filesystem container name (with history escape)
