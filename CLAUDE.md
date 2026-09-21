@@ -427,7 +427,7 @@ Real scopes are whatever component names appear in the current repo's
 `git log`. Examples below use `<component>` placeholders; substitute
 your repo's actual components.
 
-## Examples
+## Commit scope examples
 
 ```text
 # Good
