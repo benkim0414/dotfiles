@@ -1,7 +1,7 @@
 # Trim the hook layer to three enforcements
 
 Date: 2026-09-21
-Status: approved, not yet implemented
+Status: implemented on worktree-git-guardrail-gaps
 Branch: `worktree-git-guardrail-gaps`
 
 ## Goal
@@ -442,10 +442,33 @@ covers the syntax scan.
 ## Risks
 
 **Loss of the semantic permission layer while live secrets are unrotated.**
-D7 removes the check for shell-expanded secret paths (`$HOME/.ssh/*`,
-`/Users/ben/.ssh/*`) and the `rm -rf` bypass forms (`\rm`, `command rm`). The
-literal-path `deny` globs stay, so the common forms are still blocked. This
-lands while `zsh/.zshenv` holds four unrotated live credentials
+D7 removes every check that a glob cannot express. The full list, wider than
+an earlier draft of this spec claimed:
+
+- `curl … | sh` and `wget … | bash`. No glob equivalent survives — the `curl`
+  ask rules cover only `-X POST/PUT/DELETE/PATCH`, `-d` and `--data`. This is
+  the largest single item: piping the network into a shell moves from
+  always-prompt to classifier-judged.
+- `base64 | curl`, `tar | curl`, `gpg | curl` exfiltration shapes. No
+  equivalent.
+- The whole of `check_web_fetch`. Neither list holds a single `WebFetch`
+  entry, so dynamic-DNS and paste hosts, oversized query strings,
+  base64-shaped payloads and URLs embedding local paths are all
+  classifier-only now.
+- `check_file_edit`, which flagged edits to live `~/.claude/…` from outside
+  the current worktree. `worktree-guard.sh` resolves symlinks and allows any
+  path outside the worktree root, and `~/.claude/hooks/*` resolves into the
+  main checkout — so a worktree session can write through the stow symlinks
+  and nothing flags it. `deny` holds only `Edit(~/.claude/.credentials.json)`.
+- Secret-path spellings with no glob: braced `${HOME}/…`, `$HOME/.gnupg/`,
+  `/Users/ben/.gnupg/`, `/Users/ben/.ssh/config`, `/Users/ben/.ssh/id_ecdsa*`.
+
+The mitigation, which the narrower claim obscured: `defaultMode: "auto"`
+sends every unmatched call to the classifier, so "no rule" means "judged",
+not "silently allowed". The 52 `deny` and 84 `ask` rules are untouched and
+still cover the literal forms.
+
+This lands while `zsh/.zshenv` holds four unrotated live credentials
 (`GITHUB_ACCESS_TOKEN`, `SENTRY_AUTH_TOKEN`, `ARGOCD_API_TOKEN`,
 `MDB_MCP_CONNECTION_STRING`). Rotating those is the mitigation and is tracked
 separately; it is not a reason to keep 220 lines of hook.
