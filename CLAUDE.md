@@ -214,10 +214,11 @@ them (overlay wins); they live in the base, not an overlay, because they
 are personal cross-device config.
 
 Instructions layer separately from settings: `claude/.claude/CLAUDE.md` holds
-personal defaults and imports company-wide instructions via
-`@CLAUDE.company.md` (a native Claude Code import, resolved relative to the
-stowed `~/.claude/CLAUDE.md`). `claude-sync` does not touch CLAUDE.md -- the
-import is resolved by Claude Code at load time.
+the commit rules and nothing else. `claude/.claude/CLAUDE.company.md` is still
+stowed but no longer imported -- it is kept as the source for per-project
+company config. Everything else that used to live globally now belongs in a
+project file, so each repo can run the workflow its characteristics call for.
+`claude-sync` touches neither file.
 
 ## Response readability
 
@@ -322,8 +323,10 @@ User-scope defaults (in `claude/.claude/settings.base.json`):
   `mcp__qmd__status`) are auto-allowed by exact name so wiki queries skip the
   classifier. qmd indexing/write tools are intentionally not allowed --
   indexing stays a manual user action. The "when to query the wiki" directive
-  lives in `claude/.claude/CLAUDE.company.md` (imported into the personal
-  `CLAUDE.md`), not in settings. Verified by the same
+  lives in `claude/.claude/CLAUDE.company.md`, not in settings. That file is
+  currently unreferenced -- the global `CLAUDE.md` no longer imports it -- so
+  the directive is dormant until a project file imports it. The permission
+  allows are unaffected and are still verified by the same
   `mcp-permission-overlay` test.
 
 Per-repo overrides live in `.claude/settings.local.json` (gitignored).

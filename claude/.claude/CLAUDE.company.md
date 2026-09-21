@@ -1,7 +1,9 @@
 # Company configuration
 
-Company-specific Claude Code instructions. Kept separate from personal
-defaults in `CLAUDE.md`; imported from there via `@CLAUDE.company.md`.
+Company-specific Claude Code instructions. Currently unreferenced: the global
+`CLAUDE.md` no longer imports this file. Kept as the source for per-project
+company config -- a project file opts in with an `@~/.claude/CLAUDE.company.md`
+import line.
 
 ## Company knowledge (qmd `wiki` collection)
 
