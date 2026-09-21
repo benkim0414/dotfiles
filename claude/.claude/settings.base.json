@@ -194,7 +194,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash $HOME/.claude/hooks/git-session-start.sh"
+            "command": "bash $HOME/.claude/hooks/arm-worktree-guard.sh"
           }
         ]
       }
