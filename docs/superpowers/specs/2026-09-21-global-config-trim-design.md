@@ -39,9 +39,14 @@ Everything else is removed, including the `CLAUDE.company.md` import, the
 Preferences block, and the qmd section. Rationale: the user wants the global
 file to carry only what is universal and load-bearing in every repo.
 
-Consequence, accepted: the never-assume rule survives only as auto-memory
-(`feedback_never_assume`), which is weaker than a CLAUDE.md instruction, and
-the company wiki-query directive goes dormant until re-imported per project.
+Consequences, all accepted. The never-assume rule survives only as auto-memory
+(`feedback_never_assume`), which is weaker than a CLAUDE.md instruction. The
+company wiki-query directive goes dormant until re-imported per project. Three
+further rules are dropped outright with no replacement anywhere, named here so
+the loss reads as a decision rather than an oversight: "never use emojis in
+responses", "present the dry-run/plan/diff form of a command before the apply
+form", and "always verify work before reporting completion" — the last now
+depends on `superpowers:verification-before-completion` being invoked.
 
 ### D2 — Workflow lives in `ops/CLAUDE.local.md`, untracked
 
@@ -75,11 +80,26 @@ signals here is a delta, not a restatement of the global. Other repos keep the
 hook's runtime warning; `ops/AGENTS.md` already states its own scope rule with
 real service names.
 
-### D5 — Hooks are untouched
+### D5 — Hooks are untouched, with one narrow exception
 
 Deleting the hook layer and adopting `git-guardrails-claude-code` is a
 separate change, deferred to its own brainstorm. Recorded here because it
 constrains what this change may assume.
+
+The exception: `git-safety.sh:246` and `:292` both ended their scope warning
+with `See CLAUDE.md > Commit rules > Scope.`, a path that resolves in no file
+once D4 moves the signals to a top-level `# Commit scope` section. Both strings
+now read `See CLAUDE.md > Commit scope.` The edit is text-only,
+behaviour-preserving, and asserted by no test. The constraint defers hook
+*removal*; it does not require shipping a dangling pointer this branch created.
+
+### D6 — `ops/CLAUDE.local.md` does not import the company file
+
+`CLAUDE.company.md` carries the wiki-query directive, and `ops` is the company
+repo where it matters most, so omitting it is a choice rather than an accident.
+Wiki queries stay off until the per-project config pass reaches them. Opting in
+later costs one unbackticked `@~/.claude/CLAUDE.company.md` line; the
+`mcp__qmd__*` allow-list in `settings.overlay.json` is already in place.
 
 Findings that the follow-up must resolve:
 
@@ -103,7 +123,7 @@ working after the global text is removed.
 
 ### 1. `claude/.claude/CLAUDE.md` — replace entirely
 
-Final contents, 13 lines:
+Final contents, 11 lines:
 
 ```markdown
 # Commit rules
@@ -197,6 +217,13 @@ it. That costs one external-import approval dialog.
 
 Remove the sentinel line once both runs pass.
 
+**Outcome, 2026-09-21:** both runs returned `loaded-ok`, so no fallback was
+taken and D2 stands as written. Caveat on the method: echoing a sentinel cannot
+distinguish "loaded as an instruction" from "read the obviously-named file in
+the working directory with a tool", so this is strong evidence rather than
+proof. A decisive version moves the file aside and asserts `NONE` first, as an
+absence control.
+
 ### V2 — the file is not stageable in ops
 
 ```sh
@@ -241,7 +268,10 @@ only passes after merge.
 | never-assume degrades to auto-memory only | Accepted; re-add per project if adherence drops |
 | Wiki-query directive dormant everywhere | `CLAUDE.company.md` is kept on disk for per-project reuse |
 | No-pr repos lose the execution handoffs | Their chain still comes from `git-session-start.sh`; handoffs return with their project config |
-| Service repos lose commit-scope guidance | `git-safety.sh` still warns at runtime |
+| Service repos lose commit-scope guidance | `git-safety.sh` still warns at runtime, and now points at a heading that exists |
+| PR-mode repos other than `ops` lose the whole workflow, including `never squash, never rebase` | Accepted. The chain injection at `git-session-start.sh:160` and `restore-git-context.sh:47` sits behind `workflow_no_pr`, so PR-mode repos get only the ungated `Call EnterWorktree()` line, and `superpowers-workflow.md` does not carry the merge rule either. A squashed merge is not trivially undone, so the per-project rollout should not be open-ended |
+| `git clean -fdx` in `ops` destroys the workflow file irrecoverably | Accepted. `.git/info/exclude` does not protect a file from `clean -x`, and `ops` is an Nx monorepo where that reset is routine. The text exists in one place on one machine. The Step 7 fallback layout — body at `~/.claude/ops-workflow.md`, stub import in the repo — would survive it |
+| A `CLAUDE.local.md` can suppress a repo's `AGENTS.md` | Not a risk in `ops`, which has a `CLAUDE.md -> AGENTS.md` symlink, so the local file is additive. It is a precondition for the deferred rollout: in a repo with `AGENTS.md` and no `CLAUDE.md`, adding `CLAUDE.local.md` silently stops the team contract loading. Check per repo before repeating the pattern |
 
 ## Out of scope
 

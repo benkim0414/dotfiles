@@ -227,6 +227,12 @@ git status --porcelain claude/.claude/CLAUDE.company.md
 
 Expected: `present`, then no output.
 
+**Amended after execution:** a later commit on this branch edited
+`CLAUDE.company.md` to correct its header, which had claimed the global file
+imports it. The assertion above holds at the end of Task 2 and no longer holds
+at the tip of the branch. What must stay true is that the file is never
+deleted.
+
 - [ ] **Step 6: Verify hooks and settings are untouched**
 
 Run:
@@ -515,4 +521,12 @@ No `claude-sync` run is needed. It regenerates `~/.claude/settings.json` from th
 
 **Type consistency.** The sentinel string `PERSONAL_WORKFLOW_SENTINEL` and its value `loaded-ok` are identical in Steps 2, 4, 6, and 7. The anchor `# Brewfile rules` matches the verified line 398. The commit scope `claude` is used in both commits.
 
-**One discrepancy, resolved:** the spec says the new global file is 13 lines; it is 11. The spec counted the surrounding code fence. Task 2 asserts 11.
+**One discrepancy, resolved:** the spec says the new global file is 13 lines; it is 11. The spec counted the surrounding code fence. Task 2 asserts 11, and the spec has since been corrected.
+
+## Deviations taken during execution
+
+Recorded so the plan matches the branch it describes.
+
+1. **Task 2 Step 7 said report, not fix.** Three passages claimed the global file imports `CLAUDE.company.md`, which Task 2 had just made false. They were fixed in their own commit rather than merely reported, because the preceding commit created the falsehood and leaving it would ship self-contradicting documentation.
+2. **One hook was edited, against the plan's global constraint.** `git-safety.sh:246` and `:292` pointed at `CLAUDE.md > Commit rules > Scope`, a path that resolves in no file after Task 1. Both now read `CLAUDE.md > Commit scope`. Text-only, no test asserts the wording, approved explicitly before the edit. The constraint defers hook removal, which remains untouched.
+3. **`## Examples` was renamed `## Commit scope examples`** in the project file — a review finding, not part of any task.
