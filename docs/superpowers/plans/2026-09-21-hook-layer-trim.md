@@ -1550,6 +1550,33 @@ the enforcer explicit:
 +Enforced by `claude/.claude/hooks/commit-guard.sh`.
 ```
 
+- [ ] **Step 5b: Fix the two stale `git-safety` references in surviving files**
+
+Task 4 renamed the hook but deliberately left comment references alone. Most
+of them die with their files in Tasks 6-7, but these two live in files that
+survive the whole change and are named by no other task:
+
+`claude/.claude/lib/commit-scope.sh:3`:
+
+```
+-#                   Sourced by hooks/git-safety.sh and tests/commit-scope.
++#                   Sourced by hooks/commit-guard.sh and tests/commit-scope.
+```
+
+`claude/.claude/tests/commit-scope/helpers.sh:40`:
+
+```
+-# Uses a feature branch (not main) so git-safety.sh's main-branch guard does
++# Uses a feature branch (not main) so commit-guard.sh's main-branch guard does
+```
+
+Re-run the suite afterwards — both are comments, so it must stay at
+`35 passed, 0 failed`:
+
+```bash
+cd claude/.claude/tests/commit-scope && bash run.sh
+```
+
 - [ ] **Step 6: Update the package-conventions bullet in `CLAUDE.md`**
 
 The bullet beginning "The `claude/` package stows to `~/.claude/`" describes
