@@ -66,6 +66,9 @@ codex/.codex/goals_*.sqlite*
 codex/.codex/memories_*.sqlite*
 codex/.codex/shell_snapshots/
 codex/.codex/skills/
+!codex/.codex/skills/
+codex/.codex/skills/*
+!codex/.codex/skills/eli5/
 codex/.codex/sqlite/
 codex/.codex/state*.sqlite*
 codex/.codex/thread-writer-locks/
@@ -83,3 +86,4 @@ codex/.codex/version.json
 !/pi/.pi/agent/skills/
 /pi/.pi/agent/skills/*
 !/pi/.pi/agent/skills/factory/
+!/pi/.pi/agent/skills/eli5/
