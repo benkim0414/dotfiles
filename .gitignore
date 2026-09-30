@@ -9,12 +9,23 @@ tmux/.config/tmux/plugins
 # Local installer-managed binaries
 bin/.local/bin/ansible
 bin/.local/bin/ansible-*
+bin/.local/bin/agent
 bin/.local/bin/amd-*
 bin/.local/bin/claude
+bin/.local/bin/cua-driver
 bin/.local/bin/ds4-cockpit
+bin/.local/bin/factory
+bin/.local/bin/grok
 bin/.local/bin/herdr
 bin/.local/bin/herdr-reviewr
+bin/.local/bin/hermes
+bin/.local/bin/hermes-acp
+bin/.local/bin/hermes-agent
+bin/.local/bin/node
+bin/.local/bin/npm
+bin/.local/bin/npx
 bin/.local/bin/terminal-browser
+bin/.local/bin/toshy-*
 bin/.local/bin/orca-ide
 herdr/.config/herdr/*.log
 herdr/.config/herdr/.plugins.lock
@@ -39,6 +50,8 @@ codex/.codex/.codex-global-state.json.bak*
 codex/.codex/.personality_migration
 codex/.codex/.sandbox_migration
 codex/.codex/ambient-suggestions/
+codex/.codex/app-server-control/
+codex/.codex/app-server-daemon/
 codex/.codex/auth.json
 codex/.codex/cache/
 codex/.codex/chrome-native-hosts-v2.json
@@ -57,6 +70,7 @@ codex/.codex/memories/
 codex/.codex/memories-*/
 codex/.codex/models_cache.json
 codex/.codex/plugins/
+codex/.codex/packages/
 codex/.codex/process_manager/
 codex/.codex/queue_*.sqlite*
 codex/.codex/sessions/
@@ -74,11 +88,17 @@ codex/.codex/state*.sqlite*
 codex/.codex/thread-writer-locks/
 codex/.codex/thread_history_*.sqlite*
 codex/.codex/tmp/
+codex/.codex/tui-thread-reference-capabilities/
 codex/.codex/.tmp/
 codex/.codex/vendor_imports/
 codex/.codex/version.json
 # Playwright MCP browser output (snapshots, console logs)
 .playwright-mcp/
+
+# Python bytecode and local shell backups
+__pycache__/
+*.py[cod]
+zsh/.zshrc.bak.*
 
 # Pi runtime state stays device-local; portable defaults and our skill are tracked.
 /pi/.pi/agent/*
