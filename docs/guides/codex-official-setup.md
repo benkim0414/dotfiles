@@ -63,6 +63,14 @@ Start a fresh Codex session; an existing session can retain injected instruction
 
 The isolated strict app-server probe is documented in the Task 2 report. It does not establish that host-provided Pages, pets, or connector tools refresh correctly; inspect those in the fresh interactive session. New shared skills need additional disable entries and another discovery check.
 
+## Terminal status line
+
+The base configuration selects native footer fields in this order: model, current directory, Git branch, session tokens used, context percentage used, 5-hour capacity remaining, and weekly capacity remaining. This matches the information categories in the repository's Claude status-line script, with native Codex formatting.
+
+`used-tokens` is cumulative session usage, not the current context token count. The usage-limit fields show percentages remaining, whereas the Claude script shows percentages used. Codex omits unavailable fields and handles terminal width itself; the configuration does not reproduce Claude's dirty marker, abbreviated paths, threshold colors, or two-line wrapping.
+
+Use `/statusline` to select and reorder fields interactively. Sync supplies the base selection when no live `tui.status_line` is set and preserves an explicit live selection. Restart the CLI after applying the base configuration to check the footer; this setting targets the terminal CLI.
+
 ## Roll back
 
 Close Codex sessions. With explicit approval to restore primary/live files, use the manifest to restore only migration files from the private backup, preserving symlinks and modes. For paths recorded absent, remove only the migration-created file at that exact path after confirming no subsequent user edits. Restore recorded managed link topology if activation changed it. Restore config.toml directly; do not run the new sync against the old base. This restores model, trust, plugin enablement, instructions, and old hook configuration without touching credentials or shared assets.

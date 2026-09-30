@@ -33,6 +33,17 @@ hooks = false
 notifications = true
 # Match the existing terminal color theme.
 theme = "catppuccin-mocha"
+# Match Claude's information categories using native footer fields.
+# Tokens are session totals; rate-limit percentages show remaining capacity.
+status_line = [
+  "model",
+  "current-dir",
+  "git-branch",
+  "used-tokens",
+  "context-used",
+  "five-hour-limit",
+  "weekly-limit",
+]
 
 [history]
 # Keep conversation history available across Codex sessions.
