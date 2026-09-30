@@ -14,61 +14,19 @@ model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
 # Ask before leaving the sandbox or doing approval-sensitive work.
 approval_policy = "on-request"
-# Route approval requests through Codex's risk-based reviewer so subagents do
-# not interrupt the user for routine low-risk operations.
-approvals_reviewer = "auto_review"
+# Human review for approval-sensitive boundary crossings.
+approvals_reviewer = "user"
 
 # Avoid launching a GUI editor from Codex.
 file_opener = "none"
 # Enable live web search for current documentation and time-sensitive facts.
 web_search = "live"
 
-[auto_review]
-# Keep the reviewer narrow: routine repo work can proceed, boundary crossings
-# still require explicit user intent or a durable scoped rule.
-policy = """
-Approve routine sandbox-compatible repository work: read-only commands, status
-inspection, diffs, formatting checks, and test commands that write only inside
-the active workspace or temporary directories.
-
-Approve GitHub-scoped collaboration and branch sync commands when they are run
-from the active repository worktree and are limited to ordinary PR, issue,
-fetch, pull, or push workflows. This includes GitHub CLI PR view, list,
-create, edit, comment, check, status, and review operations; GitHub CLI issue
-view, list, create, edit, comment, and status operations; git fetch; git pull;
-and ordinary non-force current-branch git push to GitHub remotes.
-
-Approve normal local worktree lifecycle operations for this repository:
-creating linked worktrees under .worktrees/, editing registered linked
-worktrees, switching to main, merging a registered worktree branch into main,
-removing the linked worktree, pruning stale worktree metadata, and deleting a
-merged non-protected worktree branch with git branch -d.
-
-Deny destructive commands, broad arbitrary shell approvals, credential access,
-writes outside configured workspace roots, non-GitHub network access, direct
-GitHub API access through arbitrary runtimes or shell scripts, GitHub merge
-operations including gh pr merge, branch deletion outside the registered
-worktree cleanup flow, repository administration, settings or secrets changes,
-destructive issue or PR operations, force pushes, history rewrites, and broad
-branch mutation commands. These sensitive operations require direct user
-approval and must not be approved by auto-review.
-
-When an approval request includes a persistent prefix rule, approve only narrow
-operation-specific prefixes such as gh pr view, gh pr list, gh pr create, gh pr
-edit, gh pr comment, gh pr check, gh pr status, gh pr review, gh issue view,
-gh issue list, gh issue create, gh issue edit, gh issue comment, gh issue
-status. Under the current prefix-rule model, git network commands (git fetch,
-git pull, git push) should use per-command approval unless the approval
-mechanism can enforce the exact GitHub, active-worktree, and non-destructive
-constraints. Do not approve broad runtime prefixes such as bash, python, node,
-ruby, perl, or sh.
-"""
-
 [features]
 # Enable durable /goal workflows for long-running tasks with clear stopping conditions.
 goals = true
-# Keep command hooks explicit in the checked-in base config.
-hooks = true
+# Custom command hooks are retired.
+hooks = false
 
 [tui]
 # Let Codex surface terminal notifications when attention is needed.
@@ -80,105 +38,155 @@ theme = "catppuccin-mocha"
 # Keep conversation history available across Codex sessions.
 persistence = "save-all"
 
-[[hooks.PreToolUse]]
-matcher = "^Bash$"
-
-[[hooks.PreToolUse.hooks]]
-type = "command"
-command = 'bash "$HOME/.codex/hooks/atomic-commits.sh"'
-timeout = 10
-statusMessage = "Checking atomic commit workflow"
-
-[[hooks.PreToolUse]]
-matcher = "apply_patch|Edit|Write|MultiEdit|NotebookEdit"
-
-[[hooks.PreToolUse.hooks]]
-type = "command"
-command = 'bash "$HOME/.codex/hooks/worktree-guard.sh"'
-timeout = 10
-statusMessage = "Checking worktree isolation"
-
-[[hooks.PreToolUse]]
-matcher = "local_shell|shell|shell_command|exec_command|Bash|Shell|apply_patch|Edit|Write|grep_files|ctx_execute|ctx_execute_file|ctx_batch_execute|ctx_fetch_and_index|ctx_search|ctx_index|mcp__"
-
-[[hooks.PreToolUse.hooks]]
-type = "command"
-command = 'PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$HOME/.local/share/mise/installs/node/24/bin:/usr/local/bin:/usr/bin:/bin" context-mode hook codex pretooluse'
-timeout = 10
-statusMessage = "Indexing tool call context"
-
-[[hooks.PostToolUse]]
-
-[[hooks.PostToolUse.hooks]]
-type = "command"
-command = 'PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$HOME/.local/share/mise/installs/node/24/bin:/usr/local/bin:/usr/bin:/bin" context-mode hook codex posttooluse'
-timeout = 10
-statusMessage = "Indexing tool result context"
-
-[[hooks.SessionStart]]
-
-[[hooks.SessionStart.hooks]]
-type = "command"
-command = 'PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$HOME/.local/share/mise/installs/node/24/bin:/usr/local/bin:/usr/bin:/bin" context-mode hook codex sessionstart'
-timeout = 10
-statusMessage = "Loading context-mode session context"
-
-[[hooks.PreCompact]]
-
-[[hooks.PreCompact.hooks]]
-type = "command"
-command = 'PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$HOME/.local/share/mise/installs/node/24/bin:/usr/local/bin:/usr/bin:/bin" context-mode hook codex precompact'
-timeout = 10
-statusMessage = "Saving context before compaction"
-
-[[hooks.UserPromptSubmit]]
-
-[[hooks.UserPromptSubmit.hooks]]
-type = "command"
-command = 'PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$HOME/.local/share/mise/installs/node/24/bin:/usr/local/bin:/usr/bin:/bin" context-mode hook codex userpromptsubmit'
-timeout = 10
-statusMessage = "Indexing user prompt context"
-
-[[hooks.Stop]]
-
-[[hooks.Stop.hooks]]
-type = "command"
-command = 'PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$HOME/.local/share/mise/installs/node/24/bin:/usr/local/bin:/usr/bin:/bin" context-mode hook codex stop'
-timeout = 10
-statusMessage = "Saving session context"
-
-[mcp_servers.context-mode]
-# Launch context-mode as a Codex MCP server.
-command = "context-mode"
-# Allow all context-mode MCP tools without per-call approval prompts.
-default_tools_approval_mode = "approve"
-
-[marketplaces.superpowers-marketplace]
-# Load the Superpowers plugin marketplace from its Git repository.
-source = "https://github.com/obra/superpowers-marketplace.git"
-# Tell Codex to treat the marketplace source as a Git checkout.
-source_type = "git"
-
-[marketplaces.compound-engineering-plugin]
-# Load the Compound Engineering plugin marketplace from its Git repository.
-source = "https://github.com/EveryInc/compound-engineering-plugin.git"
-# Tell Codex to treat the marketplace source as a Git checkout.
-source_type = "git"
-
-[marketplaces.agentmemory]
-# Load the Agentmemory plugin marketplace from its Git repository.
-source = "https://github.com/rohitg00/agentmemory.git"
-# Tell Codex to treat the marketplace source as a Git checkout.
-source_type = "git"
-
 [plugins."superpowers@superpowers-marketplace"]
-enabled = true
+enabled = false
 
 [plugins."compound-engineering@compound-engineering-plugin"]
-enabled = true
+enabled = false
 
 [plugins."agentmemory@agentmemory"]
+enabled = false
+
+# Installed first-party runtime catalog, verified against its marketplace.json.
+[marketplaces.openai-primary-runtime]
+source_type = "local"
+source = "/home/benkim0414/.cache/codex-runtimes/codex-primary-runtime/plugins/openai-primary-runtime"
+
+[plugins."documents@openai-primary-runtime"]
 enabled = true
+
+[plugins."pdf@openai-primary-runtime"]
+enabled = true
+
+[plugins."spreadsheets@openai-primary-runtime"]
+enabled = true
+
+[plugins."presentations@openai-primary-runtime"]
+enabled = true
+
+[plugins."template-creator@openai-primary-runtime"]
+enabled = true
+
+# Shared third-party skills remain on disk for other tools; disable in Codex.
+[[skills.config]]
+path = "/home/benkim0414/.agents/skills/archify/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/home/benkim0414/.agents/skills/archify-review/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/home/benkim0414/.agents/skills/ask-matt/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/home/benkim0414/.agents/skills/code-review/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/home/benkim0414/.agents/skills/codebase-design/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/home/benkim0414/.agents/skills/diagnosing-bugs/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/home/benkim0414/.agents/skills/domain-modeling/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/home/benkim0414/.agents/skills/find-skills/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/home/benkim0414/.agents/skills/grill-me/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/home/benkim0414/.agents/skills/grill-with-docs/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/home/benkim0414/.agents/skills/grilling/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/home/benkim0414/.agents/skills/handoff/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/home/benkim0414/.agents/skills/implement/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/home/benkim0414/.agents/skills/improve-codebase-architecture/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/home/benkim0414/.agents/skills/prototype/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/home/benkim0414/.agents/skills/research/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/home/benkim0414/.agents/skills/resolving-merge-conflicts/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/home/benkim0414/.agents/skills/setup-matt-pocock-skills/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/home/benkim0414/.agents/skills/tdd/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/home/benkim0414/.agents/skills/teach/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/home/benkim0414/.agents/skills/terminal-browser/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/home/benkim0414/.agents/skills/to-questionnaire/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/home/benkim0414/.agents/skills/to-spec/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/home/benkim0414/.agents/skills/to-tickets/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/home/benkim0414/.agents/skills/triage/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/home/benkim0414/.agents/skills/wait-what/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/home/benkim0414/.agents/skills/wayfinder/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/home/benkim0414/.agents/skills/wizard/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/home/benkim0414/.agents/skills/writing-for-agents/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/home/benkim0414/.codex/skills/eli5/SKILL.md"
+enabled = false
 
 [otel]
 # Label telemetry metadata as local development when telemetry is enabled.
