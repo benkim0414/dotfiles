@@ -49,6 +49,7 @@ codex/.codex/.codex-global-state.json
 codex/.codex/.codex-global-state.json.bak*
 codex/.codex/.personality_migration
 codex/.codex/.sandbox_migration
+codex/.codex/.sqlite-maintenance.lock
 codex/.codex/ambient-suggestions/
 codex/.codex/app-server-control/
 codex/.codex/app-server-daemon/
@@ -77,6 +78,7 @@ codex/.codex/sessions/
 codex/.codex/session_index.jsonl
 codex/.codex/context-mode/sessions/
 codex/.codex/goals_*.sqlite*
+codex/.codex/generated_images/
 codex/.codex/memories_*.sqlite*
 codex/.codex/shell_snapshots/
 codex/.codex/skills/
