@@ -10,25 +10,12 @@ an update as part of setup.
   file and deploys to `~/.pi/agent/settings.defaults.json`.
 - `~/.pi/agent/settings.json` is the active device-local settings file. Keep it
   writable and do not track it.
-- `~/.pi/agent/skills/` contains intentional portable skills; downloaded
-  extensions, sessions, and authentication remain device-local.
-
-## Use Factory explicitly
-
-Ordinary `pi` remains the personal coding agent. For the Factory coordinator,
-open Pi in a Herdr pane, invoke `/skill:factory`, then identify the local
-`benkim0414/factory` checkout. The skill coordinates Factory's documented CLI
-and manual worker workflow; it does not automatically launch, supervise, steer,
-or cancel workers. Steps that require a worker pane or prompt delivery remain
-manual, and no automatic worker behavior is promised.
-
-The Factory skill is explicitly activated and is not automatically selected in
-normal Pi sessions or workers. Factory's existing status, ticket, attempt,
-worktree, and review records remain authoritative.
+- This package installs no Pi skills. Downloaded extensions, sessions, and
+  authentication remain device-local.
 
 ## Package policy
 
-Start with Pi core and the curated Factory skill; do not install community
+Start with Pi core; do not install community
 extensions by default. The design shortlist in
 [`docs/superpowers/specs/2026-09-16-pi-factory-herdr-design.md`](../superpowers/specs/2026-09-16-pi-factory-herdr-design.md)
 lists optional web, MCP, question, todo, lens, background-task, subagent, and
@@ -64,10 +51,10 @@ into this repository or edit it as a tracked configuration. Do not install
 Herdr integrations for other worker harnesses as part of Pi setup.
 
 Authentication remains Pi-local. The portable defaults select
-`openai-codex/gpt-5.6-sol` with `high` thinking for new sessions because Pi is
-the Factory coordinator on this device. The OAuth credential remains only in
-Pi's device-local authentication store; never put credentials in portable
-defaults or the Factory skill. Use `/login` only when provider readiness fails,
+`openai-codex/gpt-6.1-sol` with `high` thinking for new sessions. The OAuth
+credential remains only in Pi's device-local authentication store; never put
+credentials in portable
+defaults. Use `/login` only when provider readiness fails,
 and use `/model` when temporarily selecting another model for a session.
 
 For the live verification, restart Pi in a Herdr pane selected by the user.
@@ -77,12 +64,6 @@ the pane transition from working to idle. If an interactive terminal or provider
 is unavailable, record this smoke test as unverified rather than changing login
 or model configuration.
 
-To verify the optional Factory path, explicitly invoke `/skill:factory` and ask
-only for a status check against the user's existing Factory checkout. Confirm it
-uses that checkout's documented CLI and neither creates a ticket nor claims
-automatic worker control. If no checkout is available, leave this smoke test
-unverified; do not clone a checkout or create Factory state as implicit setup.
-
 ## Deploy the package
 
 Run Stow from the durable dotfiles checkout, not from a temporary worktree that
@@ -90,7 +71,7 @@ may later be deleted. Inspect existing paths for symlinks and conflicts before
 deployment. Use these commands only during authorized deployment:
 
 ```sh
-mkdir -p "$HOME/.pi/agent/skills" "$HOME/.pi/agent/extensions"
+mkdir -p "$HOME/.pi/agent/extensions"
 stow --no-folding --simulate --verbose -t "$HOME" pi
 stow --no-folding -t "$HOME" pi
 ```
@@ -148,7 +129,7 @@ jq -n --slurpfile defaults pi/.pi/agent/settings.defaults.json '
    packages:["fixture-package"], compaction:{enabled:false,keepRecentTokens:1234}}
   * $defaults[0]
   | .defaultProvider == "openai-codex"
-    and .defaultModel == "gpt-5.6-sol"
+    and .defaultModel == "gpt-6.1-sol"
     and .defaultThinkingLevel == "high"
     and .packages == ["fixture-package"]
     and .compaction.keepRecentTokens == 1234
@@ -159,7 +140,7 @@ jq -n --slurpfile defaults pi/.pi/agent/settings.defaults.json '
 ```
 
 For a Stow check, use a disposable target from `mktemp -d`, run Stow with
-`--no-folding`, and confirm `.pi`, `agent`, and `skills` are real directories
+`--no-folding`, and confirm `.pi` and `agent` are real directories
 while only intended files are links. Keep synthetic runtime fixtures in that
 target; they must not become repository changes. Also confirm the runtime
 paths are ignored:
