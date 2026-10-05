@@ -155,7 +155,5 @@ fixing separately.
 
 ## Source
 
-Found during code review of the response-readability branch.
-
-- Design: `docs/superpowers/specs/2026-09-18-claude-response-readability-design.md`
-- Plan: `docs/superpowers/plans/2026-09-18-claude-response-readability.md`
+Found during code review of the response-readability branch. That branch's
+output style, spec, and plan have since been removed.

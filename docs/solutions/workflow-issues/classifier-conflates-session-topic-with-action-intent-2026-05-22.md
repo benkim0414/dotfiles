@@ -148,9 +148,6 @@ keeping it in the loop for anything broader.
 
 ## Related
 
-- `docs/solutions/documentation-gaps/env-driven-default-doc-drift-2026-05-22.md`
-  — the prior learning from this same session about env-driven workflow
-  defaults; the classifier was reacting to that conversation topic.
 - `claude/.claude/CLAUDE.md` (`### No-pr mode (opt-in)` section) — the
   config that makes this dotfiles repo treat local merge + push as the
   canonical finishing flow.

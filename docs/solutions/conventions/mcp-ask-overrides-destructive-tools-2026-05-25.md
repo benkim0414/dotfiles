@@ -47,7 +47,7 @@ silent allow.
 
 After editing `settings.base.json`, run `claude-sync` to regenerate
 `~/.claude/settings.json`. Worktree edits do not flow until merged to main and
-re-synced -- see `claude-permissions-hardening.md` under "Pitfalls".
+re-synced.
 
 Document the override in `CLAUDE.md` under "Permission posture" so future
 readers do not have to grep the JSON to learn why two tools re-enter the
@@ -112,9 +112,6 @@ CLAUDE.md "Permission posture" companion note:
 
 ## Related
 
-- `docs/solutions/claude-permissions-hardening.md` -- broader hardening of
-  `defaultMode: "auto"` with the semantic policy hook; documents the
-  precedence assumption (`deny > ask > allow`) that this pattern depends on.
 - `docs/solutions/conventions/mcp-compressor-empty-schema-2026-05-22.md` --
   separate MCP failure mode (compressor dropped 2026-05-22); reinforces that
   blanket MCP wrappers are fragile.

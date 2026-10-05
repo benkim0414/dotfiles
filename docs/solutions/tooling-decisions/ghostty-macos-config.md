@@ -153,5 +153,4 @@ These held up under source review and are worth not re-litigating:
 
 ## Related
 
-- `docs/solutions/integration-issues/tmux-attention-no-alert-on-askuserquestion.md`
 - Spec: `docs/superpowers/specs/2026-07-06-ghostty-macos-audit-design.md`

@@ -131,14 +131,3 @@ bash tests/wiki-stage/run.sh 2>&1 | grep -c "COMMIT REJECTED"   # 0
 ```
 
 Full suite after the fix: 10/10 pass, zero hook noise.
-
-## Related
-
-- [Behavior-preserving bash hook dedup](../design-patterns/behavior-preserving-bash-hook-dedup-2026-06-16.md)
-  — a complementary git-fixture hygiene pitfall (macOS `mktemp` fixtures need
-  `pwd -P` so `/var` vs `/private/var` symlink resolution does not break git
-  path comparisons). Same discipline (isolate the fixture from ambient git
-  internals), different mechanism.
-- [Commit-scope signal-driven validation](commit-scope-signal-driven-validation-2026-05-21.md)
-  — documents the `git-safety.sh` / commit-scope hook that fires inside
-  unguarded fixtures.

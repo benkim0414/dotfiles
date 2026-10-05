@@ -314,9 +314,6 @@ result: PROMPT  -- destructive op still gated
 - `docs/solutions/developer-experience/claude-settings-permission-rule-warnings-2026-06-12.md`
   -- bare `mcp__*` is invalid in `allow`; only `deny`/`ask` accept the
   server-segment wildcard.
-- `docs/solutions/claude-permissions-hardening.md` -- foundational hardening
-  doc; its open caveat that the deny/ask/allow precedence was "not
-  verbatim-documented" is now resolved by the official-docs quote above.
 - Separate MCP failure mode (not precedence-related):
   `docs/solutions/developer-experience/mcp-compressor-empty-schema-2026-05-22.md`.
 - 2026-06-30 incident that drove the "Single-authority caveat" update: the

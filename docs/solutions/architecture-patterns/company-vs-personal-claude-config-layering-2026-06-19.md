@@ -138,5 +138,3 @@ not the worktree.
   doc applies that to the company/personal split via @CLAUDE.company.md.
 - docs/solutions/developer-experience/claude-settings-permission-rule-warnings-2026-06-12.md
   -- why allow rules need a literal, glob-free server segment (no bare mcp__* in allow).
-- docs/solutions/claude-permissions-hardening.md
-  -- foundational defaultMode:auto + classifier + claude-sync re-sync pitfall.
