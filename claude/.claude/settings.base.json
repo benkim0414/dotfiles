@@ -7,7 +7,6 @@
   "theme": "custom:catppuccin",
   "effortLevel": "auto",
   "defaultMode": "auto",
-  "outputStyle": "Readable",
   "permissions": {
     "allow": [
       "Read",
@@ -186,49 +185,6 @@
       "mcp__*__*write*",
       "mcp__plugin_context-mode_context-mode__ctx_purge",
       "mcp__plugin_context-mode_context-mode__ctx_upgrade"
-    ]
-  },
-  "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash $HOME/.claude/hooks/arm-worktree-guard.sh"
-          }
-        ]
-      }
-    ],
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash $HOME/.claude/hooks/commit-guard.sh"
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit|NotebookEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash $HOME/.claude/hooks/worktree-guard.sh"
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "EnterWorktree",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash $HOME/.claude/hooks/worktree-entered.sh"
-          }
-        ]
-      }
     ]
   },
   "statusLine": {

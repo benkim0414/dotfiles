@@ -151,8 +151,3 @@ have left a path unguarded if its `Edit(...)` pair were missing. A `Write(path)`
 entry was *never* contributing protection (the file-permission layer never
 consulted it), so deleting it changes nothing — verify the `Edit(<path>)`
 sibling exists, then remove the `Write`/`NotebookEdit` line.
-
-## Related
-
-- `docs/solutions/claude-permissions-hardening.md` — the permission
-  posture this repo hardens toward (secret-path deny rules, auto mode).
