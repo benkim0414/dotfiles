@@ -273,17 +273,14 @@ User-scope defaults (in `claude/.claude/settings.base.json`):
   `mcp__slack__*` are auto-allowed; the five destructive tools
   (`jira_delete_issue`, `jira_remove_issue_link`, `jira_remove_watcher`,
   `confluence_delete_page`, `confluence_delete_attachment`) are re-gated
-  by exact name in `ask` (ask beats allow). Verified by
-  `claude/.claude/tests/mcp-permission-overlay/run.sh`.
+  by exact name in `ask` (ask beats allow).
 - qmd company-wiki posture (company overlay): the four read tools
   (`mcp__qmd__query`, `mcp__qmd__get`, `mcp__qmd__multi_get`,
   `mcp__qmd__status`) are auto-allowed by exact name so wiki queries skip the
   classifier. qmd indexing/write tools are intentionally not allowed --
   indexing stays a manual user action. There is no standing "when to query the
   wiki" directive: it lived in `claude/.claude/CLAUDE.company.md`, which was
-  deleted, so wiki consultation is per-project or ad hoc. The permission allows
-  are unaffected and are still verified by the same `mcp-permission-overlay`
-  test.
+  deleted, so wiki consultation is per-project or ad hoc.
 
 Per-repo overrides live in `.claude/settings.local.json` (gitignored).
 Add `permissions.ask` or `permissions.deny` rules there for sensitive
