@@ -70,32 +70,35 @@ Design: `docs/superpowers/specs/2026-06-22-wiki-stage-docs-mirror-design.md`.
 workflow patterns), organized by category with YAML frontmatter (`module`, `tags`,
 `problem_type`). Relevant when implementing or debugging in a documented area.
 
-# MCP servers (Playwright)
+# Global tools (kept light)
 
-The `insane-search` plugin's engine escalates DataDome/Turnstile-class sites to
-MCP Playwright (its R6/R7 routes call `mcp__playwright__*` tools). Register the
-server device-local (user scope), matching the convention for the other MCP
-servers in `~/.claude.json`:
+Every Claude Code session gets only two tools. Anything else belongs to the
+repo that needs it.
 
-```sh
-claude mcp add --scope user playwright -- npx @playwright/mcp@latest --browser chrome
-```
+- **RTK** (`brew "rtk"`): a `PreToolUse` hook on `Bash` (`rtk hook claude`)
+  rewrites supported commands (git, test runners, builds) to compact output.
+  Failed runs keep their full output, retrievable with `rtk recall <id>`; run
+  a command raw with `rtk proxy <cmd>`. Read/Grep/Glob bypass it. Defaults
+  only -- no config file is stowed; telemetry is off unless opted in.
+- **Hindsight** coding-agent integration: its `SessionStart`,
+  `UserPromptSubmit` and `Stop` hooks are declared in `settings.base.json`
+  (pointing at `~/.hindsight/coding-agents/dist/`), because `claude-sync`
+  overwrites `~/.claude/settings.json` and would drop hooks the Hindsight
+  installer writes there. Config lives in `~/.hindsight/coding-agent.json`:
+  one `work` bank for `~/workspace`, `optInOnly`, `project:{gitProject}` tags.
 
-- Server name MUST be `playwright` so tools register as `mcp__playwright__*`
-  (the names the engine and SKILL.md R6/R7 call).
-- `--browser chrome` uses the installed Google Chrome channel (Brewfile cask
-  `google-chrome`) -- stronger bot-detection evasion than bundled Chromium, and
-  no extra browser binary to download.
-- Device-local (`~/.claude.json`), not committed -- re-run the command on each
-  device. Verify with `claude mcp list` (expect `✔ Connected`).
-- insane-search engine deps run from `~/.local/share/insane-search/venv`; the
-  engine re-fetches any internal API found via Playwright network capture.
-- Verified 2026-06-25: headed real Chrome passed g2's DataDome challenge and
-  rendered the full page via `browser_snapshot` (the R6 rendered-DOM route).
-  g2 server-renders its HTML and exposes no internal JSON API, so the R7
-  API-recon route was N/A -- snapshot is the winning route for that class of site.
+User-scope MCP servers (device-local, `~/.claude.json`) are limited to
+`hindsight`, `atlassian` and `slack`. Per-repo tools -- plugins such as
+Compound Engineering, and MCP servers such as Serena, Nx, Terraform or EKS --
+are enabled only in that repo. For repos shared with teammates, put them in
+the gitignored `.claude/settings.local.json` (plugins) and local-scope MCP
+servers (`claude mcp add --scope local ...`) rather than committed
+`.claude/settings.json` or `.mcp.json`.
 
-Design: `docs/superpowers/specs/2026-06-25-playwright-mcp-design.md`.
+Removed on 2026-10-06 to keep the global config light: context-mode,
+Caveman (and its `caveman/` Stow package), Superpowers, claude-md-management,
+insane-search, and the `qmd`, `sequential-thinking` and `playwright` MCP
+servers. Rationale and fact-checked comparison: `~/.claude/reports/`.
 
 # herdr
 
@@ -146,9 +149,8 @@ Design: `docs/superpowers/specs/2026-07-09-herdr-tmux-keybindings-design.md`.
 - **Before stowing `bin`**: run `mkdir -p ~/.local/bin` first. Otherwise Stow tree-folds and creates a directory symlink, which breaks other tools that install into `~/.local/bin`.
 - **Before stowing `codex`**: run `mkdir -p ~/.codex` first, then `codex-sync`. Same tree-folding issue -- Codex writes runtime state (history, logs) into `~/.codex/`.
 - **Before stowing `herdr`**: herdr auto-creates `~/.config/herdr/config.toml` (an `onboarding` stub) on first run. Remove it (`rm -f ~/.config/herdr/config.toml`) before `stow -t ~ herdr`, or Stow refuses to overlay the non-symlink target.
-- **`caveman` needs no pre-`mkdir`**: `~/.config/caveman/` holds only `config.json`; all runtime state (`.caveman-active`, `.caveman-sessions/`, `.caveman-*.jsonl`) is written to `~/.claude/`. Tree-folding into a directory symlink is therefore safe, unlike `herdr`, which rewrites its own config at runtime.
 - **Never `stow` from a worktree**. Stow resolves links relative to the package dir it is given, so stowing from `.claude/worktrees/<name>/` produces symlinks into a directory that disappears when the worktree is removed. Stow from the main checkout after merge. `claude-sync` is safe either way: it hardcodes `DOTFILES="${DOTFILES_DIR:-$HOME/workspace/dotfiles}"`, so it always targets the main checkout -- which also means it will not see worktree-only changes until they merge.
-- **A package's `tests/` needs `.stow-local-ignore`**. Stow links every top-level entry of a package, so `<package>/tests/` lands in `~/tests` unless excluded. The `zsh` package leaked this way for months (`~/tests -> workspace/dotfiles/zsh/tests`). `caveman`, `zsh`, `bin`, and `atuin` each carry a `.stow-local-ignore` holding `^/tests$`; `bin/tests/stow-hygiene/run.sh` fails if a package with `tests/` lacks one. Note that `.stow-local-ignore` **replaces** Stow's default ignore list rather than adding to it — that is why `git/.stow-local-ignore` re-states `\.git`, so its own `.gitignore` can stow.
+- **A package's `tests/` needs `.stow-local-ignore`**. Stow links every top-level entry of a package, so `<package>/tests/` lands in `~/tests` unless excluded. The `zsh` package leaked this way for months (`~/tests -> workspace/dotfiles/zsh/tests`). `zsh`, `bin`, and `atuin` each carry a `.stow-local-ignore` holding `^/tests$`; `bin/tests/stow-hygiene/run.sh` fails if a package with `tests/` lacks one. Note that `.stow-local-ignore` **replaces** Stow's default ignore list rather than adding to it — that is why `git/.stow-local-ignore` re-states `\.git`, so its own `.gitignore` can stow.
 - **Stow refuses absolute symlinks**. Files installed by external tools (claude, git-filter-repo, uv, uvx) must NOT be added to the bin package -- leave them as-is in `~/.local/bin`.
 - **After restructuring a package dir**, use `stow -t ~ -R <package>` to clean up stale symlinks.
 
@@ -157,9 +159,8 @@ Design: `docs/superpowers/specs/2026-07-09-herdr-tmux-keybindings-design.md`.
 - Each top-level directory is a Stow package mirroring the home directory layout.
 - Config files are edited in-place in the package dir; symlinks make changes live immediately.
 - Custom scripts go in `bin/.local/bin/` and must be executable.
-- A package's tests live inside that package: `<package>/tests/<name>/run.sh` (`atuin/`, `bin/`, `caveman/`, `zsh/`). The `claude/` package nests them one level deeper, at `claude/.claude/tests/<name>/run.sh`, because the whole package stows into `~/.claude/`. Suites share an `ok`/`bad` counter and `exit 0`/`exit 1`; before trusting a new assertion, read `docs/solutions/conventions/assertions-that-pass-when-they-cannot-check-2026-09-18.md` -- the convention makes "could not check" look identical to "checked and passed".
+- A package's tests live inside that package: `<package>/tests/<name>/run.sh` (`atuin/`, `bin/`, `zsh/`). The `claude/` package nests them one level deeper, at `claude/.claude/tests/<name>/run.sh`, because the whole package stows into `~/.claude/`. Suites share an `ok`/`bad` counter and `exit 0`/`exit 1`; before trusting a new assertion, read `docs/solutions/conventions/assertions-that-pass-when-they-cannot-check-2026-09-18.md` -- the convention makes "could not check" look identical to "checked and passed".
 - The `claude/` package stows to `~/.claude/` (rules, plugins, and project instructions). `settings.json` is generated by `claude-sync` -- not stowed directly. PR mechanics go through `compound-engineering:ce-commit-push-pr` and `ce-resolve-pr-feedback`; the local `pr/` plugin was extracted to `benkim0414/skills` in commit `58762e3` and the `pr@skills` external replacement is no longer declared in `settings.base.json`.
-- The `caveman/` package stows one file, `~/.config/caveman/config.json`, pinning the caveman plugin's default mode to `off`. See "Response readability".
 - The `codex/` package stows a minimal global `~/.codex/config.toml`. Stable Codex settings live in `codex/.codex/config.base.toml`; run `codex-sync` to regenerate the gitignored `config.toml` before stowing or after editing the base config. Codex writes UI notices, plugin state, and local project trust entries into `config.toml`, so that generated file is intentionally ignored.
 
   **The codex worktree guard does not restrain shell commands.** Its shell and
@@ -198,7 +199,9 @@ Two `settings.base.json` keys make the plugin set reproducible on any
 device through synced settings alone -- no manual `/plugin marketplace
 add`:
 
-- `enabledPlugins` toggles each plugin on (`"plugin@marketplace": true`).
+- `enabledPlugins` toggles each plugin. Globally only
+  `compound-engineering` is declared, and it is `false`: repos turn it on
+  in their own settings.
 - `extraKnownMarketplaces` declares the marketplace each plugin comes
   from (`github` source + `repo`). On a fresh device Claude Code
   auto-installs every declared marketplace after a one-time trust
@@ -207,9 +210,8 @@ add`:
 
 A plugin needs an `enabledPlugins` entry AND -- unless it lives on the
 official Anthropic marketplace -- an `extraKnownMarketplaces` entry for
-its marketplace. `claude-md-management@claude-plugins-official` rides the
-auto-known official marketplace, so it has no `extraKnownMarketplaces`
-entry by design. Both keys are objects, so `claude-sync` deep-merges
+its marketplace. Plugins from the official Anthropic marketplace need no
+`extraKnownMarketplaces` entry. Both keys are objects, so `claude-sync` deep-merges
 them (overlay wins); they live in the base, not an overlay, because they
 are personal cross-device config.
 
@@ -218,17 +220,7 @@ the commit rules and nothing else. Everything else that used to live globally
 now belongs in a project file, so each repo can run the workflow its
 characteristics call for. `claude-sync` does not touch it.
 
-## Response readability
-
-Prose compression from the `caveman` plugin is defaulted off through the
-stowed `caveman/.config/caveman/config.json` (`{"defaultMode": "off"}`). The
-plugin stays enabled, so the `caveman:cavecrew` agents and `caveman:*` skills
-stay available and `/caveman full` still activates compression for one
-session. Resolution order is the `CAVEMAN_DEFAULT_MODE` env var, then a
-repo-local `.caveman/config.json` or `.caveman.json` found by walking up from
-the working directory, then the user config, then `full` -- so a stray
-repo-local file or an exported env var silently overrides the default.
-`caveman/tests/caveman-default-off/run.sh` guards all three.
+## Theme
 
 Theme contrast and role separation are guarded by
 `claude/.claude/tests/theme-contrast/run.sh`, which asserts every foreground
@@ -248,22 +240,11 @@ User-scope defaults (in `claude/.claude/settings.base.json`):
 - Most MCP tools are not pre-approved in `allow` (bare `mcp__*` is
   invalid there -- only `deny`/`ask` accept bare wildcards). Under
   `defaultMode: "auto"` the classifier judges each unmatched MCP call.
-  The exception is context-mode: the nine non-destructive context-mode
-  tools (`ctx_batch_execute`, `ctx_doctor`, `ctx_execute`,
-  `ctx_execute_file`, `ctx_fetch_and_index`, `ctx_index`, `ctx_insight`,
-  `ctx_search`, `ctx_stats`) are listed by exact name in `allow` so they
-  skip the classifier and never prompt; `ctx_purge` and `ctx_upgrade`
-  stay in `ask`.
 - `ask` rules gate destructive + high-impact MCP mutations: the
   `mcp__*__*delete*`, `*remove*`, `*sync*`, `*deploy*`, `*apply*`,
   `*patch*`, `*write*` globs (the `mcp__*__` server-segment wildcard is
   valid only in `ask`/`deny` -- `allow` requires a literal, glob-free
-  server segment, so do not move these to `allow`), plus two destructive
-  context-mode tools --
-  `mcp__plugin_context-mode_context-mode__ctx_purge` (wipes the FTS5
-  knowledge base, irreversible) and
-  `mcp__plugin_context-mode_context-mode__ctx_upgrade` (pulls, builds,
-  and installs from GitHub). The non-destructive write verbs
+  server segment, so do not move these to `allow`). The non-destructive write verbs
   (`create`/`update`/`edit`/`add`/`transition`) are intentionally NOT
   globally gated -- under `defaultMode: auto` they fall to the
   classifier, and the company overlay auto-allows them for atlassian and
@@ -274,13 +255,6 @@ User-scope defaults (in `claude/.claude/settings.base.json`):
   (`jira_delete_issue`, `jira_remove_issue_link`, `jira_remove_watcher`,
   `confluence_delete_page`, `confluence_delete_attachment`) are re-gated
   by exact name in `ask` (ask beats allow).
-- qmd company-wiki posture (company overlay): the four read tools
-  (`mcp__qmd__query`, `mcp__qmd__get`, `mcp__qmd__multi_get`,
-  `mcp__qmd__status`) are auto-allowed by exact name so wiki queries skip the
-  classifier. qmd indexing/write tools are intentionally not allowed --
-  indexing stays a manual user action. There is no standing "when to query the
-  wiki" directive: it lived in `claude/.claude/CLAUDE.company.md`, which was
-  deleted, so wiki consultation is per-project or ad hoc.
 
 Per-repo overrides live in `.claude/settings.local.json` (gitignored).
 Add `permissions.ask` or `permissions.deny` rules there for sensitive
