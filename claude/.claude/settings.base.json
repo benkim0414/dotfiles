@@ -201,14 +201,5 @@
         "hooks": [{ "type": "command", "command": "node \"$HOME/.hindsight/coding-agents/dist/claude-stop-hook.js\"", "timeout": 60 }]
       }
     ]
-  },
-  "enabledPlugins": {
-    "compound-engineering@compound-engineering-plugin": false
-  },
-  "extraKnownMarketplaces": {
-    "compound-engineering-plugin": {
-      "source": { "source": "github", "repo": "EveryInc/compound-engineering-plugin" },
-      "autoUpdate": true
-    }
   }
 }
