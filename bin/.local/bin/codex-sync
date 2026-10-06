@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-set -euo pipefail
-script_path="$(readlink -f "${BASH_SOURCE[0]}")"
-script_root="$(cd "$(dirname "$script_path")/../../.." && pwd -P)"
-exec python3 "${DOTFILES:-$script_root}/codex/.codex/sync_config.py" "${DOTFILES:-$script_root}"
