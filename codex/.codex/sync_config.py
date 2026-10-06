@@ -82,6 +82,11 @@ def main():
         for relative in ['hooks.json', 'hooks/atomic-commits.sh', 'hooks/worktree-guard.sh']:
             path = codex / relative
             if path.exists() or path.is_symlink():
+                if relative == 'hooks.json' and path.is_file():
+                    groups = json.loads(path.read_text()).get('hooks', {}).values()
+                    commands = [hook for entries in groups for entry in entries for hook in entry.get('hooks', [])]
+                    if commands and all(hook.get('type') == 'command' and 'herdr-agent-state.sh' in hook.get('command', '') for hook in commands):
+                        continue
                 targets = {directory / relative, home / 'workspace/dotfiles/codex/.codex' / relative}
                 if not path.is_symlink() or path.resolve() not in {target.resolve() for target in targets}:
                     raise PreflightError(f'incompatible unmanaged hook source: {path}')
@@ -109,17 +114,12 @@ def main():
         result[key] = base[key]
     result.pop('auto_review', None)
     result.pop('hooks', None)
-    result.setdefault('features', {})['hooks'] = False
+    result.setdefault('features', {})['hooks'] = base['features']['hooks']
     result.get('mcp_servers', {}).pop('context-mode', None)
-    for key in ['agentmemory', 'compound-engineering-plugin', 'superpowers-marketplace']:
+    for key in ['agentmemory', 'compound-engineering-plugin', 'superpowers-marketplace', 'context-mode']:
         result.get('marketplaces', {}).pop(key, None)
-    for name, settings in base.get('plugins', {}).items():
-        if settings.get('enabled') is False:
-            result.setdefault('plugins', {}).setdefault(name, {})['enabled'] = False
-    owned = {entry['path']: entry for entry in base['skills']['config']}
-    owned_paths = {Path(path).resolve() for path in owned}
-    entries = [entry for entry in current.get('skills', {}).get('config', []) if Path(entry['path']).resolve() not in owned_paths]
-    result.setdefault('skills', {})['config'] = entries + list(owned.values())
+    for name in ['agentmemory@agentmemory', 'compound-engineering@compound-engineering-plugin', 'superpowers@superpowers-marketplace']:
+        result.get('plugins', {}).pop(name, None)
     text = serialize(result)
     # All refusal/parse/serialization checks above precede filesystem mutation.
     descriptor, temporary = tempfile.mkstemp(prefix='.config-sync-', dir=directory)

@@ -63,10 +63,17 @@ command = "context-mode"
 command = "local-tool"
 [marketplaces.agentmemory]
 source = "old"
+[marketplaces.context-mode]
+source_type = "git"
+source = "https://github.com/mksglu/context-mode.git"
 [marketplaces.other]
 source_type = "local"
 source = "/example/local"
 [plugins."agentmemory@agentmemory"]
+enabled = true
+[plugins."superpowers@superpowers-marketplace"]
+enabled = true
+[plugins."compound-engineering@compound-engineering-plugin"]
 enabled = true
 [plugins."pdf@openai-primary-runtime"]
 enabled = false
@@ -83,14 +90,16 @@ text = "line\\nquote\\\"unicode 한글"
     def assert_decisions(self):
         config = self.config()
         self.assertEqual((config['approval_policy'], config['approvals_reviewer'], config['sandbox_mode']), ('on-request', 'user', 'workspace-write'))
-        self.assertFalse(config['features']['hooks'])
+        self.assertTrue(config['features']['hooks'])
         self.assertNotIn('auto_review', config)
         self.assertNotIn('hooks', config)
         self.assertNotIn('context-mode', config.get('mcp_servers', {}))
+        self.assertNotIn('context-mode', config.get('marketplaces', {}))
         self.assertNotIn('agentmemory', config['marketplaces'])
-        self.assertFalse(config['plugins']['agentmemory@agentmemory']['enabled'])
-        self.assertEqual(len([entry for entry in config['skills']['config'] if not entry['enabled']]), 30)
-        self.assertTrue(all(entry['path'].startswith(str(self.home)) for entry in config['skills']['config']))
+        self.assertNotIn('agentmemory@agentmemory', config['plugins'])
+        self.assertNotIn('superpowers@superpowers-marketplace', config['plugins'])
+        self.assertNotIn('compound-engineering@compound-engineering-plugin', config['plugins'])
+        self.assertNotIn('skills', config)
 
     def test_merge_and_repeat_generation_does_not_activate(self):
         original = self.stale()
@@ -129,6 +138,28 @@ text = "line\\nquote\\\"unicode 한글"
         before = self.generated.read_bytes()
         self.run_sync(activate=True)
         self.assertEqual(before, self.generated.read_bytes())
+
+    def test_herdr_hooks_survive_activation_and_repeat(self):
+        self.generated.write_text(self.stale())
+        self.live.symlink_to(self.generated)
+        hooks = self.codex / 'hooks.json'
+        original = '{"hooks":{"SessionStart":[{"hooks":[{"type":"command","command":"bash \\\"$HOME/.codex/herdr-agent-state.sh\\\" session"}]}]}}'
+        hooks.write_text(original)
+        script = self.codex / 'herdr-agent-state.sh'
+        script.write_text('herdr fixture')
+        self.run_sync(activate=True)
+        self.assert_decisions()
+        self.assertEqual(hooks.read_text(), original)
+        self.assertEqual(script.read_text(), 'herdr fixture')
+        before = self.generated.read_bytes()
+        self.run_sync(activate=True)
+        self.assertEqual(hooks.read_text(), original)
+        self.assertEqual(before, self.generated.read_bytes())
+
+    def test_official_codex_skill_remains_available(self):
+        self.live.write_text('[[skills.config]]\npath = "' + str(self.home / '.codex/skills/.system/imagegen/SKILL.md') + '"\nenabled = true\n')
+        self.run_sync()
+        self.assertTrue(self.config()['skills']['config'][0]['enabled'])
 
     def test_home_symlink_same_regular_target(self):
         self.codex.rmdir()
@@ -195,7 +226,7 @@ text = "line\\nquote\\\"unicode 한글"
         self.run_sync(success=False)
         self.assertEqual(before, self.generated.read_bytes())
 
-    def test_symlink_skill_alias_cannot_reenable_retired_skill(self):
+    def test_shared_skill_alias_remains_available(self):
         skill = self.home / '.agents/skills/archify/SKILL.md'
         skill.parent.mkdir(parents=True)
         skill.write_text('fixture')
@@ -203,7 +234,8 @@ text = "line\\nquote\\\"unicode 한글"
         alias.symlink_to(skill)
         self.live.write_text('[[skills.config]]\npath = "' + str(alias) + '"\nenabled = true\n')
         self.run_sync()
-        self.assertFalse(any(entry['enabled'] for entry in self.config()['skills']['config']))
+        self.assertTrue(self.config()['skills']['config'][0]['enabled'])
+        self.assertEqual(skill.read_text(), 'fixture')
 
 
 if __name__ == '__main__':

@@ -25,8 +25,8 @@ web_search = "live"
 [features]
 # Enable durable /goal workflows for long-running tasks with clear stopping conditions.
 goals = true
-# Custom command hooks are retired.
-hooks = false
+# Keep the Herdr integration enabled; other command hooks are retired.
+hooks = true
 
 [tui]
 # Let Codex surface terminal notifications when attention is needed.
@@ -49,15 +49,6 @@ status_line = [
 # Keep conversation history available across Codex sessions.
 persistence = "save-all"
 
-[plugins."superpowers@superpowers-marketplace"]
-enabled = false
-
-[plugins."compound-engineering@compound-engineering-plugin"]
-enabled = false
-
-[plugins."agentmemory@agentmemory"]
-enabled = false
-
 # Installed first-party runtime catalog, verified against its marketplace.json.
 [marketplaces.openai-primary-runtime]
 source_type = "local"
@@ -77,127 +68,6 @@ enabled = true
 
 [plugins."template-creator@openai-primary-runtime"]
 enabled = true
-
-# Shared third-party skills remain on disk for other tools; disable in Codex.
-[[skills.config]]
-path = "/home/benkim0414/.agents/skills/archify/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/home/benkim0414/.agents/skills/archify-review/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/home/benkim0414/.agents/skills/ask-matt/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/home/benkim0414/.agents/skills/code-review/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/home/benkim0414/.agents/skills/codebase-design/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/home/benkim0414/.agents/skills/diagnosing-bugs/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/home/benkim0414/.agents/skills/domain-modeling/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/home/benkim0414/.agents/skills/find-skills/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/home/benkim0414/.agents/skills/grill-me/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/home/benkim0414/.agents/skills/grill-with-docs/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/home/benkim0414/.agents/skills/grilling/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/home/benkim0414/.agents/skills/handoff/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/home/benkim0414/.agents/skills/implement/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/home/benkim0414/.agents/skills/improve-codebase-architecture/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/home/benkim0414/.agents/skills/prototype/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/home/benkim0414/.agents/skills/research/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/home/benkim0414/.agents/skills/resolving-merge-conflicts/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/home/benkim0414/.agents/skills/setup-matt-pocock-skills/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/home/benkim0414/.agents/skills/tdd/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/home/benkim0414/.agents/skills/teach/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/home/benkim0414/.agents/skills/terminal-browser/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/home/benkim0414/.agents/skills/to-questionnaire/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/home/benkim0414/.agents/skills/to-spec/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/home/benkim0414/.agents/skills/to-tickets/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/home/benkim0414/.agents/skills/triage/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/home/benkim0414/.agents/skills/wait-what/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/home/benkim0414/.agents/skills/wayfinder/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/home/benkim0414/.agents/skills/wizard/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/home/benkim0414/.agents/skills/writing-for-agents/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/home/benkim0414/.codex/skills/eli5/SKILL.md"
-enabled = false
 
 [otel]
 # Label telemetry metadata as local development when telemetry is enabled.
