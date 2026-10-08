@@ -19,9 +19,9 @@
 ## Scope
 
 Scope names WHAT the commit changes (a component), not WHERE the file
-lives. Read the diff before choosing it. Real scopes are the component
-names already in the repo's `git log`. Omit the scope when no single
-component dominates.
+lives. Read the diff before choosing it. Prefer component names the
+repo's `git log` already uses. Omit the scope when no single component
+dominates.
 
 Reject a scope when it is:
 
@@ -30,10 +30,13 @@ Reject a scope when it is:
   `vendor`, `build`, `dist`, `target`, `packages`, `apps` -- unless the
   repo's `git log` already uses it as a scope.
 - **S2 - the repo basename**: e.g. `myapp` in repo `myapp/`. No exception.
-- **S3 - a path segment of the staged files**: the scope (or its `+s`
-  plural) equals a directory segment of a staged path, e.g. `spec` when
-  staging under `docs/superpowers/specs/`, `openspec` when staging under
-  `openspec/changes/` -- unless the repo's `git log` already uses it.
+- **S3 - an artifact directory of the staged files**: the scope (or its
+  `+s` plural) equals a staged path segment that names a tool or kind of
+  artifact rather than a component, e.g. `spec` when staging under
+  `docs/superpowers/specs/`, `openspec` when staging under
+  `openspec/changes/` -- unless the repo's `git log` already uses it. A
+  directory that is itself the component (a package, a module) is a
+  valid scope, even on its first commit.
 - **S4 - new**: allowed by S1-S3 but absent from `git log`. Not wrong, but
   confirm it names a component, not an artifact directory.
 
