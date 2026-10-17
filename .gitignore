@@ -94,6 +94,7 @@ codex/.codex/tui-thread-reference-capabilities/
 codex/.codex/.tmp/
 codex/.codex/vendor_imports/
 codex/.codex/version.json
+codex/.codex/worktrees/
 # Playwright MCP browser output (snapshots, console logs)
 .playwright-mcp/
 
