@@ -3,6 +3,7 @@ onboarding = false
 [terminal]
 default_shell = "zsh"
 shell_mode = "login"
+kitty_graphics = true
 
 [keys]
 prefix = "ctrl+s"
@@ -41,6 +42,3 @@ key = "ctrl+l"
 type = "plugin_action"
 command = "vim-herdr-navigation.right"
 description = "navigate right (vim/herdr)"
-
-[experimental]
-kitty_graphics = true

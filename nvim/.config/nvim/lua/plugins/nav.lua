@@ -71,7 +71,7 @@ return {
   },
   {
     "christoomey/vim-tmux-navigator",
-    dependencies = { "paulbkim-dev/vim-herdr-navigation" },
+    dependencies = { { "paulbkim-dev/vim-herdr-navigation", branch = "master" } },
     lazy = false,
     init = function()
       vim.g.tmux_navigator_no_mappings = 1
