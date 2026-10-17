@@ -4,6 +4,7 @@
   "defaultThinkingLevel": "high",
   "defaultProjectTrust": "ask",
   "enableSkillCommands": true,
+  "tuiMode": "regular",
   "compaction": {
     "enabled": true
   }

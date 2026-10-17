@@ -6,10 +6,11 @@ an update as part of setup.
 
 ## File map
 
-- `pi/.pi/agent/settings.defaults.json` is the portable, Stow-managed defaults
-  file and deploys to `~/.pi/agent/settings.defaults.json`.
-- `~/.pi/agent/settings.json` is the active device-local settings file. Keep it
-  writable and do not track it.
+- `pi/.pi/agent/settings.defaults.json` contains the tracked portable defaults.
+  Pi does not read this filename automatically.
+- `pi/.pi/agent/settings.json` is the Git-ignored active configuration, linked by
+  Stow to `~/.pi/agent/settings.json`. Pi reads and writes this file. Preserve
+  device-local preferences and package declarations when applying defaults.
 - This package installs no Pi skills. Downloaded extensions, sessions, and
   authentication remain device-local.
 
@@ -82,40 +83,26 @@ configuration.
 
 ## Apply portable defaults
 
-Defaults are applied as a JSON deep merge: existing settings first, portable
-defaults second. This deliberately restores the six values owned by this
-package while retaining unrelated local preferences. The existing settings
-file must be a JSON object; invalid input or another JSON type stops the update.
-If active settings do not exist, initialize them from the defaults.
+The portable defaults select `tuiMode: "regular"` so Pi uses terminal scrollback
+and tmux copy mode can navigate the transcript. Restart Pi to change its TUI mode;
+use `pi --continue` to resume the most recent session in the current directory.
 
-Before editing the real file, make a recoverable device-local backup. Use the
-native file-edit mechanism to perform the merge after required approval. Do not
-log the full settings or read authentication files. The following command is a
-fixture-only validation example: run it only with synthetic files, never with
-live settings paths, because it prints the merged JSON:
+Stow links files; it does not merge JSON. Before the first deployment on a device,
+initialize the Git-ignored `pi/.pi/agent/settings.json` from the portable defaults.
+If `~/.pi/agent/settings.json` already exists as a regular file, validate that it
+is a JSON object and move it to that Git-ignored repository path, preserving its
+contents. This migration requires approval for the home-directory write. Stop
+if the repository target already exists or the active file is an unexpected
+symlink; do not adopt or overwrite a conflict.
 
-```sh
-jq -s '.[0] * .[1]' existing-settings.json settings.defaults.json
-```
-
-For the real deployment, after the required approval, use only the native
-file-edit mechanism against the active settings file. Existing
-packages, resource paths, unknown keys, and additional `compaction` settings
-are preserved. Reapplying defaults deliberately selects
-`openai-codex/gpt-5.6-sol` at `high` thinking and restores
-`defaultProjectTrust`, `enableSkillCommands`, and `compaction.enabled`; no
-custom sync script is needed.
-
-Do not dump live settings into the shell or logs. A safe procedure is:
-
-1. Check whether `~/.pi/agent/settings.json` exists and is a JSON object.
-2. Copy it to a timestamped backup in the same device-local directory.
-3. Apply the defaults to the active file through the native file-edit
-   mechanism, without logging settings.
-4. If no active file exists, initialize it from the defaults.
-
-If the active file is malformed or not an object, stop and resolve it explicitly
-rather than overwriting it.
+Deep-merge portable defaults into the Git-ignored active file: existing settings
+first, defaults second. Preserve unknown keys, package declarations, and nested
+`compaction` settings. Do not print live settings or read authentication files.
+Then run the deployment commands above. Verify that the home-directory settings
+path resolves to the Git-ignored repository file and that `tuiMode` is `regular`.
+Subsequent Stow runs maintain the link; changes to the active repository file
+are immediately available to Pi. Changing the defaults template alone still
+requires applying its values to the active file.
 
 ## Verification
 
@@ -136,6 +123,7 @@ jq -n --slurpfile defaults pi/.pi/agent/settings.defaults.json '
     and .compaction.enabled == true
     and .defaultProjectTrust == "ask"
     and .enableSkillCommands == true
+    and .tuiMode == "regular"
 ' -e
 ```
 
@@ -161,7 +149,8 @@ settings, run:
 stow --no-folding -D -t "$HOME" pi
 ```
 
-Restore a changed active settings file from its device-local deployment backup
-only on explicit request. If undoing the newly installed native Herdr
-integration is also requested, run `herdr integration uninstall pi`. Never
+Before removing the package, preserve the active settings in the home directory
+if requested; unstowing removes its link but keeps the Git-ignored source file.
+If undoing the newly installed native Herdr integration is also requested, run
+`herdr integration uninstall pi`. Never
 recursively delete `.pi`.
