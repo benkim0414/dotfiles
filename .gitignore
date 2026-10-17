@@ -103,6 +103,6 @@ __pycache__/
 *.py[cod]
 zsh/.zshrc.bak.*
 
-# Pi runtime state and installed skills stay device-local; portable defaults are tracked.
+# Pi runtime state and installed skills stay device-local; shared settings are tracked.
 /pi/.pi/agent/*
-!/pi/.pi/agent/settings.defaults.json
+!/pi/.pi/agent/settings.json

@@ -6,11 +6,9 @@ an update as part of setup.
 
 ## File map
 
-- `pi/.pi/agent/settings.defaults.json` contains the tracked portable defaults.
-  Pi does not read this filename automatically.
-- `pi/.pi/agent/settings.json` is the Git-ignored active configuration, linked by
-  Stow to `~/.pi/agent/settings.json`. Pi reads and writes this file. Preserve
-  device-local preferences and package declarations when applying defaults.
+- `pi/.pi/agent/settings.json` is the single Git-tracked configuration, linked
+  by Stow to `~/.pi/agent/settings.json`. Pi reads and writes this file.
+  Model choices, preferences, and package declarations are shared across machines.
 - This package installs no Pi skills. Downloaded extensions, sessions, and
   authentication remain device-local.
 
@@ -51,11 +49,10 @@ The installer owns its generated device-local extension at
 into this repository or edit it as a tracked configuration. Do not install
 Herdr integrations for other worker harnesses as part of Pi setup.
 
-Authentication remains Pi-local. The portable defaults select
+Authentication remains Pi-local. The shared settings select
 `openai-codex/gpt-6.1-sol` with `high` thinking for new sessions. The OAuth
 credential remains only in Pi's device-local authentication store; never put
-credentials in portable
-defaults. Use `/login` only when provider readiness fails,
+credentials in the tracked settings. Use `/login` only when provider readiness fails,
 and use `/model` when temporarily selecting another model for a session.
 
 For the live verification, restart Pi in a Herdr pane selected by the user.
@@ -81,68 +78,54 @@ A conflict stops deployment. Preserve the existing file and resolve the
 conflict explicitly. Do not use `stow --adopt` or remove existing
 configuration.
 
-## Apply portable defaults
+## Shared settings across machines
 
-The portable defaults select `tuiMode: "regular"` so Pi uses terminal scrollback
-and tmux copy mode can navigate the transcript. Restart Pi to change its TUI mode;
-use `pi --continue` to resume the most recent session in the current directory.
+The shared configuration adds `codemode` with `defaultTools: ["+codemode"]`,
+preserving Pi's default tools. Run `/reload` or start a new Pi session after
+changing it. Explicit CLI tool selections can override this setting. See Pi's
+bundled `docs/cli.md` (Enable codemode) and `docs/settings.md` (Tools).
 
-Stow links files; it does not merge JSON. Before the first deployment on a device,
-initialize the Git-ignored `pi/.pi/agent/settings.json` from the portable defaults.
-If `~/.pi/agent/settings.json` already exists as a regular file, validate that it
-is a JSON object and move it to that Git-ignored repository path, preserving its
-contents. This migration requires approval for the home-directory write. Stop
-if the repository target already exists or the active file is an unexpected
-symlink; do not adopt or overwrite a conflict.
+`tuiMode: "regular"` enables terminal scrollback and tmux copy mode navigation.
+Restart Pi to change its TUI mode; use `pi --continue` to resume the most recent
+session in the current directory.
 
-Deep-merge portable defaults into the Git-ignored active file: existing settings
-first, defaults second. Preserve unknown keys, package declarations, and nested
-`compaction` settings. Do not print live settings or read authentication files.
-Then run the deployment commands above. Verify that the home-directory settings
-path resolves to the Git-ignored repository file and that `tuiMode` is `regular`.
-Subsequent Stow runs maintain the link; changes to the active repository file
-are immediately available to Pi. Changing the defaults template alone still
-requires applying its values to the active file.
+On each machine, sync the repository and deploy the Pi Stow package from the
+durable checkout. There is no defaults file to merge. If a regular
+`~/.pi/agent/settings.json` already exists, review its preferences and preserve
+it before replacing it with the Stow link; stop on conflicts. Home-directory
+changes require approval under the working agreements.
+
+Pi also writes preferences, package declarations, and changelog state to this
+file. Review and commit intended changes before syncing to another machine,
+and resolve any Git conflicts before starting Pi. Package declarations are
+shared; installed package files, authentication, and sessions remain local.
+A temporary model choice can use `/model` or a CLI override.
 
 ## Verification
 
-Validate the tracked defaults without touching active settings:
+Validate the shared configuration:
 
 ```sh
-jq -e 'type == "object"' pi/.pi/agent/settings.defaults.json
-jq -n --slurpfile defaults pi/.pi/agent/settings.defaults.json '
-  {defaultProvider:"fixture", defaultModel:"fixture-model",
-   defaultThinkingLevel:"low",
-   packages:["fixture-package"], compaction:{enabled:false,keepRecentTokens:1234}}
-  * $defaults[0]
-  | .defaultProvider == "openai-codex"
-    and .defaultModel == "gpt-6.1-sol"
-    and .defaultThinkingLevel == "high"
-    and .packages == ["fixture-package"]
-    and .compaction.keepRecentTokens == 1234
-    and .compaction.enabled == true
-    and .defaultProjectTrust == "ask"
-    and .enableSkillCommands == true
-    and .tuiMode == "regular"
-' -e
+jq -e 'type == "object" and .defaultTools == ["+codemode"]
+  and .tuiMode == "regular"' pi/.pi/agent/settings.json
 ```
 
-For a Stow check, use a disposable target from `mktemp -d`, run Stow with
-`--no-folding`, and confirm `.pi` and `agent` are real directories
-while only intended files are links. Keep synthetic runtime fixtures in that
-target; they must not become repository changes. Also confirm the runtime
-paths are ignored:
+For a Stow check, use a disposable target within the task worktree, run Stow
+with `--no-folding`, and confirm `.pi` and `agent` are real directories while
+`settings.json` is a link. Keep synthetic runtime fixtures in that target;
+they must not become repository changes. Confirm runtime paths are ignored:
 
 ```sh
 git check-ignore --no-index pi/.pi/agent/auth.json \
-  pi/.pi/agent/settings.json pi/.pi/agent/sessions/example.jsonl
+  pi/.pi/agent/sessions/example.jsonl pi/.pi/agent/extensions/example.ts
 ```
 
-The tracked defaults must not be ignored. Finish with `git diff --check`.
+`pi/.pi/agent/settings.json` must not be ignored. Finish with
+`git diff --check`.
 
 ## Roll back portable setup
 
-To remove only this Stow package while preserving Pi login, sessions, and local
+To remove only this Stow package while preserving Pi login, sessions, and shared
 settings, run:
 
 ```sh
@@ -150,7 +133,7 @@ stow --no-folding -D -t "$HOME" pi
 ```
 
 Before removing the package, preserve the active settings in the home directory
-if requested; unstowing removes its link but keeps the Git-ignored source file.
+if requested; unstowing removes its link but keeps the tracked source file.
 If undoing the newly installed native Herdr integration is also requested, run
 `herdr integration uninstall pi`. Never
 recursively delete `.pi`.
