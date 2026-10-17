@@ -101,6 +101,35 @@ and resolve any Git conflicts before starting Pi. Package declarations are
 shared; installed package files, authentication, and sessions remain local.
 A temporary model choice can use `/model` or a CLI override.
 
+## Settings maintenance
+
+Keep shared settings portable: avoid machine-specific shell paths, proxies,
+and absolute resource paths. Use a project's `.pi/settings.json` for
+repository-specific settings. Authentication and saved trust decisions stay
+device-local.
+
+Keep `defaultProjectTrust: "ask"`. Trust controls loading project resources;
+it does not sandbox tools or restrict their access to files and processes.
+Keep automatic compaction enabled and use the default token thresholds,
+transport, and retry settings unless a specific problem requires tuning.
+In particular, leave provider-level retries at their default of zero.
+
+Pin package declarations to exact versions and review source before upgrades.
+The shared configuration includes `pi-web-access@0.29.0` with packaged skills
+disabled; `pi-goal-x` is no longer configured. Removing its declaration stops
+it loading from this configuration; existing installed files may remain local.
+
+The `$schema` reference enables editor validation and completion. The hosted
+schema follows upstream, so check suggested options against the documentation
+bundled with the installed Pi version before adding them. Review Git diffs
+after `/settings` changes or package commands, and commit intended changes
+before syncing machines.
+
+References: Pi's official [settings](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/settings.md),
+[packages](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/packages.md),
+and [security](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/security.md)
+documentation.
+
 ## Verification
 
 Validate the shared configuration:

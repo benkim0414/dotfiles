@@ -1,4 +1,5 @@
 {
+  "$schema": "https://pi.dev/schemas/settings.schema.json",
   "defaultModel": "gpt-6.1-sol",
   "defaultProvider": "openai-codex",
   "lastChangelogVersion": "1.1.0",
@@ -12,10 +13,6 @@
   "packages": [
     {
       "source": "npm:pi-web-access@0.29.0",
-      "skills": []
-    },
-    {
-      "source": "npm:pi-goal-x",
       "skills": []
     }
   ],
