@@ -29,6 +29,8 @@ goals = true
 hooks = true
 
 [tui]
+# Preserve terminal scrollback for tmux copy mode.
+alternate_screen = "never"
 # Let Codex surface terminal notifications when attention is needed.
 notifications = true
 # Match the existing terminal color theme.
@@ -44,6 +46,10 @@ status_line = [
   "five-hour-limit",
   "weekly-limit",
 ]
+
+[tui.keymap.editor]
+# Insert a newline with Shift+Enter; retain Alt+Enter as a fallback.
+insert_newline = ["shift-enter", "alt-enter"]
 
 [history]
 # Keep conversation history available across Codex sessions.
