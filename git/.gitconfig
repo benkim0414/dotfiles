@@ -49,3 +49,7 @@
 	prompt = false
 [mergetool "nvimdiff"]
 	layout = "LOCAL,BASE,REMOTE / MERGED"
+
+# Machine-local overrides (untracked, not stowed); keep last so it wins.
+[include]
+	path = ~/.gitconfig.local
