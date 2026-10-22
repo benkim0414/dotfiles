@@ -6,3 +6,6 @@ if command -v keychain &>/dev/null && [[ -o interactive && -t 0 ]]; then
 fi
 
 export PATH="$HOME/.local/bin:$PATH"
+
+# Machine-local overrides (untracked, not stowed); absent on most machines.
+[[ -r ~/.zprofile.local ]] && source ~/.zprofile.local

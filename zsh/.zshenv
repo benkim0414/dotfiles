@@ -72,3 +72,6 @@ export HINDSIGHT_API_LLM_PROVIDER=claude-code
 export HINDSIGHT_API_LLM_MODEL=claude-haiku-4-5
 export HINDSIGHT_API_EMBEDDINGS_LOCAL_FORCE_CPU=1
 export HINDSIGHT_API_RERANKER_LOCAL_FORCE_CPU=1
+
+# Machine-local overrides (untracked, not stowed); absent on most machines.
+[[ -r ~/.zshenv.local ]] && source ~/.zshenv.local
