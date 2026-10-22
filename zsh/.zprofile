@@ -1,4 +1,3 @@
-export PATH="/Users/ben/.openclaw/bin:$PATH"
 # Start the SSH agent and load keys once per login; writes socket to ~/.keychain/.
 # Only prompt from an interactive terminal so non-interactive shells do not
 # fail through ssh-askpass when no TTY is available.
