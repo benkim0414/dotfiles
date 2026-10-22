@@ -14,8 +14,9 @@ export XDG_STATE_HOME="$HOME/.local/state"
 # its default refresh rate modest, while allowing an explicit per-shell override.
 export TERMINAL_BROWSER_FPS="${TERMINAL_BROWSER_FPS:-30}"
 
-# Use the installed Hermes profile for Desktop and shell commands.
-export HERMES_HOME="$HOME/.hermes"
+# Hermes runtime home is the versioned workspace checkout; keeping this in
+# .zshenv makes non-interactive zsh invocations use the same config and skills.
+export HERMES_HOME="$HOME/workspace/hermes"
 
 typeset -U path PATH
 path=(
