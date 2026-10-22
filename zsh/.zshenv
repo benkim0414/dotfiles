@@ -21,6 +21,7 @@ typeset -U path PATH
 path=(
     "$HOME/.local/bin"
     "$HOME/bin"
+    "$HOME/.cargo/bin"
     /usr/local/sbin
     /usr/sbin
     /sbin
