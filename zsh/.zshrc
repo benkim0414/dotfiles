@@ -1,3 +1,4 @@
+export PATH="/Users/ben/.openclaw/bin:$PATH"
 HISTFILE="${XDG_STATE_HOME:-$HOME/.local/state}/zsh/history"
 mkdir -p "${HISTFILE:h}"
 HISTSIZE=50000
