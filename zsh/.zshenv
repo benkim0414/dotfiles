@@ -63,3 +63,11 @@ export _ZO_DOCTOR=0
 # Reduces context consumption when many MCP servers are registered.
 # "auto" loads upfront only if tools consume <10% of context, else defers.
 export ENABLE_TOOL_SEARCH=auto
+
+# Hindsight agent memory (local daemon started by the coding-agents plugin).
+# Pin the provider so an exported API key never silently switches extraction
+# off the Claude subscription; force CPU to avoid MPS/XPC issues on macOS.
+export HINDSIGHT_API_LLM_PROVIDER=claude-code
+export HINDSIGHT_API_LLM_MODEL=claude-haiku-4-5
+export HINDSIGHT_API_EMBEDDINGS_LOCAL_FORCE_CPU=1
+export HINDSIGHT_API_RERANKER_LOCAL_FORCE_CPU=1
