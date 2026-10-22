@@ -88,7 +88,7 @@ repo that needs it.
   one `work` bank for `~/workspace`, `optInOnly`, `project:{gitProject}` tags.
 
 User-scope MCP servers (device-local, `~/.claude.json`) are limited to
-`hindsight`, `atlassian` and `slack`, and no plugins are enabled globally.
+`hindsight`, `atlassian` and `slack`, and the only global plugin is `eli5`.
 Per-repo tools -- plugins, and MCP servers such as Serena, Nx, Terraform or
 EKS -- are enabled only in that repo. For repos shared with teammates, put them in
 the gitignored `.claude/settings.local.json` (plugins) and local-scope MCP
@@ -196,7 +196,9 @@ for MCP verb gating.
 
 ## Plugins
 
-`settings.base.json` enables no plugins and declares no marketplaces. A
+`settings.base.json` enables one plugin, `eli5@claude-community` (Anthropic's
+community marketplace, `anthropics/claude-plugins-community`, declared under
+`extraKnownMarketplaces`). Any other
 repo that needs a plugin enables it in its own settings (for shared repos,
 the gitignored `.claude/settings.local.json`). To make a plugin global
 again, add it under `enabledPlugins` and -- unless it comes from the
