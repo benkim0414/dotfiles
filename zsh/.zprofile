@@ -5,3 +5,5 @@ export PATH="/Users/ben/.openclaw/bin:$PATH"
 if command -v keychain &>/dev/null && [[ -o interactive && -t 0 ]]; then
     eval "$(keychain --eval --quiet ~/.ssh/id_ed25519)"
 fi
+
+export PATH="$HOME/.local/bin:$PATH"
