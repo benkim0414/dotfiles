@@ -3,10 +3,6 @@
   "env": {
     "DISABLE_COST_WARNINGS": "1"
   },
-  "model": "opus[1m]",
-  "theme": "custom:catppuccin",
-  "effortLevel": "auto",
-  "defaultMode": "auto",
   "permissions": {
     "allow": [
       "Read",
@@ -34,7 +30,9 @@
       "TaskOutput",
       "TaskStop",
       "TaskUpdate",
-      "CronList"
+      "CronList",
+      "mcp__atlassian__*",
+      "mcp__slack__*"
     ],
     "deny": [
       "Read(**/.env)",
@@ -172,7 +170,59 @@
       "mcp__*__*deploy*",
       "mcp__*__*apply*",
       "mcp__*__*patch*",
-      "mcp__*__*write*"
+      "mcp__*__*write*",
+      "mcp__atlassian__jira_delete_issue",
+      "mcp__atlassian__jira_remove_issue_link",
+      "mcp__atlassian__jira_remove_watcher",
+      "mcp__atlassian__confluence_delete_page",
+      "mcp__atlassian__confluence_delete_attachment"
+    ]
+  },
+  "model": "opus[1m]",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "rtk hook claude"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$HOME/.hindsight/coding-agents/dist/claude-sessionstart-hook.js\"",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$HOME/.hindsight/coding-agents/dist/claude-hook.js\"",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$HOME/.hindsight/coding-agents/dist/claude-stop-hook.js\"",
+            "timeout": 60
+          }
+        ]
+      }
     ]
   },
   "statusLine": {
@@ -184,30 +234,13 @@
   },
   "extraKnownMarketplaces": {
     "claude-community": {
-      "source": { "source": "github", "repo": "anthropics/claude-plugins-community" }
+      "source": {
+        "source": "github",
+        "repo": "anthropics/claude-plugins-community"
+      }
     }
   },
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [{ "type": "command", "command": "rtk hook claude" }]
-      }
-    ],
-    "SessionStart": [
-      {
-        "hooks": [{ "type": "command", "command": "node \"$HOME/.hindsight/coding-agents/dist/claude-sessionstart-hook.js\"", "timeout": 30 }]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [{ "type": "command", "command": "node \"$HOME/.hindsight/coding-agents/dist/claude-hook.js\"", "timeout": 30 }]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [{ "type": "command", "command": "node \"$HOME/.hindsight/coding-agents/dist/claude-stop-hook.js\"", "timeout": 60 }]
-      }
-    ]
-  }
+  "theme": "custom:catppuccin",
+  "defaultMode": "auto",
+  "editorMode": "vim"
 }
