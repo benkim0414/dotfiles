@@ -5,3 +5,4 @@
 .env.op
 .env.local
 .mise.local.toml
+*.local.toml
