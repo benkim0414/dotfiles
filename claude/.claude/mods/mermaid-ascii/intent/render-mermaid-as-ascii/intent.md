@@ -16,8 +16,8 @@ reply as text art, in place, in the terminal transcript.
 - The art replaces the Mermaid source in the drawing.
 - When conversion fails, the diagram type is unsupported, or the art is wider
   than the terminal, the original block is shown unchanged.
-- The stored message is never changed: ctrl+o and the transcript file keep the
-  Mermaid source, and the model still sees it.
+- The stored message is never changed: the transcript file keeps the Mermaid
+  source, and the model still sees it.
 
 ## Affected users and systems
 
