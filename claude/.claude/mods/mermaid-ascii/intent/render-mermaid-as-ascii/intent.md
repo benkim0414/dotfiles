@@ -34,8 +34,8 @@ reply as text art, in place, in the terminal transcript.
   `@mermaid-js/mermaid-cli` (`mmdc`) writes only SVG, PNG or PDF. beautiful-mermaid
   is a TypeScript port of Alexander Grooff's mermaid-ascii and was chosen over
   the Go original and mermaid2term because it runs on the installed bun/node
-  and covers the most diagram types (flowchart, sequence, class, ER, xychart).
-  It does not cover state diagrams; those fall back to source.
+  and covers the most diagram types (flowchart, state, sequence, class, ER,
+  xychart).
 - **Display only.** The mod rewrites the drawing, never the stored message or
   the model's context.
 - **Never blocks drawing.** Conversion runs outside the render hook. Results
@@ -48,8 +48,7 @@ reply as text art, in place, in the terminal transcript.
 ## Open questions
 
 - How the mod is loaded from `~/.claude/mods/` on each machine
-  (`CLAUDE_CODE_PLUGIN_DIRS`, `--plugin-dir`, or a marketplace entry), and
-  whether `claude-sync` should wire it.
+  (`CLAUDE_CODE_PLUGIN_DIRS`, `--plugin-dir`, or a marketplace entry).
 - Where `beautiful-mermaid` is installed: a `package.json` beside the mod
   (`bun install` once per machine) or a global install. `node_modules` must
   not be committed or stowed.
