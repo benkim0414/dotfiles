@@ -293,6 +293,22 @@ commit.
      use (concern 2)?
    - does the band's height scroll acceptably (concern 4)?
 
+## Matching the video (2026-10-23)
+
+The first live run showed the band was right by the spec but unlike the
+video: the spec had misread the screenshot's header. The spec and intent
+were corrected first (R1, R4–R7), then the code, test first:
+- `Reading.compactsAt` holds tokens, and the atom's shape tag moved to
+  `reading-2`; a test seeds a whole `reading-1` value and checks it is
+  declined (reverting the tag fails it).
+- `layout` returns `{ rows, isFramed }`. From 60 columns the render hook
+  draws a `round` border with one column of padding, and the rows are laid
+  out in `width − 4`.
+- The header carries bold figures, the dim `of … · compacts at 987k`, and
+  the usage badge; the bar's reserve opens with the `│` marker; the legend
+  drops the reserved entry, bolds the tokens and dims the free entry.
+- 50 tests pass; `claude plugin validate` and `tsc` (fallback config) pass.
+
 ## Risks
 
 - **The mod API changes under the mod.** The types are this build's

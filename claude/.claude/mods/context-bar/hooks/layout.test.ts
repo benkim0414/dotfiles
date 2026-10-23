@@ -185,12 +185,24 @@ test('apportion: property check over 500 seeded runs', () => {
 // --- reduce and layout (step 3) ---
 
 const text = (r: Span[]) => r.map(s => s.text).join('')
-const texts = (rows: Span[][] | null) => (rows ?? []).map(text)
-const at = (u: SessionUsage, width: number) => {
+const texts = (rows: Span[][] | null | undefined) => (rows ?? []).map(text)
+const band = (u: SessionUsage, width: number) => {
   const reading = reduce(u)
   if (reading === null) throw new Error('no reading')
   return layout(reading, width)
 }
+const at = (u: SessionUsage, width: number) => band(u, width)?.rows ?? null
+const plain = (s: string): Span[] => [{ text: s }]
+
+// A reading of `total` used tokens in a 1M window that compacts at 987k.
+const reading = (total: number): Reading => ({
+  used: [{ label: 'messages', tokens: total, color: 'merged' }],
+  free: { label: 'free', tokens: Math.max(0, 987_000 - total), color: 'inactive' },
+  reserved: { label: 'reserved', tokens: 13_000, color: 'inactive' },
+  totalTokens: total,
+  window: 1_000_000,
+  compactsAt: 987_000,
+})
 
 test('reduce sorts rows by kind and drops deferred ones', () => {
   expect(reduce(usage())).toEqual({
@@ -207,7 +219,7 @@ test('reduce sorts rows by kind and drops deferred ones', () => {
     reserved: { label: 'reserved', tokens: 13_000, color: 'inactive' },
     totalTokens: 90_300,
     window: 1_000_000,
-    compactsAt: 99,
+    compactsAt: 987_000,
   })
 })
 
@@ -230,23 +242,24 @@ test('reduce: compactsAt is null with auto-compact off or no threshold', () => {
   expect(reduce(noThreshold)?.compactsAt).toBeNull()
 })
 
-test("layout draws the intent's example at width 72", () => {
-  expect(texts(at(usage(), 72))).toEqual([
-    '◆ context' + ' '.repeat(36) + '90k of 1M · compacts at 99%',
-    '█'.repeat(9) + '░'.repeat(62) + '▒',
+test("layout draws the intent's example framed at width 76", () => {
+  const b = band(usage(), 76)
+  expect(b?.isFramed).toBe(true)
+  expect(texts(b?.rows)).toEqual([
+    '◆ context' + ' '.repeat(30) + '90k of 1M · compacts at 987k  9% ',
+    '█'.repeat(9) + '░'.repeat(62) + '│',
     '■ system prompt 4.2k 1%  ■ tools 17k 2%  ■ mcp tools 52k 5%',
     '■ agents 3.4k 1%  ■ memory files 8.6k 1%  ■ skills 5.1k 1%',
-    '■ messages 0 0%  ■ free 897k  ■ reserved 13k 1%',
+    '■ messages 0 0%  ■ free 897k',
   ])
 })
 
-test('layout with auto-compact off has no compacts-at and no reserved part', () => {
+test('layout with auto-compact off has no compacts-at and no marker', () => {
   const categories = EXAMPLE.filter(c => c.kind !== 'buffer').map(c =>
     c.kind === 'free' ? { ...c, tokens: 909_700 } : c)
-  const rows = texts(at(usage({ categories, isAutoCompactEnabled: false }), 72))
-  expect(rows[0]).toBe('◆ context' + ' '.repeat(54) + '90k of 1M')
+  const rows = texts(at(usage({ categories, isAutoCompactEnabled: false }), 76))
+  expect(rows[0]).toBe('◆ context' + ' '.repeat(49) + '90k of 1M  9% ')
   expect(rows[1]).toBe('█'.repeat(9) + '░'.repeat(63))
-  expect(rows.join('\n')).not.toContain('reserved')
   expect(rows.at(-1)).toBe('■ messages 0 0%  ■ free 910k')
 })
 
@@ -257,35 +270,37 @@ test('layout over the window: the true total, and every cell used', () => {
     row('Free space', 5000, 'free'),
     row('Autocompact buffer', 13_000, 'buffer'),
   ]
-  const rows = texts(at(usage({ categories }), 60))
-  expect(rows[0]?.endsWith('1.02M of 1M · compacts at 99%')).toBe(true)
+  const rows = texts(at(usage({ categories }), 64))
+  expect(rows[0]?.endsWith('1.02M of 1M · compacts at 987k  102% ')).toBe(true)
   expect(rows[1]).toBe('█'.repeat(60))
   expect(rows.slice(2).join('  ')).toBe('■ system prompt 20k 2%  ■ messages 1M 100%  ■ free 0')
 })
 
 test('layout follows the R7 tiers and never overflows', () => {
   const u = usage()
-  expect(texts(at(u, 80)).length).toBe(5)
-  expect(texts(at(u, 60))[0]).toContain('90k of 1M · compacts at 99%')
-  expect(texts(at(u, 60)).length).toBeGreaterThan(2)
+  expect([band(u, 80)?.isFramed, texts(at(u, 80)).length]).toEqual([true, 5])
+  expect(band(u, 60)?.isFramed).toBe(true)
+  expect(texts(at(u, 60))[0]).toContain('90k of 1M · compacts at 987k  9% ')
   for (const w of [59, 40]) {
     const rows = texts(at(u, w))
-    expect([w, rows.length, rows[0]?.endsWith(' 90k/1M · 99%'), rows[1]?.length]).toEqual([w, 2, true, w])
+    expect([w, band(u, w)?.isFramed, rows.length, rows[0]?.endsWith(' 90k/1M  9% '), rows[1]?.length])
+      .toEqual([w, false, 2, true, w])
   }
   for (const w of [39, 20]) {
     const rows = texts(at(u, w))
-    expect([w, rows.length, rows[0]?.startsWith('◆ 90k/1M █')]).toEqual([w, 1, true])
+    expect([w, band(u, w)?.isFramed, rows.length, rows[0]?.startsWith('◆ 90k/1M █')])
+      .toEqual([w, false, 1, true])
   }
-  expect(at(u, 19)).toBeNull()
-  expect(texts(at(usage({ isAutoCompactEnabled: false }), 50))[0]?.endsWith(' 90k/1M')).toBe(true)
+  expect(band(u, 19)).toBeNull()
 
   const long = usage({ categories: [...EXAMPLE, row('x'.repeat(100), 10)] })
   for (const fixture of [u, long]) {
     for (let w = 19; w <= 120; w++) {
+      const room = w >= 60 ? w - 4 : w
       for (const r of texts(at(fixture, w))) {
-        if (r.length > w) throw new Error(`width ${w}: ${r.length} columns: ${r}`)
+        if (r.length > room) throw new Error(`width ${w}: ${r.length} columns: ${r}`)
       }
-      if (w >= 20) expect(texts(at(fixture, w))[w >= 40 ? 1 : 0]?.length).toBe(w)
+      if (w >= 20) expect(texts(at(fixture, w))[w >= 40 ? 1 : 0]?.length).toBe(room)
     }
   }
 })
@@ -297,41 +312,37 @@ test('layout at width 20 leaves the inline bar at least 6 cells', () => {
 })
 
 test('spread: when the header parts collide, context is cut, never the figures', () => {
-  expect(text(spread('◆ context', '90k of 1M · compacts at 99%', 40))).toBe(
-    '◆ context    90k of 1M · compacts at 99%')
-  expect(text(spread('◆ context', '90k of 1M · compacts at 99%', 30))).toBe(
-    '◆… 90k of 1M · compacts at 99%')
-  expect(text(spread('◆ context', '90k of 1M · compacts at 99%', 28))).toBe(
-    ' 90k of 1M · compacts at 99%')
+  const right = plain('90k of 1M · compacts at 987k  9% ')
+  expect(text(spread(plain('◆ context'), right, 44))).toBe('◆ context  90k of 1M · compacts at 987k  9% ')
+  expect(text(spread(plain('◆ context'), right, 36))).toBe('◆… 90k of 1M · compacts at 987k  9% ')
+  expect(text(spread(plain('◆ context'), right, 34))).toBe(' 90k of 1M · compacts at 987k  9% ')
 })
 
-test('legend entries are never split, and one wider than the width is cut', () => {
-  const long = 'x'.repeat(100)
-  const rows = texts(at(usage({ categories: [...EXAMPLE, row(long, 10)] }), 60))
+test('legend entries are never split, and one wider than the room is cut', () => {
+  const rows = texts(at(usage({ categories: [...EXAMPLE, row('x'.repeat(100), 10)] }), 60))
   const legend = rows.slice(2)
   // Every entry starts a row or follows two spaces: none is split.
   for (const r of legend) expect(r.startsWith('■ ')).toBe(true)
-  expect(legend.join('  ').split('  ■ ').length).toBe(10)
-  expect(legend).toContain('■ ' + 'x'.repeat(57) + '…')
+  expect(legend.join('  ').split('  ■ ').length).toBe(9)
+  expect(legend).toContain('■ ' + 'x'.repeat(53) + '…')
 })
 
 test('an entry cut where one span ends still ends in …', () => {
-  // '■ ' + 54 x + ' 10 ' is exactly 60 columns, so the percent span is the
-  // first one left out: the cut must still show.
+  // '■ ' + 50 x + ' 10 ' is exactly the 56 columns inside the frame, so the
+  // percent span is the first one left out: the cut must still show.
   const r: Reading = {
-    used: [{ label: 'x'.repeat(54), tokens: 10, color: 'claude' }],
+    used: [{ label: 'x'.repeat(50), tokens: 10, color: 'claude' }],
     free: { label: 'free', tokens: 999_990, color: 'inactive' },
     reserved: null,
     totalTokens: 10,
     window: 1_000_000,
     compactsAt: null,
   }
-  expect(texts(layout(r, 60))[2]).toBe('■ ' + 'x'.repeat(54) + ' 10…')
+  expect(texts(layout(r, 60)?.rows)[2]).toBe('■ ' + 'x'.repeat(50) + ' 10…')
 })
 
-test('glyphs and colours: used █, free ░, reserved ▒ dimmed', () => {
-  const rows = at(usage(), 72) ?? []
-  const bar = rows[1] ?? []
+test('glyphs and colours: used █, free ░, the marker │ then the reserve dimmed', () => {
+  const bar = at(usage(), 76)?.[1] ?? []
   expect(bar.map(s => [s.text[0], s.text.length, s.color, s.dim ?? false])).toEqual([
     ['█', 1, 'promptBorder', false],
     ['█', 1, 'inactive', false],
@@ -340,10 +351,40 @@ test('glyphs and colours: used █, free ░, reserved ▒ dimmed', () => {
     ['█', 1, 'claude', false],
     ['█', 1, 'warning', false],
     ['░', 62, 'promptBorder', false],
-    ['▒', 1, 'inactive', true],
+    ['│', 1, 'warning', false],
   ])
-  const swatch = (rows[2] ?? []).find(s => s.text === '■')
-  expect(swatch?.color).toBe('promptBorder')
-  const pct = (rows[2] ?? []).find(s => s.text === '1%')
-  expect(pct?.dim).toBe(true)
+  const wide = { ...reading(400_000), free: { label: 'free', tokens: 500_000, color: 'inactive' } }
+  const tail = layout({ ...wide, reserved: { label: 'reserved', tokens: 100_000, color: 'inactive' } }, 64)
+  expect((tail?.rows[1] ?? []).map(s => [s.text[0], s.text.length, s.color, s.dim ?? false])).toEqual([
+    ['█', 24, 'merged', false],
+    ['░', 30, 'inactive', false],
+    ['│', 1, 'warning', false],
+    ['░', 5, 'inactive', true],
+  ])
+})
+
+test('emphasis: bold figures, dim context, the swatch coloured', () => {
+  const rows = at(usage(), 76) ?? []
+  const find = (r: number, s: string) => (rows[r] ?? []).find(span => span.text === s)
+  expect(find(0, '◆')?.color).toBe('claude')
+  expect(find(0, ' context')?.bold).toBe(true)
+  expect(find(0, '90k')?.bold).toBe(true)
+  expect(find(0, ' of 1M · compacts at 987k')?.dim).toBe(true)
+  expect(find(2, '■')?.color).toBe('promptBorder')
+  expect(find(2, '4.2k')?.bold).toBe(true)
+  expect(find(2, '1%')?.dim).toBe(true)
+  expect(find(4, ' free 897k')?.dim).toBe(true)
+})
+
+test('the badge is green below 70%, yellow from 70% and red from 90%', () => {
+  const badge = (total: number) => {
+    const header = layout(reading(total), 80)?.rows[0] ?? []
+    const s = header.at(-1)
+    return [s?.text, s?.color, s?.background]
+  }
+  expect([badge(690_000), badge(700_000), badge(900_000)]).toEqual([
+    [' 69% ', 'inverseText', 'success'],
+    [' 70% ', 'inverseText', 'warning'],
+    [' 90% ', 'inverseText', 'error'],
+  ])
 })

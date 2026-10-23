@@ -11,7 +11,7 @@ const isOn = atom({ plugin: 'context-bar', key: 'isOn' } as const, false)
 // Change the tag when Reading changes: it declines what an earlier version
 // stored, which outlives a reload.
 const reading = atom({ plugin: 'context-bar', key: 'reading' } as const, null, {
-  shape: 'reading-1',
+  shape: 'reading-2',
 })
 
 // R13: starting a refresh, a compaction's clear and turning the bar off
@@ -95,20 +95,21 @@ export const register: Register = on => {
   })
 
   // R8: step aside for a survey, while off, with no reading, or under 20
-  // columns; otherwise draw the rows layout gives.
+  // columns; otherwise draw the band layout gives, framed from 60 (R7).
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     if (e.props.hasSurvey || !(await read($, isOn))) return next(e)
     const value = await read($, reading)
-    const rows = value && layout(value, e.props.bodyColumns)
-    if (!rows) return next(e)
+    const band = value && layout(value, e.props.bodyColumns)
+    if (!band) return next(e)
 
     const { Box, Text } = $.ui.resolve(e)
+    const frame = band.isFramed ? { borderStyle: 'round', borderColor: 'inactive', paddingX: 1 } : {}
     return (
-      <Box flexDirection="column">
-        {rows.map(row => (
+      <Box flexDirection="column" {...frame}>
+        {band.rows.map(row => (
           <Text>
             {row.map(s => (
-              <Text color={s.color} dimColor={s.dim}>
+              <Text color={s.color} dimColor={s.dim} bold={s.bold} backgroundColor={s.background}>
                 {s.text}
               </Text>
             ))}

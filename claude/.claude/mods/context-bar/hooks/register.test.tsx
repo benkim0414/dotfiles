@@ -410,3 +410,45 @@ test('a survey or fewer than 20 columns makes the band pass through', async ($, 
   expect((await ui.find({ type: 'Text' }))?.text).toBe('◆ 1k/1M ' + '█'.repeat(12))
   await ui.unmount()
 })
+
+test('the band is framed from 60 columns, as in the video, and not below', async ($, on) => {
+  const t = engine(on, { isOn: true })
+  await start($)
+  await t.clock.settle()
+  for (const surface of ['terminal', 'desktop'] as const) {
+    for (const [columns, style] of [[80, 'round'], [60, 'round'], [59, undefined]] as const) {
+      const ui = await $.ui.mount({ ...BAND, props: { ...BAND.props, bodyColumns: columns }, surface })
+      const box = await ui.find({ type: 'Box' })
+      expect([surface, columns, box?.props.borderStyle, box?.props.paddingX]).toEqual(
+        [surface, columns, style, style ? 1 : undefined])
+      await ui.unmount()
+    }
+  }
+})
+
+test('a reading stored by the earlier shape is declined after a reload', async ($, on) => {
+  // What the code before this change wrote: compactsAt as a percentage.
+  // It is a whole reading, so only the shape tag keeps it from drawing.
+  const old = {
+    shape: 'reading-1',
+    value: {
+      used: [{ label: 'messages', tokens: 5000, color: 'merged' }],
+      free: { label: 'free', tokens: 982_000, color: 'inactive' },
+      reserved: null,
+      totalTokens: 5000,
+      window: 1_000_000,
+      compactsAt: 99,
+    },
+  }
+  on('state.get', (_, e) => {
+    const key = (e as { key: string }).key
+    return { value: { value: key === 'isOn' ? true : old, version: 1 } }
+  })
+  on('ui.render', ($, e) => {
+    const { Text } = $.ui.resolve(e)
+    return <Text>engine</Text>
+  })
+  const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect((await ui.find({ type: 'Text' }))?.text).toBe('engine')
+  await ui.unmount()
+})

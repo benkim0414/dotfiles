@@ -6,7 +6,7 @@ import type { ContextCategory, ContextCategoryKind, SessionUsage } from 'claude-
 import type { Part, Reading } from '../types'
 
 // One run of text in a row; the render hook draws each as a <Text>.
-export type Span = { text: string; color?: string; dim?: boolean }
+export type Span = { text: string; color?: string; dim?: boolean; bold?: boolean; background?: string }
 export type Row = Span[]
 
 const SEP = '  '
@@ -97,14 +97,13 @@ export function reduce(usage: SessionUsage): Reading | null {
   const free = b.categories.find(c => c.kind === 'free')
   const buffer = b.categories.find(c => c.kind === 'buffer')
   const window = b.rawMaxTokens
-  const threshold = b.isAutoCompactEnabled && window > 0 ? b.autoCompactThreshold : undefined
   return {
     used,
     free: free ? part(free) : { label: 'free', tokens: 0, color: 'inactive' },
     reserved: buffer ? part(buffer) : null,
     totalTokens: b.totalTokens,
     window,
-    compactsAt: threshold === undefined ? null : Math.round((threshold / window) * 100),
+    compactsAt: b.isAutoCompactEnabled ? (b.autoCompactThreshold ?? null) : null,
   }
 }
 
@@ -117,14 +116,29 @@ function cut(s: string, n: number): string {
 
 // R7: left and right parts with at least one space between; when both do
 // not fit, the right part wins and the left is cut.
-export function spread(left: string, right: string, width: number): Row {
-  const r = cut(right, width)
-  const l = cut(left, width - r.length - 1)
-  return [{ text: l + ' '.repeat(width - l.length - r.length) + r }]
+export function spread(left: Row, right: Row, width: number): Row {
+  const r = cutRow(right, width)
+  const l = cutRow(left, width - widthOf(r) - 1)
+  const gap = width - widthOf(l) - widthOf(r)
+  return [...l, ...(gap > 0 ? [{ text: ' '.repeat(gap) }] : []), ...r]
 }
 
-// R1, R4–R7: the band's rows at `width` columns, or null to step aside.
-export function layout(reading: Reading, width: number): Row[] | null {
+// R6: the share of the window in use, on green, yellow from 70%, red from 90%.
+function badge(totalTokens: number, window: number): Span {
+  const pct = percent(totalTokens, window)
+  const n = Number.parseInt(pct, 10)
+  const background = n >= 90 ? 'error' : n >= 70 ? 'warning' : 'success'
+  return { text: ` ${pct} `, color: 'inverseText', background }
+}
+
+// The band: its rows, and whether they sit in the frame (R7).
+export type Band = { rows: Row[]; isFramed: boolean }
+
+// The frame's border and padding take two columns each side.
+const FRAME = 4
+
+// R1, R4–R7: the band at `width` columns, or null to step aside.
+export function layout(reading: Reading, width: number): Band | null {
   if (width < 20) return null
   const { used, window, totalTokens, compactsAt } = reading
   // R2: over the window, free and reserved show 0.
@@ -137,7 +151,8 @@ export function layout(reading: Reading, width: number): Row[] | null {
   const u = shortTokens(totalTokens)
   const w = shortTokens(window)
 
-  // R3, R4: one glyph per cell, each part in its row's colour.
+  // R3, R4: one glyph per cell, each part in its row's colour; the reserve
+  // opens with the compaction marker.
   const bar = (cells: number): Row => {
     const parts = [...used, free, ...(reserved ? [reserved] : [])]
     const counts = apportion(parts.map(p => p.tokens), cells, used.length)
@@ -147,35 +162,45 @@ export function layout(reading: Reading, width: number): Row[] | null {
       if (n === 0) return
       if (i < used.length) spans.push({ text: '█'.repeat(n), color: p.color })
       else if (p === free) spans.push({ text: '░'.repeat(n), color: p.color })
-      else spans.push({ text: '▒'.repeat(n), color: p.color, dim: true })
+      else {
+        spans.push({ text: '│', color: 'warning' })
+        if (n > 1) spans.push({ text: '░'.repeat(n - 1), color: p.color, dim: true })
+      }
     })
     return spans
   }
 
+  const mark: Span = { text: '◆', color: 'claude' }
   if (width < 40) {
-    const prefix = `◆ ${u}/${w} `
-    return [[{ text: prefix }, ...bar(width - prefix.length)]]
+    const prefix = ` ${u}/${w} `
+    return { rows: [[mark, { text: prefix }, ...bar(width - 1 - prefix.length)]], isFramed: false }
   }
+  const left: Row = [mark, { text: ' context', bold: true }]
+  const share = badge(totalTokens, window)
   if (width < 60) {
-    const right = `${u}/${w}` + (compactsAt === null ? '' : ` · ${compactsAt}%`)
-    return [spread('◆ context', right, width), bar(width)]
+    const right: Row = [{ text: `${u}/${w}`, bold: true }, { text: ' ' }, share]
+    return { rows: [spread(left, right, width), bar(width)], isFramed: false }
   }
 
-  const right = `${u} of ${w}` + (compactsAt === null ? '' : ` · compacts at ${compactsAt}%`)
-  const entries: Row[] = [
-    ...used.map(p => entry(p, percent(p.tokens, window))),
-    entry(free, null),
-    ...(reserved && reserved.tokens > 0 ? [entry(reserved, percent(reserved.tokens, window))] : []),
-  ]
-  return [spread('◆ context', right, width), bar(width), ...wrap(entries, width)]
+  const room = width - FRAME
+  const context = ` of ${w}` + (compactsAt === null ? '' : ` · compacts at ${shortTokens(compactsAt)}`)
+  const right: Row = [{ text: u, bold: true }, { text: context, dim: true }, { text: ' ' }, share]
+  const entries: Row[] = [...used.map(p => entry(p, percent(p.tokens, window))), entry(free, null)]
+  return { rows: [spread(left, right, room), bar(room), ...wrap(entries, room)], isFramed: true }
 }
 
-// R5: `■ <label> <tokens> <pct>`, the swatch coloured and the percent dim;
-// the free entry has no percent.
+// R5: `■ <label> <tokens> <pct>`, the swatch coloured, the tokens bold and
+// the percent dim; the free entry is dim throughout, with no percent.
 function entry(p: Part, pct: string | null): Row {
-  const words = `${p.label} ${shortTokens(p.tokens)}`
-  if (pct === null) return [{ text: '■', color: p.color }, { text: ` ${words}` }]
-  return [{ text: '■', color: p.color }, { text: ` ${words} ` }, { text: pct, dim: true }]
+  const swatch: Span = { text: '■', color: p.color }
+  if (pct === null) return [swatch, { text: ` ${p.label} ${shortTokens(p.tokens)}`, dim: true }]
+  return [
+    swatch,
+    { text: ` ${p.label} ` },
+    { text: shortTokens(p.tokens), bold: true },
+    { text: ' ' },
+    { text: pct, dim: true },
+  ]
 }
 
 const widthOf = (r: Row) => r.reduce((a, s) => a + s.text.length, 0)

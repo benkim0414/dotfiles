@@ -13,7 +13,7 @@ export type Reading = {
   totalTokens: number
   // rawMaxTokens
   window: number
-  // percent of the window, or null when auto-compact is off
+  // autoCompactThreshold in tokens, or null when auto-compact is off
   compactsAt: number | null
 }
 
