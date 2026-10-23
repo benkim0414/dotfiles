@@ -109,3 +109,5 @@ zsh/.zshrc.bak.*
 
 # mermaid-ascii mod converter dependencies (npm ci per machine)
 claude/.claude/mods/*/render/node_modules/
+# Types the engine writes into each loaded mod
+claude/.claude/mods/*/.claude-plugin/types/

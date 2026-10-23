@@ -1,0 +1,6 @@
+{
+  "name": "mermaid-ascii",
+  "version": "0.1.0",
+  "description": "Draws mermaid code blocks in assistant replies as text art in the terminal transcript",
+  "types": "./types/index.d.ts"
+}
