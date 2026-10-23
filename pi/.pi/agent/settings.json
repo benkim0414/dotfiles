@@ -16,6 +16,9 @@
       "skills": []
     }
   ],
+  "skills": [
+    "~/.claude/skills/eli5"
+  ],
   "tuiMode": "regular",
   "defaultTools": [
     "+codemode"
