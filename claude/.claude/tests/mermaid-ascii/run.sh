@@ -74,6 +74,72 @@ else
   bad "package missing: exit $code, expected 3"
 fi
 
+echo "stow"
+
+# Dry runs only (-n), into temp homes. Stow folds a target directory that
+# does not exist into one link and never looks inside it, so each home
+# pre-creates the render directory as a real one: Stow must descend into it
+# and name what it would link there.
+PKG_PARENT="$(cd "$HERE/../../../.." && pwd)"
+STOW_IGNORE="$PKG_PARENT/claude/.stow-local-ignore"
+[[ -f "$STOW_IGNORE" ]] || { bad "missing $STOW_IGNORE; the stow checks cannot run"; exit 1; }
+
+# dry_stow <dir> <home> <pkg>: sets $out and $code. Captured, then matched:
+# piping stow into `grep -q` under pipefail reads a match as a miss.
+dry_stow() {
+  out="$(stow -n -v -d "$1" -t "$2" "$3" 2>&1)"
+  code=$?
+}
+
+if ! command -v stow >/dev/null 2>&1; then
+  echo "stow required" >&2; exit 2
+fi
+
+mkdir -p "$TMP/home/.claude/mods/mermaid-ascii/render"
+dry_stow "$PKG_PARENT" "$TMP/home" claude
+if [[ $code -ne 0 ]]; then
+  bad "stow claude: exit $code"; printf '%s\n' "$out" | sed 's/^/       /'
+elif ! grep -q 'mermaid-ascii/render/render\.mjs' <<<"$out"; then
+  bad "stow claude: never reached render/ (render.mjs not named)"
+elif grep -q 'node_modules' <<<"$out"; then
+  bad "stow claude: would link node_modules"
+else
+  ok "stow claude: links render.mjs, not node_modules"
+fi
+
+# Stow's defaults, checked on an isolated package so the result does not
+# depend on what the real one holds today.
+fixture() {
+  rm -rf "$TMP/fx"
+  mkdir -p "$TMP/fx/pkg/.claude/mods/x/render" "$TMP/fx/home/.claude/mods/x/render"
+  : >"$TMP/fx/pkg/.claude/mods/x/render/keep.txt"
+  : >"$TMP/fx/pkg/.claude/mods/x/render/notes.txt~"
+}
+
+fixture
+cp "$STOW_IGNORE" "$TMP/fx/pkg/.stow-local-ignore"
+dry_stow "$TMP/fx" "$TMP/fx/home" pkg
+if [[ $code -ne 0 ]]; then
+  bad "defaults: stow exit $code"
+elif ! grep -q 'keep\.txt' <<<"$out"; then
+  bad "defaults: never reached render/ (keep.txt not named)"
+elif grep -q 'notes\.txt~' <<<"$out"; then
+  bad "defaults: a backup file (.+~) would be linked"
+else
+  ok "defaults: backup file ignored"
+fi
+
+# The same fixture without the .+~ rule must link the backup file, or the
+# check above was not testing anything.
+fixture
+grep -vxF '.+~' "$STOW_IGNORE" >"$TMP/fx/pkg/.stow-local-ignore"
+dry_stow "$TMP/fx" "$TMP/fx/home" pkg
+if [[ $code -eq 0 ]] && grep -q 'notes\.txt~' <<<"$out"; then
+  ok "defaults: without .+~ the backup file is linked (check can fail)"
+else
+  bad "defaults: without .+~ the backup file is still not linked (exit $code)"
+fi
+
 echo
 if [[ $fail -eq 0 ]]; then echo "mermaid-ascii: all passed"; else echo "mermaid-ascii: FAILURES"; fi
 exit $fail

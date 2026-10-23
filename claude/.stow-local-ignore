@@ -1,0 +1,27 @@
+# This file replaces Stow's built-in ignore list, so the defaults (Stow 2.x)
+# are restated first.
+
+RCS
+.+,v
+
+CVS
+\.\#.+
+\.cvsignore
+
+\.svn
+_darcs
+\.hg
+
+\.git
+\.gitignore
+\.gitmodules
+
+.+~
+\#.*\#
+
+^/README.*
+^/LICENSE.*
+^/COPYING
+
+# A mod's converter dependencies, installed per machine with npm ci.
+^/\.claude/mods/[^/]+/render/node_modules$
