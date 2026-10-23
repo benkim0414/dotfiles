@@ -107,8 +107,9 @@ horizontally; any text that would not fit is truncated with `…`.
 - **Claude Code:** a `ui.render` hook on `{ component: 'AbovePrompt' }`. It
   steps aside (`next(e)`) while a survey shows (`e.props.hasSurvey`), while
   toggled off, when there is no valid reading, and below 20 columns. It
-  draws through `$.ui.resolve(e)`, so it works on any surface; the terminal
-  is the primary target. `/context-bar` is registered with
+  draws through `$.ui.resolve(e)`. The engine raises `AbovePrompt` only on
+  the terminal and desktop surfaces, so VS Code and mobile never show the
+  band; the terminal is the primary target. `/context-bar` is registered with
   `$.command.register` in `session.start` and answered by a `command.run`
   hook.
 - **The model:** unaffected. The mod is display only and never touches the
