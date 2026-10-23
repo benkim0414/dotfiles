@@ -154,6 +154,27 @@ Design: `docs/superpowers/specs/2026-07-09-herdr-tmux-keybindings-design.md`.
 - **Stow refuses absolute symlinks**. Files installed by external tools (claude, git-filter-repo, uv, uvx) must NOT be added to the bin package -- leave them as-is in `~/.local/bin`.
 - **After restructuring a package dir**, use `stow -t ~ -R <package>` to clean up stale symlinks.
 
+# Mods
+
+Claude Code mods live in the `claude` package under `claude/.claude/mods/<name>/`
+and load through `CLAUDE_CODE_PLUGIN_DIRS` in the `env` block of
+`claude/.claude/settings.json` (`~` allowed; one entry per mod, separated by `:`).
+An interactive session watches the folder, so edits reload on their own.
+
+- **mermaid-ascii** draws ```` ```mermaid ```` fences in assistant replies as
+  text art in the terminal. Its converter (`render/`, beautiful-mermaid on
+  node) needs one step per machine, from the main checkout:
+  `npm ci --prefix ~/workspace/dotfiles/claude/.claude/mods/mermaid-ascii/render`.
+  Until then the mod shows the source and toasts once per session.
+  Intent, spec and plan: `claude/.claude/mods/mermaid-ascii/intent/`.
+- **`node_modules` stays out of git and Stow.** `.gitignore` covers
+  `claude/.claude/mods/*/render/node_modules/`, and `claude/.stow-local-ignore`
+  excludes it from Stow. That file replaces Stow's default ignore list, so it
+  restates the defaults; keep them when adding a line.
+- **Tests:** `claude plugin test claude/.claude/mods/<name>` for the hooks,
+  and `claude/.claude/tests/mermaid-ascii/run.sh` for the converter and the
+  Stow exclusion (exits 2 when `node` or `npm ci` is missing).
+
 # Package conventions
 
 - Each top-level directory is a Stow package mirroring the home directory layout.
