@@ -1,0 +1,6 @@
+{
+  "name": "context-bar",
+  "version": "0.1.0",
+  "description": "Shows what fills the context window as a bar above the prompt, toggled by /context-bar",
+  "types": "./types/index.d.ts"
+}

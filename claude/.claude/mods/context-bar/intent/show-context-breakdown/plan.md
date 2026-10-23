@@ -133,6 +133,13 @@ inside the worktree.
      Mutation-check `apportion`: removing step 3's redistribution for
      `k > width`, and removing it for `k ≤ width`, must each fail at least
      one test.
+
+   **As built:** `apportion(tokens, width, fill)` takes token counts in bar
+   order and the index of the free part, which gets the whole bar when
+   `D = 0`; so the counts sum to `width` in every case, `D = 0` included.
+   Both mutations failed 4 tests each (the crowded branch: the similar-sizes,
+   skewed, crowded-ties and property tests; the `k ≤ width` branch: the
+   small-parts, 1-token, donor-ties and property tests).
 3. **Reduce and layout.** In `layout.ts`, the functions `reduce` and
    `layout`, test first:
    - **`reduce`:**
