@@ -25,8 +25,13 @@ From: [intent.md](intent.md). Status: draft.
   - the widest line of the art is wider than the transcript can draw it
     (`e.viewport.columns` minus the reply's indent). Width is counted in
     display columns, not string length: East Asian Wide and Fullwidth
-    characters and emoji count 2, combining marks and zero-width joiners 0,
-    everything else 1, and a tab advances to the next multiple of 8. When
+    characters and emoji drawn as pictures count 2; nonspacing and
+    enclosing marks (`\p{Mn}`, `\p{Me}`), format characters (`\p{Cf}`, the
+    ZWJ among them), Hangul medial and final jamo and skin-tone modifiers
+    count 0; everything else 1. VS16 draws a text-default emoji two wide, a
+    ZWJ between two pictographs joins them into one glyph (a ZWJ after
+    anything else joins nothing), two regional indicators make one flag, and
+    a tab advances to the next multiple of 8. When
     the surface does not report a viewport, the art is used.
 - **R3.** Only the drawing changes. The hook rewrites `e.props.text` and
   passes everything else on as received. The stored message, the

@@ -73,15 +73,19 @@ const WIDE: [number, number][] = [
   [0x20000, 0x2fffd], [0x30000, 0x3fffd],
 ]
 
-// Combining marks, zero-width spaces and joiners, variation selectors.
-const ZERO: [number, number][] = [
-  [0x0300, 0x036f], [0x0483, 0x0489], [0x0591, 0x05bd], [0x0610, 0x061a],
-  [0x064b, 0x065f], [0x1ab0, 0x1aff], [0x1dc0, 0x1dff], [0x200b, 0x200f],
-  [0x20d0, 0x20ff], [0x3099, 0x309a], [0xfe00, 0xfe0f], [0xfe20, 0xfe2f],
-  [0x1f3fb, 0x1f3ff], [0xe0000, 0xe007f], [0xe0100, 0xe01ef],
-]
-
+// Zero columns: nonspacing and enclosing marks, format characters (ZWJ,
+// zero-width spaces, tags), Hangul medial and final jamo, and the skin-tone
+// modifiers that colour the emoji before them. U+00AD, a format character
+// terminals draw, is left out.
+const ZERO = /[\p{Mn}\p{Me}\p{Cf}ᅠ-ᇿ\u{1f3fb}-\u{1f3ff}]/u
+const PICTOGRAPH = /\p{Extended_Pictographic}/u
+const EMOJI = /\p{Emoji}/u
+const PRESENTED = /\p{Emoji_Presentation}/u
 const ZWJ = 0x200d
+const VS16 = 0xfe0f
+const SOFT_HYPHEN = 0xad
+
+const isRegional = (cp: number) => cp >= 0x1f1e6 && cp <= 0x1f1ff
 
 function inRanges(cp: number, ranges: [number, number][]): boolean {
   let lo = 0
@@ -96,18 +100,46 @@ function inRanges(cp: number, ranges: [number, number][]): boolean {
   return false
 }
 
-// Columns a line takes in the terminal (R2). A code point after a zero-width
-// joiner continues the glyph before it, so an emoji ZWJ sequence counts once.
+// Columns a line takes in the terminal (R2), glyph by glyph: marks and format
+// characters add nothing, VS16 draws a text-default emoji two wide, a ZWJ
+// joins the next pictograph into the one before, and two regional
+// indicators make one flag.
 export function displayWidth(line: string): number {
   let col = 0
-  let joined = false
+  // The glyph before, for a VS16 or a ZWJ that follows it.
+  let last = { width: 0, isEmoji: false, isPictograph: false }
+  let isJoining = false
+  let isFlagOpen = false
   for (const ch of line) {
     const cp = ch.codePointAt(0)!
-    if (cp === 0x09) col += 8 - (col % 8)
-    else if (cp === ZWJ) { joined = true; continue }
-    else if (joined || inRanges(cp, ZERO)) { /* zero width */ }
-    else col += inRanges(cp, WIDE) ? 2 : 1
-    joined = false
+    if (cp === 0x09) {
+      col += 8 - (col % 8)
+      last = { width: 0, isEmoji: false, isPictograph: false }
+      isJoining = isFlagOpen = false
+      continue
+    }
+    if (cp === VS16) {
+      if (last.isEmoji && last.width === 1) { col += 1; last.width = 2 }
+      continue
+    }
+    if (cp === ZWJ) { isJoining = last.isPictograph; continue }
+    const isPictograph = PICTOGRAPH.test(ch)
+    const isJoined = isJoining && isPictograph
+    isJoining = false
+    if (isJoined) continue
+    if (cp !== SOFT_HYPHEN && ZERO.test(ch)) continue
+    if (isRegional(cp)) {
+      // The second of a pair is part of the flag the first drew.
+      isFlagOpen = !isFlagOpen
+      if (!isFlagOpen) continue
+      col += 2
+      last = { width: 2, isEmoji: true, isPictograph: false }
+      continue
+    }
+    isFlagOpen = false
+    const width = inRanges(cp, WIDE) || PRESENTED.test(ch) ? 2 : 1
+    col += width
+    last = { width, isEmoji: EMOJI.test(ch), isPictograph }
   }
   return col
 }

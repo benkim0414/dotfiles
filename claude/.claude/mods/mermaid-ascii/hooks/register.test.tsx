@@ -311,6 +311,34 @@ test('art wider than the transcript keeps the fence, counted in display columns'
   await narrow.unmount()
 })
 
+test('marks and emoji: art fits at its display width and falls back one column short', async ($, on) => {
+  const clock = mock.clock(on)
+  // Each art line and its width in display columns.
+  const cases: [string, number][] = [
+    ['اٰ'.repeat(5), 5], // Arabic letter + combining mark
+    ['אֿ'.repeat(5), 5], // Hebrew letter + combining mark
+    ['❤️'.repeat(5), 10], // heart + VS16
+    ['a‍b'.repeat(3), 6], // ZWJ between letters joins nothing
+    ['\u{1f468}‍\u{1f469}‍\u{1f467}', 2], // emoji ZWJ sequence
+  ]
+  const art: Record<string, string> = {}
+  cases.forEach(([line], i) => { art[`flowchart LR\n  N${i}`] = line })
+  engine(on, source => exited(0, art[source]))
+
+  for (const [i, [line, width]] of cases.entries()) {
+    const text = fence(`flowchart LR\n  N${i}`)
+    // The reply indent takes 2 columns.
+    const fits = await mountReply($, 'terminal', text, width + 2)
+    await clock.settle()
+    expect([i, await shown(fits)]).toEqual([i, asArt(line)])
+    await fits.unmount()
+
+    const short = await mountReply($, 'terminal', text, width + 1)
+    expect([i, await shown(short)]).toEqual([i, text])
+    await short.unmount()
+  }
+})
+
 test('an unclosed fence and a reply with no fence are unchanged', async ($, on) => {
   const clock = mock.clock(on)
   const { runs } = engine(on, () => exited(0, ART))

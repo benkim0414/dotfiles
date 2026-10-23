@@ -95,6 +95,28 @@ test('displayWidth counts an emoji ZWJ sequence as one wide glyph', () => {
 
 test('displayWidth counts combining marks as zero', () => {
   expect(displayWidth('é')).toBe(1)
+  // Arabic superscript alef, Hebrew rafe, Devanagari virama.
+  expect(displayWidth('اٰ')).toBe(1)
+  expect(displayWidth('אֿ')).toBe(1)
+  expect(displayWidth('क्')).toBe(1)
+})
+
+test('displayWidth widens a text-default emoji followed by VS16', () => {
+  expect(displayWidth('❤')).toBe(1)
+  expect(displayWidth('❤️')).toBe(2)
+  expect(displayWidth('a️')).toBe(1)
+})
+
+test('displayWidth joins with ZWJ only between pictographs', () => {
+  expect(displayWidth('a‍b')).toBe(2)
+  // A pictograph after a letter's ZWJ is its own glyph.
+  expect(displayWidth('a‍\u{1f600}')).toBe(3)
+  expect(displayWidth('\u{1f3f3}️‍\u{1f308}')).toBe(2)
+})
+
+test('displayWidth counts a flag and a skin-toned emoji once', () => {
+  expect(displayWidth('\u{1f1e6}\u{1f1fa}')).toBe(2)
+  expect(displayWidth('\u{1f44d}\u{1f3fd}')).toBe(2)
 })
 
 test('displayWidth advances a tab to the next multiple of 8', () => {
