@@ -87,7 +87,8 @@ repo that needs it.
   one `work` bank for `~/workspace`, `optInOnly`, `project:{gitProject}` tags.
 
 User-scope MCP servers (device-local, `~/.claude.json`) are limited to
-`hindsight`, `atlassian` and `slack`, and the only global plugin is `eli5`.
+`hindsight`, `atlassian` and `slack`. No plugin is enabled globally; the one
+global skill, `eli5`, is vendored (see Plugins below).
 Per-repo tools -- plugins, and MCP servers such as Serena, Nx, Terraform or
 EKS -- are enabled only in that repo. For repos shared with teammates, put them in
 the gitignored `.claude/settings.local.json` (plugins) and local-scope MCP
@@ -205,12 +206,20 @@ Commit the ones worth keeping and `git checkout` the rest.
 
 ## Plugins
 
-`settings.json` enables one plugin, `eli5@claude-community` (Anthropic's
-community marketplace, `anthropics/claude-plugins-community`, declared under
-`extraKnownMarketplaces`). Any other
-repo that needs a plugin enables it in its own settings (for shared repos,
-the gitignored `.claude/settings.local.json`). To make a plugin global
-again, add it under `enabledPlugins` and -- unless it comes from the
+`settings.json` enables no plugins. Each repo that needs a plugin enables
+it in its own settings (for shared repos, the gitignored
+`.claude/settings.local.json`).
+
+The one global skill, `eli5`, is
+[DreambigOu/ELI5](https://github.com/DreambigOu/ELI5)'s `skills/eli5/SKILL.md`,
+copied verbatim at commit `a766623b` into `claude/.claude/skills/eli5/`. It
+stows into `~/.claude/skills/eli5` next to the `skills` CLI's symlinks, and
+the `skills` entry in `pi/.pi/agent/settings.json` makes Pi load that same
+directory. To update it, re-copy the file from upstream and record the new
+commit here. It replaced the `eli5@claude-community` plugin, which made HTML
+picture explainers; DreambigOu's skill instead writes prose for a named audience.
+
+To make a plugin global, add it under `enabledPlugins` and -- unless it comes from the
 official Anthropic marketplace -- its marketplace under
 `extraKnownMarketplaces` (`github` source + `repo`).
 

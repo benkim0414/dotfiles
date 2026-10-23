@@ -18,3 +18,7 @@ The [Claude community `eli5` plugin](https://github.com/anthropics/claude-plugin
 There is one compatibility detail: Pi appends command arguments as `User: <args>` after the skill content, while the community skill uses Claude Code's `$ARGUMENTS` placeholder. The installed copy is unchanged, so `$ARGUMENTS` may remain literal; this is an inference from the two documented formats. Pi's skill command is `/skill:eli5 <topic>`, rather than Claude Code's `/eli5 <topic>`. An HTML result has not been tested in Pi.
 
 The two skills share the name `eli5`, so Pi's documented name-collision behavior means they should not both be installed under that name. The DreambigOu copy was removed, and the Anthropic community copy is now installed at `~/.pi/agent/skills/eli5/SKILL.md`. The skills CLI lists its source as `anthropics/claude-plugins-community` for Pi.
+
+## Current state (2026-10-23)
+
+This has since been reversed. The `eli5@claude-community` plugin and its marketplace were removed from Claude Code, and the [DreambigOu/ELI5](https://github.com/DreambigOu/ELI5) skill (commit `a766623b`) is now vendored at `claude/.claude/skills/eli5/SKILL.md` and stowed to `~/.claude/skills/eli5`. Pi loads the same directory through the `skills` entry in `pi/.pi/agent/settings.json`, so its command is `/skill:eli5 <request>`. The Pi copy of the community skill described above was no longer installed when this change was made.
