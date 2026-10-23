@@ -230,17 +230,6 @@
     "type": "command",
     "command": "$HOME/.claude/statusline.sh"
   },
-  "enabledPlugins": {
-    "eli5@claude-community": true
-  },
-  "extraKnownMarketplaces": {
-    "claude-community": {
-      "source": {
-        "source": "github",
-        "repo": "anthropics/claude-plugins-community"
-      }
-    }
-  },
   "theme": "custom:catppuccin",
   "defaultMode": "auto",
   "editorMode": "vim"
