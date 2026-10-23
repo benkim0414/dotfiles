@@ -168,6 +168,12 @@ An interactive session watches the folder, so edits reload on their own.
   `npm ci --prefix ~/workspace/dotfiles/claude/.claude/mods/mermaid-ascii/render`.
   Until then the mod shows the source and toasts once per session.
   Intent, spec and plan: `claude/.claude/mods/mermaid-ascii/intent/`.
+- **context-bar** draws what fills the context window as a band above the
+  prompt: a header (`90k of 1M · compacts at 99%`), one bar coloured by
+  category, and a legend. It is off by default; `/context-bar` toggles it
+  (`on` and `off` set it), and the choice is kept user-wide in the mod's
+  `$.store`. Nothing to install. Intent, spec and plan:
+  `claude/.claude/mods/context-bar/intent/`.
 - **`node_modules` stays out of git and Stow.** `.gitignore` covers
   `claude/.claude/mods/*/render/node_modules/`, and `claude/.stow-local-ignore`
   excludes it from Stow. That file replaces Stow's default ignore list, so it
