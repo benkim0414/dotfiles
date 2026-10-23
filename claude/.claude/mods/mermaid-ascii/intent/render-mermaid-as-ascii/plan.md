@@ -65,6 +65,16 @@ work happens in this worktree; stow and live checks wait for the merge.
 
    Record the result in this file under step 1. No commit in the repo
    unless the spec changes.
+
+   **Result (2026-10-23): passes.** The hook read the member, scheduled
+   `$.clock.after(0, …)` and returned `next(e)`; after `mock.clock(on)`'s
+   `settle()` the mounted `AssistantMessage` drew the written value with no
+   `$.ui.invalidate`. With the write removed the same test failed
+   (`Expected: "CONVERTED"`, `Received: "SOURCE"`), so it was checking. The
+   spec's design stands. `claude plugin validate` also refused the spike's
+   contract for an `import` line: `types/index.d.ts` must be self-contained,
+   naming `StateFamily` inside `declare module 'claude-code'` without
+   importing it.
 2. **Converter.** `render/package.json`, `npm install` to produce the lock
    file, `render.mjs`, and the `.gitignore` entry for `node_modules`. Then
    `run.sh`, converter half, with assertions that cannot pass silently (see
