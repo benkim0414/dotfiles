@@ -106,3 +106,6 @@ zsh/.zshrc.bak.*
 # Pi runtime state and installed skills stay device-local; shared settings are tracked.
 /pi/.pi/agent/*
 !/pi/.pi/agent/settings.json
+
+# mermaid-ascii mod converter dependencies (npm ci per machine)
+claude/.claude/mods/*/render/node_modules/

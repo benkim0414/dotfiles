@@ -1,0 +1,8 @@
+{
+  "name": "mermaid-ascii-render",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "beautiful-mermaid": "1.1.3"
+  }
+}
