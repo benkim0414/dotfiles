@@ -15,31 +15,35 @@ A Claude Code mod draws a live context breakdown as a band above the prompt,
 modelled on the context bar in the "Mods in Claude Code" video:
 
 ```text
-◆ context                                     90k of 1M · compacts at 99%
-████▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒░░▒▒····································░
-■ system prompt 4.2k 1%  ■ tools 17k 2%  ■ mcp tools 52k 5%  ■ agents 3.4k 1%
-■ memory files 8.6k 1%  ■ skills 5.1k 1%  ■ messages 0 0%  ■ free 897k
-■ reserved 13k
+╭──────────────────────────────────────────────────────────────────────────╮
+│ ◆ context                              90k of 1M · compacts at 987k  9%  │
+│ █████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░│ │
+│ ■ system prompt 4.2k 1%  ■ tools 17k 2%  ■ mcp tools 52k 5%              │
+│ ■ agents 3.4k 1%  ■ memory files 8.6k 1%  ■ skills 5.1k 1%               │
+│ ■ messages 0 0%  ■ free 897k                                             │
+╰──────────────────────────────────────────────────────────────────────────╯
 ```
 
 The example adds up: the used categories total 90.3k (the header's `90k`),
 and 90.3k used + 897k free + 13k reserved = 1M, the window.
 
+- **Frame:** the band sits in a box with rounded corners, as in the video.
 - **Header row:** `◆ context` on the left. On the right is
-  `<used> of <window> · compacts at <N>%`, where `<N>` is
-  `autoCompactThreshold` as a share of the window. The `compacts at` part is
-  left out when auto-compact is off.
-- **Bar:** one row as wide as the band, with one segment per `used`
-  category in the order `/context` lists them. Each segment is coloured with
-  that category's theme colour. Free space follows, and a dim reserved
-  segment sits at the right end. `deferred` rows (tool schemas loaded on
-  demand) are left out because they sit outside the window.
+  `<used> of <window> · compacts at <threshold>`, where `<threshold>` is
+  `autoCompactThreshold` in tokens (`987k`), then a badge with the share of
+  the window in use (`9%`). The `compacts at` part is left out when
+  auto-compact is off. The used figure is bold and the rest dim.
+- **Bar:** one row as wide as the frame's inside, with one segment per
+  `used` category in the order `/context` lists them. Each segment is
+  coloured with that category's theme colour. Free space follows, up to a
+  thin marker at the compaction point; the reserve is the dim sliver after
+  the marker. `deferred` rows (tool schemas loaded on demand) are left out
+  because they sit outside the window.
 - **Legend:** wraps across rows. Each entry is a swatch, a lowercase label,
-  short tokens (`4.2k`) and a dim percentage. Percentages round to whole
-  numbers, and any non-zero share shows at least `1%`, as in the screenshot.
-  `free <N>k` comes after the
-  used categories. `reserved <N>k` comes last and only appears when the
-  buffer is non-zero.
+  bold short tokens (`4.2k`) and a dim percentage. Percentages round to
+  whole numbers, and any non-zero share shows at least `1%`, as in the
+  screenshot. A dim `free <N>k` comes after the used categories. The
+  reserve has no entry: the marker and `compacts at` show it.
 - **Live:** it refreshes at `session.start` (which also runs after a mod
   reload), after each main-loop `turn.complete` (subagent turns are skipped),
   after `session.compact`, and when `/context-bar` turns it on. Each refresh
@@ -62,9 +66,9 @@ share of that one denominator.
   never computes free as window minus used, because that would silently
   include the reservation.
 - **reserved:** the `buffer` row, which is the compaction reserve. It is
-  drawn as the dim tail segment and listed as `reserved`. With auto-compact
-  off there is no buffer row, so there is no reserved segment or entry, and
-  free fills the rest.
+  drawn as the dim sliver after the compaction marker, with no legend
+  entry. With auto-compact off there is no buffer row, so there is no
+  marker or sliver, and free fills the rest.
 - **Reconciliation:** header, bar and legend must agree, whether
   auto-compact is on or off. used + free + reserved = window, give or take
   the rounding of short tokens. The bar gives each part
@@ -95,9 +99,9 @@ horizontally; any text that would not fit is truncated with `…`.
 
 | Columns | Shows |
 | --- | --- |
-| 60 and up | header, bar, legend |
-| 40–59 | header with the right part shortened to `90k/1M · 99%`; bar; no legend |
-| 20–39 | one row: `◆ 90k/1M` followed by the bar in the remaining columns |
+| 60 and up | the frame, holding header, bar and legend |
+| 40–59 | no frame; header with the right part shortened to `90k/1M` and the badge; bar; no legend |
+| 20–39 | no frame; one row: `◆ 90k/1M` followed by the bar in the remaining columns |
 | under 20 | nothing (the band steps aside) |
 
 ## Affected users and systems
@@ -141,10 +145,9 @@ horizontally; any text that would not fit is truncated with `…`.
 - Should `/context-bar` take `on|off` arguments, or only toggle?
 - How the bar draws partial cells, given the screenshot's smooth segments
   (eighth-block glyphs, or whole cells only).
-- Whether the video's bar hides the reservation. The screenshot shows no
-  reserved segment, yet its figures leave about 13k of the 1M window
-  unaccounted for, which fits a buffer. This intent shows the reservation so
-  the figures reconcile.
+- How the video's bar shows the reservation. Settled by a closer look: a
+  thin marker at the compaction point (987k), with the 13k reserve as the
+  sliver after it and no legend entry.
 
 ## Later changes (each gets its own intent)
 

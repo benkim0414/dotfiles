@@ -4,10 +4,13 @@ From: [intent.md](intent.md). Status: draft.
 ## Requirements
 
 - **R1.** When the bar is on, the `AbovePrompt` band shows the context
-  window broken down by category, in three parts:
+  window broken down by category, as the video's band does, in a frame
+  with rounded corners holding three parts:
   - a header row: `◆ context` on the left and
-    `<used> of <window> · compacts at <N>%` on the right;
-  - a bar row, one cell per column, in the band's width;
+    `<used> of <window> · compacts at <threshold>` followed by a usage badge
+    `<P>%` on the right (R6);
+  - a bar row, one cell per column, in the frame's inner width, with a
+    marker at the compaction point (R4);
   - a wrapping legend, one entry per category.
 - **R2.** All figures share one denominator, the window: the breakdown's
   `rawMaxTokens`.
@@ -46,13 +49,17 @@ From: [intent.md](intent.md). Status: draft.
   row carries (`ContextCategory.color`, a theme key):
   - `█` for used cells;
   - `░` for free cells;
-  - `▒` for reserved cells, dimmed.
+  - for reserved cells, the compaction marker `│` in the `warning` colour as
+    the first cell (the compaction point, where free ends), then `░` dimmed
+    for the rest. Reserved has at least one cell whenever its tokens are
+    above 0 (R3), so the marker shows whenever auto-compact reserves room.
 - **R5.** Each legend entry is `■ <label> <tokens> <pct>`. The swatch takes
-  the row's colour, and `<pct>` is dimmed.
-  - **Order:** used rows in `/context` order, then `free`, then `reserved`
-    only when its tokens are above 0.
-  - **Free entry:** written `free <tokens>`, with no percentage, as in the
-    screenshot.
+  the row's colour, `<tokens>` is bold, and `<pct>` is dimmed.
+  - **Order:** used rows in `/context` order, then `free`. Reserved has no
+    entry: the marker and the header's `compacts at` show it, as in the
+    video.
+  - **Free entry:** written `free <tokens>`, dimmed throughout, with no
+    percentage, as in the video.
   - **Labels:** chosen by `kind` first. `free` and `buffer` are always
     labelled `free` and `reserved`. A used row is labelled through this map
     (unknown names fall back to the lowercased name):
@@ -77,18 +84,25 @@ From: [intent.md](intent.md). Status: draft.
     The header uses the same format.
   - **Percentages:** whole numbers. Any non-zero share is shown as at least
     `1%`.
-- **R6.** The header's right part:
-  - `<used> of <window>`, followed by `· compacts at <N>%` when
-    `isAutoCompactEnabled` is true and `autoCompactThreshold` is set;
-  - `<N>` is `round(autoCompactThreshold / rawMaxTokens × 100)`.
+- **R6.** The header:
+  - **Left:** `◆` in the `claude` colour, then `context` in bold.
+  - **Right:** `<used>` in bold, then ` of <window>` dimmed, followed by
+    ` · compacts at <threshold>` dimmed when `isAutoCompactEnabled` is true
+    and `autoCompactThreshold` is set. `<threshold>` is
+    `autoCompactThreshold` in short tokens (`987k`), not a percentage.
+  - **Badge:** one space, then ` <P>% ` in the `inverseText` colour on a
+    background of `success` below 70%, `warning` from 70% and `error` from
+    90%. `<P>` is `totalTokens / rawMaxTokens` as R5's percentage. The video
+    shows only the green badge; the other two colours are this spec's.
 - **R7.** The band's layout depends on `w = e.props.bodyColumns`. No row is
-  ever wider than `w`, and any text that would not fit is cut with `…`.
+  ever wider than the room it is drawn in, and any text that would not fit
+  is cut with `…`.
 
   | `w` | Layout |
   | --- | --- |
-  | ≥ 60 | header, bar, legend (R1) |
-  | 40–59 | header with the right part shortened to `<used>/<window> · <N>%` (or `<used>/<window>` with auto-compact off); bar |
-  | 20–39 | one row: `◆ <used>/<window> ` followed by the bar in the remaining columns (the prefix is at most 14 columns, so the bar has at least 6) |
+  | ≥ 60 | the frame (a `round` border in the `inactive` colour, one column of padding each side), holding header, bar and legend laid out in `w − 4` columns (R1) |
+  | 40–59 | no frame; header with the right part shortened to `<used>/<window>` and the badge; bar |
+  | 20–39 | no frame; one row: `◆ <used>/<window> ` followed by the bar in the remaining columns (the prefix is at most 14 columns, so the bar has at least 6) |
   | < 20 | nothing: `next(e)` |
 
   The header's left and right parts are separated by at least one space.
@@ -233,34 +247,44 @@ type Reading = {
   reserved: Part | null   // kind 'buffer'; null when absent
   totalTokens: number
   window: number          // rawMaxTokens
-  compactsAt: number | null // percent, or null when auto-compact is off
+  compactsAt: number | null // tokens (autoCompactThreshold), or null when auto-compact is off
 }
 ```
 
 Storing the reduced reading keeps the render hook cheap. It also means that
 when the API's own shape changes, only the reducer needs updating.
 
+`compactsAt` changed from a percentage to tokens, so the atom's shape tag
+moves from `reading-1` to `reading-2`, and a reading the earlier code stored
+reads as absent after the reload.
+
 ### Layout
 
-`layout.ts` exports `layout(reading: Reading, width: number): Row[] | null`.
+`layout.ts` exports
+`layout(reading: Reading, width: number): { rows: Row[]; isFramed: boolean } | null`.
 It is pure, so every case in R2–R7 is tested without the engine. A `Row` is
-a list of `{ text, color?, dim? }` spans. The render hook maps each span to
-`<Text color dimColor>` inside a `<Box flexDirection="column">`. `null`
+a list of `{ text, color?, dim?, bold?, background? }` spans. At 60 columns
+and up, `isFramed` is true and the rows are laid out in `width − 4`
+columns, the room inside the frame. The render hook maps each span to
+`<Text color dimColor bold backgroundColor>` inside a
+`<Box flexDirection="column">`, and when `isFramed` gives that Box
+`borderStyle="round"`, `borderColor="inactive"` and `paddingX={1}`. `null`
 means "step aside" (`w < 20`).
 
 The legend wraps itself: `layout` packs whole entries into rows of at most
-`width` columns, with two spaces between entries. An entry wider than
-`width` is cut with `…`. Widths are counted in display columns. Every glyph
-the band uses (`◆ ■ █ ░ ▒ · …`) is one column wide, and labels are ASCII.
+the room it has, with two spaces between entries. An entry wider than that
+is cut with `…`. Widths are counted in display columns. Every glyph the
+band uses (`◆ ■ █ ░ │ · …`) is one column wide, and labels are ASCII.
 
 ### The render hook
 
 `on('ui.render', { component: 'AbovePrompt' }, …)`:
 
 1. If R8 says the band steps aside, `return next(e)`.
-2. `rows = layout(reading, e.props.bodyColumns)`. If it is `null`,
+2. `band = layout(reading, e.props.bodyColumns)`. If it is `null`,
    `return next(e)`.
-3. Return the tree drawn from `$.ui.resolve(e)`.
+3. Return the tree drawn from `$.ui.resolve(e)`, framed when
+   `band.isFramed`.
 
 The hook reads `isOn` from a state atom that mirrors the store. It never
 calls `usage()` and never awaits anything except state reads.
@@ -354,7 +378,7 @@ interface PluginState {
 }
 ```
 
-`reading` is shaped (`shape: 'reading-1'`), so a reload that changes
+`reading` is shaped (`shape: 'reading-2'`), so a reload that changes
 `Reading` declines a value an earlier version stored. `isOn` lives in
 `$.state` only as a mirror. `$.store` is the source of truth across
 sessions.
@@ -377,7 +401,7 @@ sessions.
 | Narrow terminals | The layout tiers in R7, which have a 20-column minimum and never overflow. |
 | No npm dependencies | No `render/` dir and no `package.json` (R17). |
 | Lives in dotfiles | `claude/.claude/mods/context-bar/`, loaded through `CLAUDE_CODE_PLUGIN_DIRS` (R17). |
-| Accounting | One denominator, the API's free row, and reserved shown and reconciled (R2, R3). |
+| Accounting | One denominator, the API's free row, and reserved drawn after the compaction marker so the bar reconciles (R2–R4). |
 | Failed refresh | Clear and step aside, recover on the next event, contained (R10–R13). |
 | Toggle scope | `$.store`, which is user-wide and survives reloads and restarts, with a refresh when the bar is turned on (R9, R15). |
 
@@ -392,9 +416,12 @@ All are decided here.
 - **Partial cells:** whole cells only (R3). An eighth-block glyph can't
   carry two category colours in one cell without background colours, which
   the band's `Text` does not set reliably on every surface.
-- **Showing the reservation:** shown, as the dim tail segment, so the
-  figures reconcile (R2–R5). This is the one deliberate change from the
-  video.
+- **Showing the reservation:** as the video does. A second look at it
+  showed `compacts at 987k` (tokens, not a percentage) with a separate
+  usage badge, and a thin marker on the bar at 987k: its free 897k plus
+  used 90k is exactly the compaction point, and the 13k reserve is the
+  sliver after the marker. So the reserve is drawn after the marker
+  (R4) and has no legend entry (R5). The bar still reconciles.
 
 ## Verification
 
@@ -423,17 +450,22 @@ All are decided here.
   - `D = 0`: the whole bar is free.
 
   The rest of `hooks/layout.test.ts`:
-  - the intent's example: at width 72, the used cells, the free cells and
-    the reserved cells add up to 72, the header reads `90k of 1M · compacts
-    at 99%`, and the legend lists `system prompt 4.2k 1%` … `free 897k`
-    `reserved 13k`;
-  - auto-compact off: no `compacts at`, no reserved entry or cells, and
+  - the intent's example: at width 76 (72 inside the frame), the used
+    cells, the free cells and the reserved cells add up to 72, the reserved
+    cells start with the `│` marker, the header reads
+    `90k of 1M · compacts at 987k  9% `, and the legend lists
+    `system prompt 4.2k 1%` … `free 897k`, with no reserved entry;
+  - the header's emphasis: `◆` in `claude`, `context` and `<used>` bold,
+    ` of <window> · compacts at …` dimmed, and the badge's background
+    `success`, `warning` and `error` at 69%, 70% and 90%;
+  - auto-compact off: no `compacts at`, no marker or reserved cells, and
     free fills the rest;
   - a 0-token category gets no cells, while a 1-token category gets one;
   - over the window: free and reserved are 0, all cells are used, and the
     header reads `1.02M of 1M`;
-  - widths 80, 60, 59, 40, 39, 20 and 19 match R7's tiers, and no row is
-    wider than the width;
+  - widths 80, 60, 59, 40, 39, 20 and 19 match R7's tiers (framed at 60
+    and up), and no row is wider than its room: `width − 4` when framed,
+    else `width`;
   - short tokens: `0`, `950`, `4.2k`, `17k`, `897k`, `1M`, `1.02M`.
 - `claude plugin test` with `hooks/register.test.tsx`. The test's own hooks
   stand in for `session.usage`, `store.get` and `store.set`:
