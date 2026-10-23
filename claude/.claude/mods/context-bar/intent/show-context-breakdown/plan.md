@@ -75,6 +75,28 @@ inside the worktree.
 
    Record the result in this file under step 1. No commit in the repo
    unless the spec changes.
+
+   **Result (2026-10-23): both pass; the spec's design stands.**
+   - (a) A `turn.complete` hook that returned `next(e)`'s result and left
+     `void work($)` running: `work`'s `$.session.usage` and state write ran
+     after the hook resolved, and the mounted band redrew with the value
+     after `mock.clock(on).settle()`, on terminal and desktop alike.
+   - (b) A test's `on('session.usage', …)` stands in for the engine: it can
+     answer `{ value }` from a promise the test resolves, never settle (later
+     `turn.complete` calls still return at once), or answer `{ deny }`, which
+     rejects the plugin's call. A test's `on('state.set', async (_, e, next)
+     => …)` can hold a write on a promise and then pass it on with
+     `next(e)`: the kit's own store commits it and redraws the band. The
+     hook sees `e.value` as the shaped wrapper `{ shape, value }`.
+   - The spike also showed the race R13 guards against: with no queue, a
+     second write committed while the first was held, then the first's
+     `update` missed its version, retried and wrote the older value last.
+   - **There is no `set` helper** in `claude-code` (only `atom`, `read`,
+     `update`, `derive`, `memberOf`). The spec's `set($, reading, value)` is
+     written `update($, reading, () => value)`: inside the serial queue no
+     other write races it, so its compare-and-set never misses.
+   - The kit needs a `ui.render` hook of the test's own beneath the band;
+     with none, `$.ui.mount` rejects. "Band hidden" is that hook's drawing.
 2. **Scaffold and the arithmetic.** `plugin.json`, `hooks.json`,
    `types/index.d.ts`, `tsconfig.json`, a stub `register.tsx` that only
    returns `next(e)`, and in `layout.ts` the functions `shortTokens`,
