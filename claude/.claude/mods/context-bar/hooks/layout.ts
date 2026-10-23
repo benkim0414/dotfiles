@@ -180,16 +180,22 @@ function entry(p: Part, pct: string | null): Row {
 
 const widthOf = (r: Row) => r.reduce((a, s) => a + s.text.length, 0)
 
-// Cut a row to `n` columns; the span where it is cut ends in …
+// Cut a row to `n` columns ending in …, which takes the last column even
+// when the cut falls between two spans.
 function cutRow(r: Row, n: number): Row {
   if (widthOf(r) <= n) return r
+  if (n <= 0) return []
   const out: Row = []
-  let room = n
+  let room = n - 1
   for (const s of r) {
     if (room <= 0) break
-    out.push({ ...s, text: cut(s.text, room) })
-    room -= s.text.length
+    const text = s.text.slice(0, room)
+    out.push({ ...s, text })
+    room -= text.length
   }
+  const last = out.at(-1)
+  if (last) last.text += '…'
+  else out.push({ text: '…' })
   return out
 }
 

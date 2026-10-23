@@ -4,6 +4,7 @@ import type { SessionUsage } from 'claude-code'
 
 import { EXAMPLE, row, usage } from './fixtures'
 import { apportion, labelFor, layout, percent, reduce, shortTokens, spread } from './layout'
+import type { Reading } from '../types'
 import type { Span } from './layout'
 
 // What every apportionment holds (spec R3): whole counts ≥ 0 summing to width.
@@ -312,6 +313,20 @@ test('legend entries are never split, and one wider than the width is cut', () =
   for (const r of legend) expect(r.startsWith('■ ')).toBe(true)
   expect(legend.join('  ').split('  ■ ').length).toBe(10)
   expect(legend).toContain('■ ' + 'x'.repeat(57) + '…')
+})
+
+test('an entry cut where one span ends still ends in …', () => {
+  // '■ ' + 54 x + ' 10 ' is exactly 60 columns, so the percent span is the
+  // first one left out: the cut must still show.
+  const r: Reading = {
+    used: [{ label: 'x'.repeat(54), tokens: 10, color: 'claude' }],
+    free: { label: 'free', tokens: 999_990, color: 'inactive' },
+    reserved: null,
+    totalTokens: 10,
+    window: 1_000_000,
+    compactsAt: null,
+  }
+  expect(texts(layout(r, 60))[2]).toBe('■ ' + 'x'.repeat(54) + ' 10…')
 })
 
 test('glyphs and colours: used █, free ░, reserved ▒ dimmed', () => {
