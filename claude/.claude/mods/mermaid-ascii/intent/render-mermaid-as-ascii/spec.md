@@ -41,7 +41,12 @@ From: [intent.md](intent.md). Status: draft.
   module reloaded; nothing else does.
 - **R7.** Art uses Unicode box drawing with no colour: `colorMode: 'none'`,
   `useAscii: false`. Message text may hold no control characters other than
-  tab and newline, so ANSI colour codes are never emitted.
+  tab and newline, so ANSI colour codes are never emitted. `colorMode`
+  only stops generated colour: a label's own control characters (ESC, BEL,
+  NUL, DEL, C1) reach the art. Art holding any control character other
+  than tab and newline is a failure: `render.mjs` exits 1, and the hook
+  refuses it again before caching. The engine skips a hook whose rewrite
+  holds one, which would leave every block of that reply as source.
 - **R8.** A missing converter is reported once per session with a toast
   naming the setup command. It is never reported per block or per redraw.
   "Missing" means `node` cannot start or the `beautiful-mermaid` package

@@ -64,6 +64,22 @@ else
   bad "invalid diagram: exit $code, stdout ${#out} bytes; expected 1 and empty"
 fi
 
+# colorMode 'none' only stops generated colour: a label's own control
+# characters reach the art unless render.mjs refuses them.
+for ctl in esc bel nul del; do
+  case $ctl in
+    esc) c=$'\x1b[31m' ;; bel) c=$'\x07' ;; nul) c='\0' ;; del) c=$'\x7f' ;;
+  esac
+  # printf %b expands \0, which a bash string cannot hold.
+  out="$(printf 'flowchart LR\n  A["hello%bworld"] --> B\n' "$c" | env -u NODE_PATH node "$RENDER/render.mjs" 2>/dev/null)"
+  code=$?
+  if [[ $code -eq 1 && -z "$out" ]]; then
+    ok "label with $ctl: exit 1, empty stdout"
+  else
+    bad "label with $ctl: exit $code, stdout ${#out} bytes; expected 1 and empty"
+  fi
+done
+
 # A copy beside no node_modules finds no package, however the real one is set up.
 mkdir -p "$TMP/bare"
 cp "$RENDER/render.mjs" "$TMP/bare/"

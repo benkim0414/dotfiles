@@ -128,6 +128,25 @@ test('a failed conversion keeps the fence, is cached, and does not toast', async
   await ui.unmount()
 })
 
+test('art holding a control character keeps its fence, and the others still draw', async ($, on) => {
+  const clock = mock.clock(on)
+  // The engine skips a hook whose rewrite holds a control character, which
+  // would leave every block of the reply as source: the good block drawing
+  // as art is what shows the mod refused the bad art itself.
+  const { runs, toasts } = engine(on, source =>
+    exited(0, source === SRC ? '┌───┐\n│ \x1b[31mA │\n└───┘' : ART))
+  const text = reply(fence(SRC), fence(OTHER))
+
+  const ui = await mountReply($, 'terminal', text)
+  await clock.settle()
+  await ui.redraw()
+  await clock.settle()
+  expect(await shown(ui)).toBe(reply(fence(SRC), asArt(ART)))
+  expect(runs).toHaveLength(2)
+  expect(toasts).toEqual([])
+  await ui.unmount()
+})
+
 test('a missing package (exit 3) toasts once however many blocks fail', async ($, on) => {
   const clock = mock.clock(on)
   const { runs, toasts } = engine(on, () => exited(3))

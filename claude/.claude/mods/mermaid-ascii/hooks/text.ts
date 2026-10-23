@@ -110,6 +110,12 @@ export function displayWidth(line: string): number {
   return col
 }
 
+// Message text may hold no control character but tab and newline (R7): the
+// engine skips a hook whose rewrite holds one. C0, DEL and C1.
+export function hasForbiddenControl(text: string): boolean {
+  return /[\x00-\x08\x0b-\x1f\x7f-\x9f]/.test(text)
+}
+
 // A backtick fence the art cannot close early: at least three, and longer
 // than any backtick run inside it.
 export function fenceFor(art: string): string {

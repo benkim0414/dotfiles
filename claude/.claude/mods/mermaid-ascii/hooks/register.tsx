@@ -2,7 +2,7 @@ import { update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
 import type { Art } from '../types'
-import { displayWidth, fenceFor, fnv1a32, isMermaid, scanFences } from './text'
+import { displayWidth, fenceFor, fnv1a32, hasForbiddenControl, isMermaid, scanFences } from './text'
 
 // Columns the terminal indents an assistant reply by (spec concern 4).
 const REPLY_INDENT = 2
@@ -69,7 +69,8 @@ async function run($: EngineInterface, source: string): Promise<Art> {
   if (r.exitCode === 3) await warnMissing($)
   if (r.exitCode !== 0) return failed
   const art = r.stdout.split('\n').map(l => l.trimEnd()).join('\n').trimEnd()
-  return art === '' ? failed : { source, ok: true, art }
+  // colorMode 'none' stops generated colour, not a label's own controls.
+  return art === '' || hasForbiddenControl(art) ? failed : { source, ok: true, art }
 }
 
 // One toast per session: the versioned write lets one failing block win.

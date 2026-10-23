@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { displayWidth, fenceFor, fnv1a32, isMermaid, scanFences } from './text'
+import { displayWidth, fenceFor, fnv1a32, hasForbiddenControl, isMermaid, scanFences } from './text'
 
 const lines = (...l: string[]) => l.join('\n')
 
@@ -99,6 +99,17 @@ test('fenceFor is three backticks or one more than the longest run', () => {
   expect(fenceFor('┌─┐')).toBe('```')
   expect(fenceFor('a`b')).toBe('```')
   expect(fenceFor('a````b')).toBe('`````')
+})
+
+test('hasForbiddenControl allows tab and newline, refuses every other control', () => {
+  expect(hasForbiddenControl('┌─┐\n│\tA│')).toBe(false)
+  const forbidden = [
+    ...Array.from({ length: 0x20 }, (_, c) => c).filter(c => c !== 0x09 && c !== 0x0a),
+    0x7f,
+    ...Array.from({ length: 0x20 }, (_, c) => 0x80 + c),
+  ]
+  // Each one alone, so a gap in the set cannot hide behind another.
+  expect(forbidden.filter(c => !hasForbiddenControl(`a${String.fromCharCode(c)}b`))).toEqual([])
 })
 
 test('fnv1a32 matches the published FNV-1a vectors', () => {
