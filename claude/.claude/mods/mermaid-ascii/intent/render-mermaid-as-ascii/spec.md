@@ -113,15 +113,28 @@ sequenceDiagram
    The hash only names the `$.state` member; it is never trusted as the
    identity. Read member `id`; the read subscribes this message to it. The
    cached value carries the `source` it was made from, and it counts as a
-   hit only when that `source` equals this block's. A value made from
-   another source (a hash collision) counts as neither hit nor miss: the
-   block is drawn as source and not converted, so a collision can never
-   show the wrong diagram or overwrite another block's result.
-4. Miss and not in flight → schedule `convert(id, source)` with
-   `$.clock.after(0, …)` so the write happens outside drawing. The in-flight
-   set is a module `Set` of full source strings, not hashes. A reload
-   forgets it, and the next draw schedules again (R6).
-5. Build the new text. A block with `{ ok: true, art }` that fits (R2)
+   hit only when that `source` equals this block's.
+4. An id has one owner: the first source to claim it. The module keeps a
+   `Map` of claims, id to full source:
+   - member holds a value from this source → hit;
+   - member holds a value from another source → collision;
+   - member empty, no claim → claim the id for this source and schedule
+     `convert(id, source)` with `$.clock.after(0, …)`, so the write happens
+     outside drawing;
+   - member empty, claimed by this source → in flight; nothing to do, which
+     keeps same-source deduplication;
+   - member empty, claimed by another source → collision.
+
+   A collision draws the block as source and schedules nothing.
+5. `convert` writes with the state library's `update`, keeping a value
+   already there: `update($, ref, prev => prev ?? result)`. The claim map
+   orders conversions within one module load; this completion-time check
+   covers what it cannot, such as two sources claiming the same id on
+   either side of a reload. Whichever result is written first owns the id
+   for the session, and no later result overwrites it. The loser is drawn
+   as source from then on. A reload forgets the claims; the next draw
+   claims again (R6).
+6. Build the new text. A block with `{ ok: true, art }` that fits (R2)
    becomes a `text` fence holding the art. Its fence is backticks,
    `max(3, longestBacktickRun(art) + 1)` long, so plain box art gets
    ```` ``` ```` and art holding backticks still cannot close it early.
@@ -260,24 +273,35 @@ Both are decided here.
   - an invalid diagram exits 1;
   - with `NODE_PATH` cleared and a copy of `render.mjs` in an empty temp
     directory (no `node_modules`), it exits 3.
-- `claude/.claude/tests/mermaid-ascii/run.sh`, against Stow: with
-  `render/node_modules` present, `stow -n -v -t <temp home> claude` (a dry
-  run into an empty temp target, and again into one where
-  `.claude/mods/mermaid-ascii/render/` already exists as a real directory)
-  plans no link whose path contains `node_modules`.
+- `claude/.claude/tests/mermaid-ascii/run.sh`, against Stow, with
+  `render/node_modules` present. Stow folds a missing target directory
+  into one link, so an empty temp home only ever shows `.claude => …` and
+  cannot prove anything about `node_modules`. The check runs into a temp
+  home where `.claude/mods/mermaid-ascii/render/` already exists as a real
+  directory, so Stow must descend into it. There, `stow -n -v` exits 0,
+  names `render.mjs` (proof it reached the directory), and plans no link
+  whose path contains `node_modules`.
 - `claude plugin validate` and `tsc -p` on the mod folder.
 - `claude plugin test` (`hooks/register.test.tsx`), with `process.run`
   stubbed by the test's own hook:
   - a reply with a flowchart fence is first drawn as source, then as art
     after the stubbed conversion settles;
-  - the output fence: art with no backticks gets three; art holding a run
-    of one, and a run of four, gets four and five;
+  - the output fence: art with no backticks gets three, art holding a run
+    of one gets three, and art holding a run of four gets five;
   - a failed conversion (exit 1) keeps the fence, shows no toast and is not
     run again on redraw;
   - exit 3, and a rejection with `ENOENT`, each keep the fence and toast
     once, however many blocks fail; a timeout rejection does not toast;
-  - an injected hash collision: two sources forced to the same member id
-    are each drawn as their own source or art, never the other's;
+  - an injected hash collision: sources A and B forced to the same member
+    id, both drawn before either stubbed conversion resolves:
+    - only A's conversion is started (B finds the id claimed);
+    - A owns the member, and B is drawn as source;
+  - a collision across a reload: the claim map cleared between drawing A
+    and drawing B, so both conversions start; resolving them in each order
+    (A then B, B then A) leaves the member holding whichever resolved
+    first, unchanged by the second, and neither block ever shows the
+    other's art;
+  - the same source in two replies starts one conversion;
   - a mermaid fence quoted inside a ```` ```` ```` markdown fence stays
     literal and is not converted;
   - art wider than the viewport keeps the fence, measured in display

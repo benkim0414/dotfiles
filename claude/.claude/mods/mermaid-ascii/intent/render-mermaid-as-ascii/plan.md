@@ -51,10 +51,13 @@ Each step is one commit, test first where there is a test to write. The
 work happens in this worktree; stow and live checks wait for the merge.
 
 1. **Spike: scheduling from a render hook** (spec "Areas of concern" 2).
-   A throwaway mod in the session's mods folder, not in the repo: a
-   `ui.render` hook on `AssistantMessage` that calls
+   A throwaway mod at `.spike/clock-after/` in this worktree's root:
+   outside the `claude` package, so Stow never sees it, and never staged.
+   It has a `ui.render` hook on `AssistantMessage` that calls
    `$.clock.after(0, …)`, whose callback does `$.state.set`, plus a
-   `claude plugin test` that mounts the component and expects the redraw.
+   `claude plugin test .spike/clock-after` run that mounts the component
+   and expects the redraw. The test kit runs it from its path, so nothing
+   loads it into a session. Delete the folder when the step ends.
    - It passes: keep the spec's design.
    - It fails: convert from `turn.complete` instead, update the spec's
      Conversion section and R5, and note that resumed transcripts draw
@@ -74,14 +77,29 @@ work happens in this worktree; stow and live checks wait for the merge.
    - the suite exits 2, not 0, when `node` is missing or `npm ci` has not
      run, so "could not check" never reads as "passed".
 3. **Stow exclusion.** `claude/.stow-local-ignore`, and `run.sh`'s Stow
-   half. With `render/node_modules` present, run `stow -n -v -d <repo> -t
-   <tmp home> claude` twice: into an empty temp home, and into one where
-   `.claude/mods/mermaid-ascii/render/` is a real directory. Assert the
-   verbose output names `render.mjs` (so the dry run did descend that far)
-   and names no path containing `node_modules`. Also assert that a file
-   Stow's defaults ignore elsewhere in the package (`.gitignore` inside
-   the mod, if any) is still ignored, since the new file replaces the
-   defaults.
+   half. Stow folds a missing target directory into one link: an empty
+   temp home only ever shows `LINK: .claude => …` (confirmed by the plan
+   review), so it proves nothing about `node_modules` and is not used.
+   Descent into a pre-created real directory was confirmed with a dry run
+   on 2026-10-23: it linked the files inside it and folded the rest. Each
+   check below captures Stow's exit status and fails on non-zero before
+   reading its output.
+   - **`node_modules` excluded.** With `render/node_modules` present, dry-run
+     into a temp home where `.claude/mods/mermaid-ascii/render/` is a real
+     directory. Assert the output names `render.mjs` (it reached the
+     directory) and names no path containing `node_modules`.
+   - **Stow's defaults still apply.** The new file replaces Stow's default
+     list, so build an isolated fixture package in `mktemp -d`, not the
+     real `claude` package: `pkg/.claude/mods/x/render/keep.txt` and
+     `pkg/.claude/mods/x/render/notes.txt~` (a backup file, covered by the
+     default `.+~` pattern), with a copy of `claude/.stow-local-ignore`.
+     Dry-run into a home with `.claude/mods/x/render/` pre-created. Assert
+     `keep.txt` is named (it reached the directory) and `notes.txt~` is
+     not.
+   - **The defaults check can fail.** Run the same fixture again with the
+     `.+~` line removed from its copy of the ignore file, and assert
+     `notes.txt~` is now named. If it is not, the previous assertion was
+     not testing anything and the suite fails.
 4. **Mod scaffold and pure helpers.** `plugin.json`, `hooks.json`,
    `types/index.d.ts`, `tsconfig.json`, the `.claude-plugin/types/`
    ignore, and `text.ts` with `text.test.ts`, written first:
@@ -97,9 +115,13 @@ work happens in this worktree; stow and live checks wait for the merge.
    `register.tsx` is a stub that returns `next(e)`.
 5. **Render hook and conversion.** `register.tsx` per the spec, and
    `register.test.tsx` with `process.run` stubbed by the test's own hook,
-   covering every case in the spec's Verification list. The collision case
-   stubs the id function through a module-level seam in `text.ts`, not by
-   searching for real FNV collisions. Loop the drawing assertions over
+   covering every case in the spec's Verification list. The collision cases
+   stub the id function through a module-level seam in `text.ts`, not by
+   searching for real FNV collisions. The process stub holds each
+   conversion open on a promise the test resolves, so the test can draw A
+   and B before either finishes and settle them in a chosen order. Tests
+   for the same-source and cross-reload cases follow the spec's
+   claim-then-keep-first ownership rule (Render hook, steps 4 and 5). Loop the drawing assertions over
    `['terminal', 'desktop'] as const`, expecting the rewrite only on
    `terminal`. Then `claude plugin validate` and `tsc -p` on the folder.
 6. **Loading.** `env.CLAUDE_CODE_PLUGIN_DIRS` in `claude/.claude/settings.json`,
@@ -134,9 +156,10 @@ commit.
   hold, rather than trusting the list.
 - **`settings.json` is written at runtime.** Claude Code writes `/config`
   and plugin changes through the symlink into the repo. Before step 6,
-  `git diff claude/.claude/settings.json` must show nothing else; if it
-  does, set those changes aside first, then confirm with
-  `git diff --cached` that the commit holds only the `env` line.
+  `git diff claude/.claude/settings.json` must show nothing else. If it
+  shows other changes, stop and ask Ben what to do with them: never stash,
+  discard or commit them unasked. Then confirm with `git diff --cached`
+  that the commit holds only the `env` line.
 - **The library emits something the terminal mangles.** `colorMode: 'none'`
   covers ANSI codes; the converter test asserts no `ESC` byte reaches
   stdout.
