@@ -17,7 +17,9 @@ const CLOSE = /^ {0,3}(`{3,}|~{3,})[ \t]*$/
 // Top-level fenced code blocks that are closed (R1). A fence inside another
 // fence is part of that fence's source, so it is never returned on its own.
 export function scanFences(text: string): Fence[] {
-  const lines = text.split('\n')
+  // A CRLF reply's lines keep a trailing CR; it is dropped before matching,
+  // so line indexes still count the reply's own lines.
+  const lines = text.split('\n').map(l => (l.endsWith('\r') ? l.slice(0, -1) : l))
   const found: Fence[] = []
   let open: { run: string; indent: string; info: string; start: number } | undefined
 

@@ -94,6 +94,20 @@ test('a mermaid fence is drawn as source, then as art, on the terminal only', as
   expect(runs).toEqual([SRC])
 })
 
+test('a CRLF reply is converted, keeping its line endings', async ($, on) => {
+  const clock = mock.clock(on)
+  const { runs } = engine(on, () => exited(0, ART))
+  const crlf = (s: string) => s.replaceAll('\n', '\r\n')
+  const text = crlf(reply('Here:', fence(SRC), 'Done.'))
+
+  const ui = await mountReply($, 'terminal', text)
+  await clock.settle()
+  expect(await shown(ui)).toBe(crlf(reply('Here:', asArt(ART), 'Done.')))
+  // The converter gets the source as written, less the CRs.
+  expect(runs).toEqual([SRC])
+  await ui.unmount()
+})
+
 test('the output fence outlasts any backtick run in the art', async ($, on) => {
   const clock = mock.clock(on)
   const arts: Record<string, string> = {

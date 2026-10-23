@@ -14,6 +14,10 @@ From: [intent.md](intent.md). Status: draft.
     fence (a longer ```` ```` ```` or `~~~` fence around a Markdown example)
     is part of that fence's literal text and stays as written.
   - Several fences in one reply are each converted on their own.
+  - CRLF line endings count as LF: a trailing CR is ignored when matching
+    fences and dropped from the source sent to the converter, and the lines
+    put in for a CRLF block end in CR too. Text outside the block is left as
+    received.
 - **R2.** A block is drawn as its original fence, unchanged, when:
   - the converter fails or exits non-zero, for example on an unsupported
     diagram type or a syntax error;

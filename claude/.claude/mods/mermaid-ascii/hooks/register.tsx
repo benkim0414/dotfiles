@@ -37,7 +37,10 @@ export const register: Register = on => {
       const art = value.art.split('\n').map(l => f.indent + l)
       if (art.some(l => displayWidth(l) > room)) continue
       const ticks = f.indent + fenceFor(value.art)
-      lines.splice(f.start, f.end - f.start + 1, `${ticks}text`, ...art, ticks)
+      // A CRLF reply keeps its line endings in the lines put in.
+      const cr = lines[f.end]?.endsWith('\r') ? '\r' : ''
+      const block = [`${ticks}text`, ...art, ticks].map(l => l + cr)
+      lines.splice(f.start, f.end - f.start + 1, ...block)
       isChanged = true
     }
     if (!isChanged) return next(e)

@@ -18,6 +18,13 @@ test('scanFences finds a tilde fence', () => {
   ])
 })
 
+test('scanFences finds a CRLF fence, with no CR in its info or source', () => {
+  const text = ['Intro', '```mermaid', 'flowchart LR', '  A --> B', '```', 'Outro'].join('\r\n')
+  expect(scanFences(text)).toEqual([
+    { info: 'mermaid', indent: '', source: 'flowchart LR\n  A --> B', start: 1, end: 4 },
+  ])
+})
+
 test('isMermaid takes any case and surrounding spaces', () => {
   expect(isMermaid('mermaid')).toBe(true)
   expect(isMermaid('Mermaid')).toBe(true)
