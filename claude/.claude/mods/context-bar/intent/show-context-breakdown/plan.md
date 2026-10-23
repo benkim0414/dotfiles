@@ -169,6 +169,16 @@ inside the worktree.
        the width is cut with `…`;
      - glyphs and colours: `█` used, `░` free, `▒` reserved and dimmed,
        each span carrying its row's `color`.
+
+   **As built:**
+   - `hooks/fixtures.ts` holds the intent's example as a `SessionUsage`
+     (free 896.7k, so used + free + reserved is exactly 1M and free still
+     reads `897k`), shared by both test files; the hooks module never
+     imports it.
+   - The reserved entry keeps its percentage (`reserved 13k 1%`), as R5
+     writes every entry but free; the intent's sketch showed it without one.
+   - `spread(left, right, width)` is exported so the header-collision rule
+     is tested directly: at R7's widths the full header never collides.
 4. **Events, command and band.** `register.tsx` per the spec, and
    `register.test.tsx` covering every case in the spec's Verification list
    for it. The test's hooks answer `session.usage`, `store.get` and

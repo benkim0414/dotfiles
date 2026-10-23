@@ -1,6 +1,10 @@
 import { expect, test } from 'claude-code/testing'
 
-import { apportion, labelFor, percent, shortTokens } from './layout'
+import type { SessionUsage } from 'claude-code'
+
+import { EXAMPLE, row, usage } from './fixtures'
+import { apportion, labelFor, layout, percent, reduce, shortTokens, spread } from './layout'
+import type { Span } from './layout'
 
 // What every apportionment holds (spec R3): whole counts ≥ 0 summing to width.
 function holds(counts: number[], width: number): void {
@@ -175,4 +179,156 @@ test('apportion: property check over 500 seeded runs', () => {
   }
   // The run must reach both branches and the skewed shape.
   expect(skewed > 50 && crowded > 10, `skewed ${skewed}, crowded ${crowded}`).toBe(true)
+})
+
+// --- reduce and layout (step 3) ---
+
+const text = (r: Span[]) => r.map(s => s.text).join('')
+const texts = (rows: Span[][] | null) => (rows ?? []).map(text)
+const at = (u: SessionUsage, width: number) => {
+  const reading = reduce(u)
+  if (reading === null) throw new Error('no reading')
+  return layout(reading, width)
+}
+
+test('reduce sorts rows by kind and drops deferred ones', () => {
+  expect(reduce(usage())).toEqual({
+    used: [
+      { label: 'system prompt', tokens: 4200, color: 'promptBorder' },
+      { label: 'tools', tokens: 17_000, color: 'inactive' },
+      { label: 'mcp tools', tokens: 52_000, color: 'suggestion' },
+      { label: 'agents', tokens: 3400, color: 'permission' },
+      { label: 'memory files', tokens: 8600, color: 'claude' },
+      { label: 'skills', tokens: 5100, color: 'warning' },
+      { label: 'messages', tokens: 0, color: 'merged' },
+    ],
+    free: { label: 'free', tokens: 896_700, color: 'promptBorder' },
+    reserved: { label: 'reserved', tokens: 13_000, color: 'inactive' },
+    totalTokens: 90_300,
+    window: 1_000_000,
+    compactsAt: 99,
+  })
+})
+
+test('reduce: a missing free row is 0 tokens, a missing buffer is null', () => {
+  const r = reduce(usage({ categories: [row('Messages', 10)] }))
+  expect([r?.free, r?.reserved]).toEqual([{ label: 'free', tokens: 0, color: 'inactive' }, null])
+})
+
+test('reduce: no breakdown, or no used row, is no reading', () => {
+  expect(reduce(usage(null))).toBeNull()
+  expect(reduce(usage({ categories: [row('Free space', 10, 'free')] }))).toBeNull()
+})
+
+test('reduce: compactsAt is null with auto-compact off or no threshold', () => {
+  expect(reduce(usage({ isAutoCompactEnabled: false }))?.compactsAt).toBeNull()
+  const u = usage()
+  const b = u.context.breakdown
+  if (!b) throw new Error('no breakdown')
+  const noThreshold = { ...u, context: { ...u.context, breakdown: { ...b, autoCompactThreshold: undefined } } }
+  expect(reduce(noThreshold)?.compactsAt).toBeNull()
+})
+
+test("layout draws the intent's example at width 72", () => {
+  expect(texts(at(usage(), 72))).toEqual([
+    '◆ context' + ' '.repeat(36) + '90k of 1M · compacts at 99%',
+    '█'.repeat(9) + '░'.repeat(62) + '▒',
+    '■ system prompt 4.2k 1%  ■ tools 17k 2%  ■ mcp tools 52k 5%',
+    '■ agents 3.4k 1%  ■ memory files 8.6k 1%  ■ skills 5.1k 1%',
+    '■ messages 0 0%  ■ free 897k  ■ reserved 13k 1%',
+  ])
+})
+
+test('layout with auto-compact off has no compacts-at and no reserved part', () => {
+  const categories = EXAMPLE.filter(c => c.kind !== 'buffer').map(c =>
+    c.kind === 'free' ? { ...c, tokens: 909_700 } : c)
+  const rows = texts(at(usage({ categories, isAutoCompactEnabled: false }), 72))
+  expect(rows[0]).toBe('◆ context' + ' '.repeat(54) + '90k of 1M')
+  expect(rows[1]).toBe('█'.repeat(9) + '░'.repeat(63))
+  expect(rows.join('\n')).not.toContain('reserved')
+  expect(rows.at(-1)).toBe('■ messages 0 0%  ■ free 910k')
+})
+
+test('layout over the window: the true total, and every cell used', () => {
+  const categories = [
+    row('System prompt', 20_000),
+    row('Messages', 1_000_000, 'used', 'merged'),
+    row('Free space', 5000, 'free'),
+    row('Autocompact buffer', 13_000, 'buffer'),
+  ]
+  const rows = texts(at(usage({ categories }), 60))
+  expect(rows[0]?.endsWith('1.02M of 1M · compacts at 99%')).toBe(true)
+  expect(rows[1]).toBe('█'.repeat(60))
+  expect(rows.slice(2).join('  ')).toBe('■ system prompt 20k 2%  ■ messages 1M 100%  ■ free 0')
+})
+
+test('layout follows the R7 tiers and never overflows', () => {
+  const u = usage()
+  expect(texts(at(u, 80)).length).toBe(5)
+  expect(texts(at(u, 60))[0]).toContain('90k of 1M · compacts at 99%')
+  expect(texts(at(u, 60)).length).toBeGreaterThan(2)
+  for (const w of [59, 40]) {
+    const rows = texts(at(u, w))
+    expect([w, rows.length, rows[0]?.endsWith(' 90k/1M · 99%'), rows[1]?.length]).toEqual([w, 2, true, w])
+  }
+  for (const w of [39, 20]) {
+    const rows = texts(at(u, w))
+    expect([w, rows.length, rows[0]?.startsWith('◆ 90k/1M █')]).toEqual([w, 1, true])
+  }
+  expect(at(u, 19)).toBeNull()
+  expect(texts(at(usage({ isAutoCompactEnabled: false }), 50))[0]?.endsWith(' 90k/1M')).toBe(true)
+
+  const long = usage({ categories: [...EXAMPLE, row('x'.repeat(100), 10)] })
+  for (const fixture of [u, long]) {
+    for (let w = 19; w <= 120; w++) {
+      for (const r of texts(at(fixture, w))) {
+        if (r.length > w) throw new Error(`width ${w}: ${r.length} columns: ${r}`)
+      }
+      if (w >= 20) expect(texts(at(fixture, w))[w >= 40 ? 1 : 0]?.length).toBe(w)
+    }
+  }
+})
+
+test('layout at width 20 leaves the inline bar at least 6 cells', () => {
+  const big = usage({ categories: [row('Messages', 9_990_000)], rawMaxTokens: 9_990_000 })
+  const [inline] = texts(at(big, 20))
+  expect(inline).toBe('◆ 9.99M/9.99M ' + '█'.repeat(6))
+})
+
+test('spread: when the header parts collide, context is cut, never the figures', () => {
+  expect(text(spread('◆ context', '90k of 1M · compacts at 99%', 40))).toBe(
+    '◆ context    90k of 1M · compacts at 99%')
+  expect(text(spread('◆ context', '90k of 1M · compacts at 99%', 30))).toBe(
+    '◆… 90k of 1M · compacts at 99%')
+  expect(text(spread('◆ context', '90k of 1M · compacts at 99%', 28))).toBe(
+    ' 90k of 1M · compacts at 99%')
+})
+
+test('legend entries are never split, and one wider than the width is cut', () => {
+  const long = 'x'.repeat(100)
+  const rows = texts(at(usage({ categories: [...EXAMPLE, row(long, 10)] }), 60))
+  const legend = rows.slice(2)
+  // Every entry starts a row or follows two spaces: none is split.
+  for (const r of legend) expect(r.startsWith('■ ')).toBe(true)
+  expect(legend.join('  ').split('  ■ ').length).toBe(10)
+  expect(legend).toContain('■ ' + 'x'.repeat(57) + '…')
+})
+
+test('glyphs and colours: used █, free ░, reserved ▒ dimmed', () => {
+  const rows = at(usage(), 72) ?? []
+  const bar = rows[1] ?? []
+  expect(bar.map(s => [s.text[0], s.text.length, s.color, s.dim ?? false])).toEqual([
+    ['█', 1, 'promptBorder', false],
+    ['█', 1, 'inactive', false],
+    ['█', 4, 'suggestion', false],
+    ['█', 1, 'permission', false],
+    ['█', 1, 'claude', false],
+    ['█', 1, 'warning', false],
+    ['░', 62, 'promptBorder', false],
+    ['▒', 1, 'inactive', true],
+  ])
+  const swatch = (rows[2] ?? []).find(s => s.text === '■')
+  expect(swatch?.color).toBe('promptBorder')
+  const pct = (rows[2] ?? []).find(s => s.text === '1%')
+  expect(pct?.dim).toBe(true)
 })
