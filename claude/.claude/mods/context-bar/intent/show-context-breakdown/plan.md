@@ -216,6 +216,54 @@ inside the worktree.
    Finally run `claude plugin validate`, and `tsc` with the fallback
    tsconfig the spec describes, since the engine has not loaded the mod
    yet.
+
+   **As built (2026-10-23):**
+   - **`publish`, `clear` and `refresh` are top-level functions**, with
+     `epoch` and `queue` as module variables, as in the spec's sketch. The
+     engine refuses a module that passes `$` to a function declared inside
+     `register` ("not a function declared at the top of this file").
+   - **The order slipped:** `register.tsx` was written before
+     `register.test.tsx`, not after. The mutation checks below are what
+     show the tests constrain it.
+   - **One held-write case was added:** a reading queued behind a held
+     write, then a compaction before it commits, must commit as
+     `[…, held, null, fresh]` and never commit. The spec's three held cases
+     cannot tell an epoch check inside the queue from one before
+     `publish`; this one can, and it is the only test that catches that
+     mutation.
+   - The test's engine answers `store.get` and `store.set` from its own
+     map, and passes `state.set` through with `next(e)`, holding a chosen
+     write of the reading on a gate and recording each commit in order.
+     Compactions carry one message each way: the engine refuses an empty
+     `messages`.
+   - The `w < 20` step-aside lives in `layout` (it returns `null`), and the
+     render hook steps aside on `null`.
+   - `claude plugin validate` passes; its only remarks are the plugin
+     directory's (README, LICENSE, icon), which do not apply to a dotfiles
+     mod. It lists `session.compact` as a gating hook without `.catch`: a
+     fact, since a hook that throws there is skipped and the compaction
+     runs on.
+   - `tsc` (TypeScript 5.9.3 in a scratch folder, the header's options,
+     the bundled `claude-code.d.ts`, `hooks/` and `types/`) is clean.
+   - **Mutation checks**, each applied alone; every one failed at least one
+     test:
+
+     | Guard mutated | Caught by |
+     | --- | --- |
+     | `agentId` skip on `turn.complete` | a main-loop turn refreshes; a subagent turn does not |
+     | `agentId` skip on `session.compact` | a precompute or a subagent compaction changes nothing |
+     | `precompute` skip on `session.compact` | the same |
+     | clear before compaction | 4 tests, among them the compaction steps aside while it runs |
+     | refresh after `{ skip }` | a vetoed compaction returns its skip unchanged and refreshes |
+     | the `epoch` comparison | 4 tests: the three obsolete-result cases and the queued-reading case |
+     | epoch check moved before `publish` | a reading queued behind a held write is dropped |
+     | no `publish` queue | the 4 held-write tests |
+     | no epoch bump on off | a refresh that lands after `/context-bar off` stays hidden |
+     | `refresh` awaited | 8 tests, among them hooks return while `usage()` is pending |
+     | `hasSurvey` | a survey or fewer than 20 columns makes the band pass through |
+     | the off check in the render hook | held write, then `/context-bar off` |
+     | `breakdown: 'full'` | `/context-bar` turns it on (asserts `summary` was asked) |
+     | `w < 20` step-aside (in `layout`) | the R7 tiers test, and the survey/20-columns test |
 5. **Loading.** `env.CLAUDE_CODE_PLUGIN_DIRS` in `claude/.claude/settings.json`
    gains `:~/.claude/mods/context-bar`. This is a separate commit, because
    it changes every session on every machine.
