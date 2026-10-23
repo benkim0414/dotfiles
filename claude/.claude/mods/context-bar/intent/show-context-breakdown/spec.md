@@ -126,15 +126,24 @@ From: [intent.md](intent.md). Status: draft.
     catches up when the refresh lands.
   - A refresh error is caught inside `refresh`. It writes one
     `$.ui.log(…, { to: 'debug' })` line and is never rethrown.
-- **R13.** A refresh that has become obsolete is never published.
+- **R13.** A refresh that has become obsolete is never published, including
+  while an earlier write is still committing.
   - The module keeps a counter, `epoch`. These steps each increment it:
     starting a refresh, clearing the reading at the start of a compaction
     (R11), and turning the bar off.
-  - A refresh records the epoch it started under. When `usage()` settles,
-    it writes its result (a reading, or `null` on failure) only if the
-    epoch is unchanged.
-  - So among overlapping refreshes the latest one wins. A refresh started
-    before a compaction or before the bar was turned off is discarded.
+  - Every write to the reading goes through one serial queue, `publish`:
+    the refresh results, the compaction clear and the off clear alike.
+    Each write waits for the previous one to settle before it starts.
+  - A refresh's write checks its epoch *inside* the queue, immediately
+    before `$.state.set`, and is dropped if the epoch has moved. Nothing
+    else in the module writes the reading, so no write can land between
+    that check and that `set`.
+  - So a write still in flight when an invalidation happens commits first,
+    and the invalidation's own write commits after it. A clear always wins
+    over a reading older than it. Among overlapping refreshes, the latest
+    one started wins.
+  - Clears are queued, not awaited, so a held write never delays a
+    compaction or a command (R12).
 - **R14.** `/context-bar` is registered in `session.start`. It takes no
   argument, `on` or `off`.
   - No argument toggles the bar.
@@ -199,11 +208,10 @@ sequenceDiagram
     H-->>E: next(e)'s result, unchanged and not delayed
     opt bar on and main loop (background, epoch n)
         H->>U: usage({ breakdown: 'summary' })
-        alt usable breakdown and epoch still n
-            U-->>H: context.breakdown
-            H->>S: set reading
-        else rejects or unusable, and epoch still n
-            H->>S: set null and log to debug
+        U-->>H: context.breakdown, or rejection (logged)
+        H->>H: publish(reading or null, n): queued behind earlier writes
+        alt epoch still n at the head of the queue
+            H->>S: set
         else epoch moved on
             H->>H: discard
         end
@@ -275,19 +283,43 @@ awaited (R12).
   `e.agentId === undefined`, start a refresh. Return the result.
 - **`session.compact`:** applies to main-loop compactions only, meaning no
   `agentId` and a trigger other than `precompute`:
-  1. Bump `epoch` and clear the reading (R11, R13).
+  1. `clear($)`: bump `epoch` and queue a `null` write, without awaiting
+     it (R11, R13).
   2. `await next(e)`.
   3. If the bar is on, start a refresh, whether the result is a compaction
      or `{ skip }` (R9).
   4. Return the result unchanged, `skip` included.
 - **`command.run` for `context-bar`:** parse the args (R14), then write the
-  store and the atom. Turning it on starts a refresh. Turning it off bumps
-  `epoch` and clears the reading. Return `{ text }`.
+  store and the atom. Turning it on starts a refresh. Turning it off calls
+  `clear($)`. Return `{ text }`.
 
-`refresh($)`:
+`publish`, `clear` and `refresh`:
 
 ```ts
-async function refresh($) {
+let epoch = 0
+let queue: Promise<void> = Promise.resolve()
+
+// Every write to the reading goes through here, one at a time (R13).
+// `mine` is set for a refresh's write: it is checked against `epoch`
+// inside the queue, immediately before the write.
+function publish($, value: Reading | null, mine?: number): Promise<void> {
+  queue = queue.then(async () => {
+    if (mine !== undefined && mine !== epoch) return // obsolete
+    try {
+      await set($, reading, value)
+    } catch (err) {
+      $.ui.log(`context-bar: state write failed: ${err}`, { to: 'debug' })
+    }
+  })
+  return queue
+}
+
+function clear($): void {
+  epoch++
+  void publish($, null)
+}
+
+async function refresh($): Promise<void> {
   const mine = ++epoch
   let next: Reading | null = null
   try {
@@ -295,18 +327,21 @@ async function refresh($) {
   } catch (err) {
     $.ui.log(`context-bar: refresh failed: ${err}`, { to: 'debug' })
   }
-  if (mine !== epoch) return // obsolete: discard (R13)
-  try {
-    await set($, reading, next)
-  } catch (err) {
-    $.ui.log(`context-bar: state write failed: ${err}`, { to: 'debug' })
-  }
+  await publish($, next, mine)
 }
 ```
 
 `reduce` returns `null` when there is no breakdown or no `used` row (R10).
-Because `refresh` is never awaited, nothing may escape it. Both the call and
-the write are caught.
+Each queued step catches its own error, so one failed write never rejects
+the chain or blocks the writes behind it. Because `refresh` is never
+awaited, nothing may escape it.
+
+Why a queue and not `$.state.set(…, { ifVersion })` alone: two refreshes
+that start before either writes read the same version. If the older one
+then commits first, the newer one's conditional write misses, and the band
+keeps the older reading. Serializing every write, and checking the epoch at
+the head of the queue, gives the ordering R13 needs, with only this
+module's code involved.
 
 ### State contract
 
@@ -432,6 +467,19 @@ All are decided here.
       band hidden;
     - two overlapping refreshes resolved out of order: the later-started
       one's reading wins;
+  - **invalidation while a write is committing:** the test's `state.set`
+    stand-in holds a chosen write open on a promise the test releases.
+    - An old reading's write is held, then a compaction clears and its
+      refresh publishes a new reading. After release, the stored values in
+      commit order are old, `null`, new, and the band shows the new
+      reading.
+    - An old reading's write is held, then `/context-bar off` runs. After
+      release, the last committed value is `null` and the band is hidden.
+    - An old reading's write is held while a newer refresh's `usage()`
+      resolves. The newer write commits only after the old one, and the
+      band shows the newer reading;
+    - while a write is held, `session.compact` and `/context-bar off` still
+      return straight away (R12);
   - `hasSurvey` makes the band pass through.
 - Live: after merge, `stow -t ~ -R claude` from the main checkout, then
   start a session and run `/context-bar`. Compare the band's figures with
