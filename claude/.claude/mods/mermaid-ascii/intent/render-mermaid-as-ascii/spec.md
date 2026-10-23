@@ -139,7 +139,7 @@ sequenceDiagram
    `max(3, longestBacktickRun(art) + 1)` long, so plain box art gets
    ```` ``` ```` and art holding backticks still cannot close it early.
    Every other block stays as written.
-6. `return next({ ...e, props: { ...e.props, text } })`. `isFirstOfReply`,
+7. `return next({ ...e, props: { ...e.props, text } })`. `isFirstOfReply`,
    `isSummary` and `onScreen` pass through as received (R3).
 
 ### Conversion
@@ -159,7 +159,7 @@ const r = await $.process.run(['node', `${dir}/render.mjs`], {
 
 | Outcome | Cached value | Toast (R8) |
 |---|---|---|
-| exit 0 | `{ source, ok: true, art: stdout.trimEnd() }` | no |
+| exit 0 | `{ source, ok: true, art }`, each line's trailing spaces trimmed; empty art counts as exit 1 | no |
 | exit 1: the library threw (invalid or unsupported diagram) | `{ source, ok: false }` | no |
 | exit 3: `beautiful-mermaid` not found | `{ source, ok: false }` | once |
 | rejected because `node` cannot start | `{ source, ok: false }` | once |

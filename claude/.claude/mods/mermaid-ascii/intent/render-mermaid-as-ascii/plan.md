@@ -16,7 +16,8 @@ are at the repo root.
     source and line span; nested fences stay literal (R1);
   - `displayWidth(line)`: columns per R2's rules;
   - `fenceFor(art)`: `max(3, longest backtick run + 1)` backticks;
-  - `fnv1a32(source)`: the state member id.
+  - `fnv1a32(source)`: the state member id;
+  - `isMermaid(info)`: the info string is `mermaid`, any case.
 - `.claude/mods/mermaid-ascii/hooks/register.tsx`: the `ui.render` hook on
   `AssistantMessage`, `convert`, and the toast (R1–R8)
 - `.claude/mods/mermaid-ascii/hooks/text.test.ts` and
@@ -134,6 +135,39 @@ work happens in this worktree; stow and live checks wait for the merge.
    claim-then-keep-first ownership rule (Render hook, steps 4 and 5). Loop the drawing assertions over
    `['terminal', 'desktop'] as const`, expecting the rewrite only on
    `terminal`. Then `claude plugin validate` and `tsc -p` on the folder.
+
+   **As built (2026-10-23)**, where it departs from the above:
+   - **No id seam.** The test kit loads the mod in a module instance of its
+     own, so a test that changes a module-level function in `text.ts` does
+     not reach the loaded hook (a probe test showed the hook still hashing).
+     The collision tests use a real FNV-1a 32 collision instead, found
+     offline and written into the test: `flowchart LR\n  A --> N108209` and
+     `flowchart LR\n  A --> N1087602`, both `d19e776c`.
+   - **Reload played through the store.** The kit cannot reload a mod. The
+     cross-reload test answers `state.get` and `state.set` itself, with
+     versions, and writes the other source's result into the member while
+     this source's conversion is held open: that is what a conversion from
+     before a reload landing first looks like to `update`. The B-then-A
+     order is A finding B's result and staying source.
+   - **Rejections are `{ deny }`.** A test hook that throws is skipped, not
+     turned into a rejection; answering `{ deny: reason }` makes
+     `$.process.run` reject, so the ENOENT and timeout cases use that.
+   - **State refs are literals at the call site.** The engine refuses a
+     module whose `$.state.get` takes a reference built by a function.
+   - **Art is trimmed per line.** beautiful-mermaid pads lines with
+     trailing spaces; they are dropped before the width check, and empty
+     art counts as a failure.
+   - **`tsc` before the engine has loaded the mod.** `.claude-plugin/types/`
+     exists only after a load, and TypeScript is not installed on this
+     machine. The check ran with TypeScript 5.9.3 installed in a scratch
+     folder and a scratch tsconfig holding the options from the types
+     file's header, including the bundled `claude-code.d.ts`, `hooks/` and
+     `types/`. The mod's own `tsconfig.json` is the one the engine would
+     write, for use after the first load.
+   - Each guard in `register.tsx` was mutation-checked (claim check,
+     keep-first update, source check, surface check, width check, display
+     width rather than length, toast guard, ENOENT toast, no toast on
+     timeout): every mutation failed at least one test.
 6. **Loading.** `env.CLAUDE_CODE_PLUGIN_DIRS` in `claude/.claude/settings.json`,
    merged into the existing `env` block (it holds `DISABLE_COST_WARNINGS`).
    Separate commit, because it changes every session on every machine.

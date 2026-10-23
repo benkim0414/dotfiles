@@ -131,6 +131,3 @@ export function fnv1a32(text: string): string {
   }
   return h.toString(16).padStart(8, '0')
 }
-
-// The id a source is cached under. Tests replace `of` to force collisions.
-export const ids = { of: fnv1a32 }
