@@ -375,6 +375,13 @@ All are decided here.
   - more non-zero parts than cells: 9 non-zero parts of distinct, similar
     sizes in a 6-cell bar. The 6 largest get one cell each, and the other 3
     get 0 but stay in the legend;
+  - more non-zero parts than cells, skewed: parts `[1000, 9, 8, 7]` at width
+    2 give `[1, 1, 0, 0]`. Largest remainder alone gives `[2, 0, 0, 0]`, so
+    only step 3's redistribution produces this;
+  - for any `k > width`: the `width` largest parts (ties broken by bar
+    order) get exactly one cell each, and every other part gets 0. This
+    follows from step 3, since `width` parts each need at least one of
+    `width` cells;
   - the 20–39 tier: at width 20 the bar is what the `◆ <used>/<window> `
     prefix leaves (at least 6 cells for every short-token width R5 allows),
     and the apportionment rules hold within it;
