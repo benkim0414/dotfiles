@@ -25,6 +25,8 @@ to each English reply in the terminal transcript.
   worktree, ...).
 - English and Korean are always shown together: side by side when the
   terminal is wide enough, one above the other when it is narrow.
+- Exception: plan text is shown in Korean only. The English plan is already
+  in the approval dialog, so the Korean stands alone in the transcript.
 
 ## Affected users and systems
 
