@@ -269,12 +269,16 @@ Two identities, kept apart:
   - `note` increments `seq` and stores it as `seen[requestId]`. For a
     `UserMessage` whose `origin.kind` is `composer` or `bridge` (a prompt
     the person sent), it also sets `lastPromptSeq`. Task notifications,
-    peers and other origins are not prompts and do not move it.
+    peers and other origins are not prompts and do not move it, and neither
+    does a row whose text is a `/kr` command: counted, `/kr on` would set
+    the boundary past the reply it is meant to show.
   - `/kr on` sets `fromSeq = lastPromptSeq` (0 when there is none). A block
     is eligible while on when `seen[requestId] > fromSeq`. That covers the
     latest reply, whose blocks were first drawn after that prompt, and every
     later block, since `seq` only grows. An earlier reply with identical
     text has a lower number and stays English.
+  - `/kr on` while on keeps `fromSeq`, so replies already shown in Korean
+    never turn back to English.
   - Off sets `fromSeq` to `null`. Turning on again takes the then-latest
     prompt.
 
@@ -294,8 +298,8 @@ Two identities, kept apart:
   'Show replies in Korean beside English (this session)', argumentHint:
   '[on|off]' })`.
 - **`command.run` `{ command: 'kr' }`:** parse `e.args.trim()` (R1). On
-  turning on, set `fromSeq` to `lastPromptSeq` (R2). On turning off, set it
-  to `null`. Return `{ text }` (R12).
+  turning on from off, set `fromSeq` to `lastPromptSeq` (R2); on while on
+  leaves it. On turning off, set it to `null`. Return `{ text }` (R12).
 - **`ui.render` `{ component: 'UserMessage' }`:** on every surface (a row
   drawn only on desktop still counts as drawn), note a first draw
   ("Identity"), then return `next(e)` untouched. It never changes the
@@ -311,9 +315,10 @@ Two identities, kept apart:
   ("Identity") on every surface; then the terminal check (R9); off, a first
   draw, or `seen[requestId] ≤ fromSeq` → `next(e)`. Otherwise read
   `ko[textId]` and `inFlight`. On a miss with no request in flight, schedule
-  a translation (R10). Return a tree from `$.ui.resolve(e)`: a `Box` row of
-  two width-fixed `Box`es holding `Markdown` (side by side), or a column
-  `Box` with a dim rule (stacked). `isSummary` blocks are drawn the same way;
+  a translation (R10), bounded by `timeoutMs: 30000`. Return a tree from
+  `$.ui.resolve(e)`: a `Box` row of two width-fixed `Box`es holding
+  `Markdown` (side by side), or a column `Box` with a dim rule (stacked),
+  `columns − 2` cells wide, or 40 with no viewport. `isSummary` blocks are drawn the same way;
   a hook's own tree drops the terminal's ` · summary` mark, which is
   accepted.
 - **`tool.call` `{ tool: 'Write' }` and `{ tool: 'Edit' }`:** after
@@ -473,7 +478,9 @@ All four are decided here.
     `note`, and is drawn again with its number; redrawing it hands out no
     new number;
   - **prompt boundary:** a `UserMessage` with `origin.kind` `composer`
-    moves `lastPromptSeq`, a `task-notification` one does not;
+    moves `lastPromptSeq`; a `task-notification` one, and a `/kr on` row,
+    do not;
+  - `/kr on` while on keeps what is eligible;
   - **identical text:** an earlier reply and the latest reply both say
     "Done."; after `/kr on`, only the latest is drawn bilingual (R2);
   - a message created after `/kr on` is eligible;
