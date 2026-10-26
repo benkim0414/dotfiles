@@ -107,7 +107,7 @@ A temporary model choice can use `/model` or a CLI override.
 
 The private [pi-packages](https://github.com/benkim0414/pi-packages) repository
 contains independently usable personal Pi packages. Shared settings pin its Git
-source to a reviewed full commit SHA and enable only the output-styles extension;
+source to a reviewed full commit SHA and enable output-styles and footer;
 other extensions, skills, prompts, and themes require an explicit configuration
 change. Keep this declaration in the global `packages` list, alongside existing
 packages, so it applies across projects.
@@ -139,6 +139,14 @@ automatically. Roll back by restoring the previous SHA. To disable the package,
 remove only its declaration and reload; leave existing packages, installed caches,
 and saved style selections intact. Verify `/output-style` from another project
 and confirm Pi's installed Git checkout matches the selected SHA after deployment.
+
+## Personal footer
+
+The globally enabled footer shows the model, working directory, Git status,
+context usage, and extension statuses, including the output-style indicator.
+Use `/footer` to check its state, `/footer off` to restore the default for the
+current session, and `/footer on` to enable it again. Restart or `/reload`
+starts it enabled. Pi 1.4.0 is the validated host version.
 
 ## Settings maintenance
 
