@@ -183,6 +183,48 @@ context-bar.
    comparison (`≥` must fail a test), the origin filter, the `inFlight`
    gate, the `source` equality check, the claim maps (one `note` per id,
    one call per text), and resetting `fromSeq` on off.
+
+   **Result (2026-10-26):** the 17 new tests ran red first (nothing
+   answered `command.run`). Before the mutation checks, one test gained a
+   redraw before the first `note` runs, and one test was added: a cache
+   seeded as an earlier load would leave it (a colliding text's
+   translation, with this load's claims empty). Then 34 pass, 0 fail across
+   the three files. Mutations, each restored after:
+   - terminal check removed: failed "desktop passes through, while its draws
+     still count";
+   - `n <= fromSeq` removed: failed "only the latest reply turns bilingual"
+     and "off clears eligibility". (`<` for `<=` is no mutation here: a
+     reply's number never equals the boundary, which is a prompt's.)
+   - `inFlight` gate removed: failed "while a model request streams";
+   - `source` equality removed: failed "after a reload, a cached translation
+     of a colliding text draws English";
+   - text claim map removed: failed "one call per distinct text" and "a hash
+     collision draws English alone";
+   - `fromSeq = null` on off removed: failed "/kr flips the mode";
+   - origin filter removed, and the `/kr` row exclusion removed: each failed
+     "a composer prompt moves the prompt boundary";
+   - on-while-on guard removed: failed "/kr on while on keeps what is
+     eligible";
+   - subagent exclusion removed: failed "a subagent step does not hold
+     translation back";
+   - **first-draw claim removed: no test failed.** `note` reads `seen`
+     again before it hands out a number, so a second `note` for the same
+     row does nothing; the claim only spares that work. Kept, and recorded
+     here as unguarded by a test.
+
+   Departures from the spec:
+   - **State is read through its writes.** The test's `$` has no `state`
+     noun, so the test records each `state.set` of a plain key as it passes
+     beneath the plugin, as context-bar's test does.
+   - **`/kr on` while on keeps `fromSeq`.** Taking the latest prompt again
+     would turn replies already shown in Korean back to English.
+   - **The `/kr` row is not a prompt.** A `UserMessage` whose text starts
+     with `/kr` does not move `lastPromptSeq`; were it counted, `/kr on`
+     would set the boundary past the reply it is meant to show.
+   - **A reply's translation may take 30 s** (`REPLY_TIMEOUT_MS`); the spec
+     sets limits for questions and plans only.
+   - **The stacked rule** is `columns − 2` cells, or 40 with no viewport.
+
 5. **Questions.** The `AskUserQuestion` `tool.call` pre-translation and
    render rewrite, test first: Korean under each `question` and as
    `<라벨> — <설명>` under each `description`; `label`, `header` and
