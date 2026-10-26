@@ -210,6 +210,18 @@ Claude Code writes to this file at runtime (`/config`, `/effort`, theme,
 plugin installs), and through the symlink those writes land in the repo.
 Commit the ones worth keeping and `git checkout` the rest.
 
+## Output style
+
+The global default is `ASD-STE100`, a practical Simplified Technical English
+style. Its instructions live in `claude/.claude/output-styles/asd-ste100.md`.
+It keeps Claude Code's coding instructions with `keep-coding-instructions: true`.
+The matching Pi style lives in its own Stow package. Keep both bodies identical.
+
+The style favors short sentences, plain words, and consistent terms while
+preserving technical precision and uncertainty. It does not certify compliance
+with ASD's approved dictionary. Explicit user requests take precedence.
+See [global output styles](docs/guides/output-styles.md) for deployment and overrides.
+
 ## Plugins
 
 `settings.json` enables no plugins. Each repo that needs a plugin enables

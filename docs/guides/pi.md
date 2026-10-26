@@ -6,9 +6,11 @@ an update as part of setup.
 
 ## File map
 
-- `pi/.pi/agent/settings.json` is the single Git-tracked configuration, linked
+- `pi/.pi/agent/settings.json` is the main configuration, linked
   by Stow to `~/.pi/agent/settings.json`. Pi reads and writes this file.
   Model choices, preferences, and package declarations are shared across machines.
+- `pi/.pi/agent/output-styles/` contains the personal `ASD-STE100` style and
+  its global default. See [global output styles](output-styles.md).
 - This package installs no Pi skills. Downloaded extensions, sessions, and
   authentication remain device-local.
 
@@ -120,12 +122,14 @@ Do not also load a development copy with `-e` in that session, as it can registe
 the extension twice.
 
 In an interactive Pi session, run `/output-style` to inspect and choose built-in
-or custom styles. Installing the extension does not select a style or create a
-personal default. Existing style settings apply; otherwise Pi uses Default.
+or custom styles. The dotfiles package selects `ASD-STE100` as the personal
+default. Project selections override it. The extension alone uses Default when
+no selection exists.
 Selections save to the current project's `.pi/output-styles/settings.local.json`
 and require Pi's normal project trust. Ignore that local file according to the
 project's policy. Personal custom styles and optional defaults use
-`~/.pi/agent/output-styles/`; this setup does not manage those runtime files.
+`~/.pi/agent/output-styles/`; this directory now comes from the Pi Stow package.
+The output-styles package supports symlinks for styles, settings, and directories.
 See the package README in the private repository for precedence and reload rules.
 
 For upgrades, review the package diff, manifests, dependencies, and lifecycle
