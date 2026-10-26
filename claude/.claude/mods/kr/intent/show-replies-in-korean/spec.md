@@ -124,9 +124,9 @@ band above the prompt, and logged every draw. A real plan approval showed:
 ### Files
 
 ```
+CLAUDE.md                                 # repo root: Mods section gains a kr entry
 claude/.claude/
 ├── settings.json                         # CLAUDE_CODE_PLUGIN_DIRS gains ~/.claude/mods/kr
-├── CLAUDE.md                             # Mods section gains a kr entry
 └── mods/kr/
     ├── .claude-plugin/plugin.json        # name, version 0.1.0, description, types
     ├── hooks/hooks.json                  # { "modules": ["./register.tsx"] }
@@ -137,11 +137,61 @@ claude/.claude/
     ├── hooks/translate.test.ts           # placeholder protect/restore, pure
     ├── hooks/register.test.tsx           # claude plugin test
     ├── types/index.d.ts                  # PluginState contract
-    └── intent/show-replies-in-korean/    # intent.md, spec.md
+    ├── tsconfig.json                     # extends ./.claude-plugin/types/tsconfig.json
+    └── intent/show-replies-in-korean/    # intent.md, spec.md, plan.md
 ```
 
 No `render/` directory and no `node_modules`: everything runs in the hooks
 module.
+
+`tsconfig.json` is the one-line config mermaid-ascii and context-bar use:
+`{ "extends": "./.claude-plugin/types/tsconfig.json" }`. The engine writes
+the file it extends, and the types beside it, into `.claude-plugin/types/`
+once it has loaded the mod. Root `.gitignore` already excludes
+`claude/.claude/mods/*/.claude-plugin/types/`.
+
+### Type check before the mod loads
+
+Until the engine has loaded the mod (in the worktree, on a fresh clone, in
+CI), `.claude-plugin/types/` does not exist and `tsc -p` on the mod folder
+cannot run. The check then uses a throwaway config outside the mod folder
+and the repo:
+
+- **Types:** the API file the plugin-authoring skill writes when it loads,
+  `<skill folder>/types/claude-code.d.ts`. It holds the `claude-code` API,
+  the `claude-code/testing` kit and the built-in tools' input types, so it is
+  the only types file needed. Its folder is per process and changes after a
+  restart, so take the path the skill prints when it loads, never a recorded
+  one. Its first line (`// Written by Claude Code 2.1.309.`) must match
+  `claude --version`; if it does not, load the skill again.
+- **Config:** `<session scratchpad>/kr-tsc/tsconfig.json`, with the options
+  the types file's own header gives:
+
+  ```json
+  {
+    "compilerOptions": {
+      "target": "es2023", "lib": ["es2023"], "types": [],
+      "module": "esnext", "moduleResolution": "bundler",
+      "strict": true, "noUncheckedIndexedAccess": true,
+      "noEmit": true, "skipLibCheck": true,
+      "jsx": "react", "jsxFactory": "h", "jsxFragmentFactory": "Fragment"
+    },
+    "files": ["<TYPES>"],
+    "include": ["<MOD>/hooks/**/*", "<MOD>/types/**/*"]
+  }
+  ```
+
+  `<TYPES>` is the types file's absolute path and `<MOD>` the absolute path
+  of `claude/.claude/mods/kr` in the checkout being checked. `hooks/**/*`
+  takes the test files too. `noEmit` writes nothing; `types: []` keeps any
+  installed `@types` out; `lib` names no DOM, as the header requires.
+- **Command:** `npx -y -p typescript@5.9.3 tsc -p <session
+  scratchpad>/kr-tsc/tsconfig.json`, the TypeScript version context-bar was
+  checked with, pinned so a global install cannot change the result. It
+  passes when it exits 0 with no output.
+
+Once the mod has loaded, `tsc -p claude/.claude/mods/kr` checks against the
+engine-written types instead.
 
 ### Flow
 
@@ -338,7 +388,9 @@ All four are decided here.
 
 ## Verification
 
-- `claude plugin validate` and `tsc -p` on `claude/.claude/mods/kr`.
+- `claude plugin validate` on `claude/.claude/mods/kr`, and the type check:
+  the pre-load config ("Type check before the mod loads") until the mod has
+  loaded, `tsc -p` on the mod folder after.
 - `translate.test.ts` (pure):
   - placeholders round-trip: fenced blocks (backtick and tilde, longer
     fences around a nested fence) and inline spans come back byte for byte;
