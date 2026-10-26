@@ -101,6 +101,41 @@ and resolve any Git conflicts before starting Pi. Package declarations are
 shared; installed package files, authentication, and sessions remain local.
 A temporary model choice can use `/model` or a CLI override.
 
+## Personal Pi packages
+
+The private [pi-packages](https://github.com/benkim0414/pi-packages) repository
+contains independently usable personal Pi packages. Shared settings pin its Git
+source to a reviewed full commit SHA and enable only the output-styles extension;
+other extensions, skills, prompts, and themes require an explicit configuration
+change. Keep this declaration in the global `packages` list, alongside existing
+packages, so it applies across projects.
+
+Each machine needs Git, npm, and existing GitHub SSH access for
+`git@github.com:benkim0414/pi-packages.git`. Authentication and downloaded
+checkouts remain device-local; do not add credentials or package caches to Stow.
+Deploy the updated Pi Stow package from the durable dotfiles checkout using the
+normal workflow above, then restart Pi or run `/reload`. Pi installs declared
+packages automatically; no absolute source path or repeated `-e` flag is needed.
+Do not also load a development copy with `-e` in that session, as it can register
+the extension twice.
+
+In an interactive Pi session, run `/output-style` to inspect and choose built-in
+or custom styles. Installing the extension does not select a style or create a
+personal default. Existing style settings apply; otherwise Pi uses Default.
+Selections save to the current project's `.pi/output-styles/settings.local.json`
+and require Pi's normal project trust. Ignore that local file according to the
+project's policy. Personal custom styles and optional defaults use
+`~/.pi/agent/output-styles/`; this setup does not manage those runtime files.
+See the package README in the private repository for precedence and reload rules.
+
+For upgrades, review the package diff, manifests, dependencies, and lifecycle
+scripts and run its checks before changing the full SHA in shared settings.
+Deploy the new pin and restart or `/reload`; the configured SHA never advances
+automatically. Roll back by restoring the previous SHA. To disable the package,
+remove only its declaration and reload; leave existing packages, installed caches,
+and saved style selections intact. Verify `/output-style` from another project
+and confirm Pi's installed Git checkout matches the selected SHA after deployment.
+
 ## Settings maintenance
 
 Keep shared settings portable: avoid machine-specific shell paths, proxies,
