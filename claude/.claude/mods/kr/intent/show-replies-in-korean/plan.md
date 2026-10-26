@@ -105,6 +105,17 @@ context-bar.
    100 and 104 stack; 105 gives `colWidth` 50; 120 gives 57; 155 and 200
    give 75 (the cap); no viewport stacks. Mutation-check the threshold
    (`>` for `≥`) and the cap.
+
+   **Result (2026-10-26):** the test ran red first (`cannot import
+   "./layout"`), then 4 pass, 0 fail. Mutations, each restored after:
+   - threshold `< 105` → `<= 105`: failed "from 105 columns the reply goes
+     side by side";
+   - cap `min(75, …)` removed: failed "columns stop at 75 cells".
+
+   `claude plugin validate` passed, warning only about the directory's
+   listing files (README, LICENSE, icon). The type check exited 0 with the
+   2.1.309 types while `claude --version` printed 2.1.310 (see "Type check
+   before the mod loads").
 3. **Translation core.** `translate.ts`, test first in
    `translate.test.ts`:
    - `protect`/`restore` round-trip byte for byte: backtick and tilde
@@ -184,7 +195,7 @@ plugin-authoring skill has loaded:
 TYPES=<skill folder>/types/claude-code.d.ts   # the path the skill printed when it loaded
 MOD="$PWD/claude/.claude/mods/kr"
 OUT=<session scratchpad>/kr-tsc
-head -1 "$TYPES"; claude --version            # versions must match, else reload the skill
+head -1 "$TYPES"; claude --version            # record both; see below
 mkdir -p "$OUT"
 cat > "$OUT/tsconfig.json" <<EOF
 {
@@ -205,6 +216,15 @@ npx -y -p typescript@5.9.3 tsc -p "$OUT/tsconfig.json"
 It passes when `tsc` exits 0 with no output. The config lives in the
 session scratchpad, never in the mod folder or the repo, and nothing is
 emitted.
+
+The types file's first line names the version of the session that loaded
+the skill. `claude --version` names the CLI on `PATH`, which runs `claude
+plugin validate` and `claude plugin test` and can be newer when Claude Code
+updates mid-session. Reloading the skill then writes the session's version
+again, so the two can only match in a session started on the newer build.
+Record both versions with the result. A mismatch means the check ran against
+the running session's API; the after-merge `tsc -p` against the
+engine-written types covers the newer build.
 
 ## After the merge (main checkout, not the worktree)
 

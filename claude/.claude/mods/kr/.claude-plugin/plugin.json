@@ -1,0 +1,6 @@
+{
+  "name": "kr",
+  "version": "0.1.0",
+  "description": "Shows assistant replies in Korean beside the English, toggled by /kr",
+  "types": "./types/index.d.ts"
+}
