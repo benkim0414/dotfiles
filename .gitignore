@@ -16,6 +16,8 @@ bin/.local/bin/cua-driver
 bin/.local/bin/ds4-cockpit
 bin/.local/bin/factory
 bin/.local/bin/grok
+bin/.local/bin/graphify
+bin/.local/bin/graphify-mcp
 bin/.local/bin/herdr
 bin/.local/bin/herdr-reviewr
 bin/.local/bin/hermes
@@ -70,6 +72,8 @@ codex/.codex/logs*.sqlite*
 codex/.codex/memories/
 codex/.codex/memories-*/
 codex/.codex/models_cache.json
+codex/.codex/mention_usage.json
+codex/.codex/mention_usage.lock
 codex/.codex/plugins/
 codex/.codex/packages/
 codex/.codex/process_manager/
