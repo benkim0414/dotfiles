@@ -11,10 +11,11 @@ From: [intent.md](intent.md). Status: draft.
   eligible, until it is turned off. Eligibility belongs to a message, never
   to its text: an earlier reply whose text matches the latest reply's stays
   English.
-  - **Latest reply:** the assistant messages after the last user prompt in
-    `$.session.messages()`, read when `/kr on` runs. None (a new session,
-    right after `/clear`): nothing is marked, and later replies still are.
-  - **Later replies:** every assistant message that did not exist when
+  - **Latest reply:** the assistant message blocks first drawn after the
+    last prompt the person sent, as of when `/kr on` runs. None (a new
+    session, right after `/clear`): nothing is marked, and later replies
+    still are.
+  - **Later replies:** every assistant message block first drawn after
     `/kr on` ran.
   - **Off:** clears eligibility. Cached translations are kept, so turning the
     mode on again over the same latest reply is instant.
@@ -119,6 +120,31 @@ band above the prompt, and logged every draw. A real plan approval showed:
   hook. The plan path therefore comes from the mod's own `tool.call` hooks
   ("Plan text").
 
+## Identity spike (2026-10-26)
+
+The spec first matched each drawn message against `$.session.messages()`.
+That cannot work, because `SessionMessage` carries no id. A live spike mod
+logged every `AssistantMessage` draw, every `session.append` and every
+`turn.step`, and found:
+
+- **A drawn message's `requestId` is its row's `uuid`** in the transcript
+  file, and the same `uuid` that `session.append` reports. Three rows were
+  checked.
+- **Rows are per content block**, and each is appended before its model
+  request ends.
+- **`session.append` can be pre-empted.** `cc-plugin-sec-default` sent it
+  past the mod's hook at least once, as it does `prompt.attachment`. So
+  eligibility cannot rest on that event.
+- **A summary block** (`isSummary`, the text written between two tool calls)
+  is drawn under the `uuid` of a row the transcript stores as thinking, so
+  drawn blocks and stored rows do not line up one to one.
+- **The `AskUserQuestion` rewrite works:** the appended lines showed in the
+  dialog, and the answer returned was the original English label.
+- **`plansDirectory`** reads as `undefined` here, so the default stands.
+
+Eligibility is therefore built from the render hooks alone, which nothing
+has pre-empted ("Identity").
+
 ## Design
 
 ### Files
@@ -202,10 +228,13 @@ sequenceDiagram
     participant S as $.state
     participant M as $.model.complete (haiku)
     participant R as ui.render hook
-    U->>S: isOn = true; notEligible = all assistant ids but the latest reply's
+    U->>S: isOn = true; fromSeq = lastPromptSeq
     T->>S: inFlight = true ... stream ends ... inFlight = false
-    R->>S: read isOn, notEligible[requestId], inFlight, ko[textId]
-    alt off, or requestId in notEligible
+    R->>S: read isOn, fromSeq, seen[requestId], inFlight, ko[textId]
+    alt first draw of requestId
+        R->>R: $.clock.after(0, note) unless already claimed
+        R-->>R: next(e)
+    else off, or seen[requestId] ≤ fromSeq
         R-->>R: next(e)
     else eligible, ko cached
         R-->>R: draw English + Korean (R3)
@@ -224,14 +253,30 @@ sequenceDiagram
 
 Two identities, kept apart:
 
-- **Eligibility: the message.** `ui.render`'s envelope carries
-  `e.requestId`, "the message id for a message". At `/kr on`, every
-  assistant message id in `$.session.messages()` except the latest reply's
-  goes into `notEligible`. While on, a block is eligible when its
-  `requestId` is not in that set. Messages created later were never put
-  there, so they are eligible. Off clears `notEligible`. This relies on
-  `requestId` matching the message `uuid` that `$.session.messages()`
-  reports; a plugin test pins that (Verification).
+- **Eligibility: the order of first draws.** `ui.render`'s envelope
+  carries `e.requestId`, "the message id for a message", stable across
+  redraws ("Identity spike"). The mod numbers each message row the first
+  time it is drawn:
+  - The `AssistantMessage` and `UserMessage` render hooks look up
+    `seen[requestId]`. On a miss they schedule `note` with
+    `$.clock.after(0, …)`, because a render hook never writes state, and
+    draw as if ineligible for that frame. A claim map in the module stops
+    a redraw from scheduling the same id twice.
+  - `note` increments `seq` and stores it as `seen[requestId]`. For a
+    `UserMessage` whose `origin.kind` is `composer` or `bridge` (a prompt
+    the person sent), it also sets `lastPromptSeq`. Task notifications,
+    peers and other origins are not prompts and do not move it.
+  - `/kr on` sets `fromSeq = lastPromptSeq` (0 when there is none). A block
+    is eligible while on when `seen[requestId] > fromSeq`. That covers the
+    latest reply, whose blocks were first drawn after that prompt, and every
+    later block, since `seq` only grows. An earlier reply with identical
+    text has a lower number and stays English.
+  - Off sets `fromSeq` to `null`. Turning on again takes the then-latest
+    prompt.
+
+  The `note` write redraws the row, which reads its `seen` member, so the
+  first-frame English is replaced at once. Numbers live in `$.state` and
+  survive a hot reload; the claim map does not need to.
 - **Translation cache: the text.** `textId = fnv1a32(text)`, as in
   `mermaid-ascii`. The hash only names the state member, and every cached
   value carries the `source` it was made from. A hit requires `source` to
@@ -245,8 +290,12 @@ Two identities, kept apart:
   'Show replies in Korean beside English (this session)', argumentHint:
   '[on|off]' })`.
 - **`command.run` `{ command: 'kr' }`:** parse `e.args.trim()` (R1). On
-  turning on, read `$.session.messages()` and fill `notEligible` (R2). On
-  turning off, clear it. Return `{ text }` (R12).
+  turning on, set `fromSeq` to `lastPromptSeq` (R2). On turning off, set it
+  to `null`. Return `{ text }` (R12).
+- **`ui.render` `{ component: 'UserMessage' }`:** on every surface (a row
+  drawn only on desktop still counts as drawn), note a first draw
+  ("Identity"), then return `next(e)` untouched. It never changes the
+  drawing.
 - **`turn.step` (async generator), main loop only:** set `inFlight = true`,
   `yield* next(e)`, then set `inFlight = false` in a `finally`. The hook
   forwards every chunk untouched and reads nothing from the result. A step is
@@ -254,8 +303,9 @@ Two identities, kept apart:
   final. That is how R10's "finished request" is known, with no text
   matching and no use of `TurnStepResult.answer`, which joins all of a
   response's blocks into one string.
-- **`ui.render` `{ component: 'AssistantMessage' }`:** terminal check (R9);
-  off, or `requestId` in `notEligible` → `next(e)`. Otherwise read
+- **`ui.render` `{ component: 'AssistantMessage' }`:** note a first draw
+  ("Identity") on every surface; then the terminal check (R9); off, a first
+  draw, or `seen[requestId] ≤ fromSeq` → `next(e)`. Otherwise read
   `ko[textId]` and `inFlight`. On a miss with no request in flight, schedule
   a translation (R10). Return a tree from `$.ui.resolve(e)`: a `Box` row of
   two width-fixed `Box`es holding `Markdown` (side by side), or a column
@@ -299,10 +349,9 @@ under the plans directory, as seen by the mod's own `Write` and `Edit`
 session's tool calls never pass through this session's hooks. With no such
 write, no plan is translated (R6): the mod never guesses.
 
-The plans directory is `~/.claude/plans/`, resolved with `realPath`. If the
-mod can read the `plansDirectory` setting, that value wins. Whether it can
-is checked against the types when implementing; until then the default is
-used.
+The plans directory is the `plansDirectory` setting, read with
+`$.settings.read({ key: 'plansDirectory' })`, or `~/.claude/plans/` when it
+is unset (as it is here, "Identity spike"), resolved with `realPath`.
 
 ### Translation call
 
@@ -345,7 +394,10 @@ interface PluginState {
   kr: {
     isOn: boolean
     inFlight: boolean               // a main-loop model request is streaming
-    notEligible: StateFamily<true>  // by message id; filled on, cleared off
+    seq: number                     // last first-draw number handed out
+    seen: StateFamily<number>       // by message id: its first-draw number
+    lastPromptSeq: number           // first-draw number of the last prompt
+    fromSeq: number | null          // set on, null off; eligible above it
     ko: StateFamily<Ko>             // by text id; kept across off/on
     plan: StateFamily<Ko>           // by ExitPlanMode tool_use_id
     planPath: string | null         // this session's last plan-file write
@@ -403,8 +455,11 @@ All four are decided here.
   stubbed by the test's own hook:
   - `/kr`, `/kr on`, `/kr off`, `/kr foo`: state and answer text (R1, R12);
   - off: an `AssistantMessage` passes through untouched;
-  - **identity:** the `requestId` a drawn message row carries equals that
-    message's `uuid` in `$.session.messages()`;
+  - **first draw:** a never-drawn `requestId` draws English, schedules one
+    `note`, and is drawn again with its number; redrawing it hands out no
+    new number;
+  - **prompt boundary:** a `UserMessage` with `origin.kind` `composer`
+    moves `lastPromptSeq`, a `task-notification` one does not;
   - **identical text:** an earlier reply and the latest reply both say
     "Done."; after `/kr on`, only the latest is drawn bilingual (R2);
   - a message created after `/kr on` is eligible;
@@ -443,10 +498,12 @@ All four are decided here.
 1. **ctrl+o.** `AssistantMessage` has no `isExpanded` prop, so ctrl+o may draw
    the two-column tree too. That is acceptable, because the stored message
    stays English (R8), but it should be recorded at the live check.
-2. **`requestId` vs session uuid.** Eligibility assumes the render envelope's
-   message id is the uuid `$.session.messages()` reports. If the plugin test
-   shows otherwise, eligibility needs another mapping before anything else is
-   built.
+2. **First-draw order.** Eligibility assumes rows are first drawn in
+   transcript order. The spike saw a reload draw every row at once, in
+   order. A surface that drew an old row for the first time only after
+   `/kr on` (lazy scrollback) would number it high and make it eligible.
+   The live check scrolls back after `/kr on` and records whether any old
+   reply turns bilingual.
 3. **A tall plan dialog.** The spike's dialog was short. A long plan may push
    the row above the screen while the dialog is open, so the person scrolls
    up or reads it after answering.
