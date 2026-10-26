@@ -113,6 +113,7 @@ zsh/.zshrc.bak.*
 !/pi/.pi/agent/output-styles/
 /pi/.pi/agent/output-styles/*
 !/pi/.pi/agent/output-styles/asd-ste100.md
+!/pi/.pi/agent/output-styles/eli5.md
 !/pi/.pi/agent/output-styles/settings.json
 
 # mermaid-ascii mod converter dependencies (npm ci per machine)

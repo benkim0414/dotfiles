@@ -22,6 +22,33 @@ Both Markdown files use the exact name `ASD-STE100`. Keep their contents
 identical. Claude uses `keep-coding-instructions: true`. Pi ignores that
 metadata field and always preserves its coding instructions.
 
+## Optional ELI5 style
+
+Both agents also include a selectable `ELI5` style, copied from the screenshot
+of [Lydia Hallie's post](https://x.com/lydiahallie/status/2080378470111256907)
+provided during implementation. Direct retrieval from X returned a 403.
+The style uses small words, short sentences and paragraphs, explains necessary
+jargon, and keeps paths and commands exact. Task summaries focus on what
+changed, whether it worked, and what to do next. Decisions get at most two
+options with context and a recommendation.
+
+The matching files are `claude/.claude/output-styles/eli5.md` and
+`pi/.pi/agent/output-styles/eli5.md`. Keep their contents identical, including
+the `ELI5` name and `keep-coding-instructions: true` metadata.
+`ASD-STE100` remains the configured default for both agents.
+
+After deployment, select `ELI5` in Claude's `/config` → Output style.
+In Pi's interactive TUI, run `/output-style ELI5`; this saves a project-local
+selection. Run `/reload` first if Pi has not discovered the new file.
+
+This output style guides replies while selected. The existing `eli5` skill
+is a separate workflow for explanations tailored to a named audience.
+
+For a manual check after deployment, select `ELI5` in each agent and ask for
+a technical explanation and a task summary. Confirm simple prose, exact paths
+and commands, concise results, and no more than two options when a decision
+is needed. Live behavior must be checked in interactive sessions, especially Pi.
+
 ## Deploy
 
 Pi settings pin the output-styles package to commit
