@@ -179,6 +179,7 @@
       "mcp__atlassian__confluence_delete_attachment"
     ]
   },
+  "outputStyle": "ASD-STE100",
   "model": "opus[1m]",
   "hooks": {
     "PreToolUse": [

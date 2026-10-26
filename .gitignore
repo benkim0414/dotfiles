@@ -103,9 +103,13 @@ __pycache__/
 *.py[cod]
 zsh/.zshrc.bak.*
 
-# Pi runtime state and installed skills stay device-local; shared settings are tracked.
+# Pi runtime state stays device-local; shared settings and selected styles are tracked.
 /pi/.pi/agent/*
 !/pi/.pi/agent/settings.json
+!/pi/.pi/agent/output-styles/
+/pi/.pi/agent/output-styles/*
+!/pi/.pi/agent/output-styles/asd-ste100.md
+!/pi/.pi/agent/output-styles/settings.json
 
 # mermaid-ascii mod converter dependencies (npm ci per machine)
 claude/.claude/mods/*/render/node_modules/
