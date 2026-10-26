@@ -80,6 +80,25 @@ context-bar.
 
    Record the result in this file under step 1. No repo commit unless the
    spec changes.
+
+   **Result (2026-10-26).** (c) ran in the kit; (a), (b), (d) and (e) ran as
+   a live dev-mod (`kr-id-spike`), since the kit supplies `requestId` itself
+   and cannot prove an engine-side identity.
+   - **(a) failed as written:** `SessionMessage` carries no id. A drawn
+     message's `requestId` is its transcript row `uuid`, and equals
+     `session.append`'s `uuid`, but `cc-plugin-sec-default` pre-empted
+     `session.append` at least once. The spec now builds eligibility from the
+     order of first draws in the render hooks (spec "Identity", "Identity
+     spike").
+   - **(b) passed live:** `turn.step` start and end bracket each model
+     request, and its rows are appended before the end. An aborted stream
+     is left to step 4's tests.
+   - **(c) passed:** 3 kit tests. A test's `on('model.complete', …)` answers
+     `{ value: … }`: a text, an `api-error`, and a reply held on a promise.
+   - **(d) passed live:** the `[KO]` lines showed under the question and the
+     descriptions, and the answer returned was the English label.
+   - **(e) passed:** `$.settings.read({ key: 'plansDirectory' })` works and
+     returns `undefined` here, so the default applies.
 2. **Scaffold and the width rule.** `plugin.json`, `hooks.json`,
    `types/index.d.ts`, `tsconfig.json`, a stub `register.tsx` that only
    returns `next(e)`, and `layout.ts`. Write `layout.test.ts` first: 80,
@@ -106,10 +125,14 @@ context-bar.
    Mutation-check: the exactly-once placeholder count, the control-char
    check, and the fallback `codeEqual`.
 4. **Toggle and replies.** In `register.tsx`: `session.start`, `/kr`,
-   `turn.step`, and the `AssistantMessage` render hook. Test first in
-   `register.test.tsx`, covering the spec's Verification items for them:
+   `turn.step`, and the `AssistantMessage` and `UserMessage` render hooks.
+   Test first in `register.test.tsx`, covering the spec's Verification items
+   for them:
    - `/kr`, `/kr on`, `/kr off`, `/kr foo`: state and answer text;
-   - identity (spike a, kept as a regression test);
+   - first draw: English, one `note`, then a number; a redraw takes no new
+     number;
+   - prompt boundary: a `composer` prompt moves `lastPromptSeq`, a
+     `task-notification` does not;
    - the identical "Done." case: only the latest reply is bilingual;
    - a message created after `/kr on` is eligible;
    - `inFlight` gating: no call while the step streams, exactly one after;
@@ -120,9 +143,10 @@ context-bar.
    - drawing assertions loop over `['terminal', 'desktop'] as const`:
      desktop passes through.
 
-   Mutation-check, one at a time: the terminal check, the `notEligible`
-   check, the `inFlight` gate, the `source` equality check, the claim map
-   (one call per text), and clearing `notEligible` on off.
+   Mutation-check, one at a time: the terminal check, the `> fromSeq`
+   comparison (`≥` must fail a test), the origin filter, the `inFlight`
+   gate, the `source` equality check, the claim maps (one `note` per id,
+   one call per text), and resetting `fromSeq` on off.
 5. **Questions.** The `AskUserQuestion` `tool.call` pre-translation and
    render rewrite, test first: Korean under each `question` and as
    `<라벨> — <설명>` under each `description`; `label`, `header` and
@@ -196,15 +220,16 @@ emitted.
    `ExitPlanMode` row while the approval dialog is open.
 6. `/kr off`: replies draw English only. `/kr on` again: the latest reply's
    Korean returns at once.
-7. Answer the spec's concerns and record them here: ctrl+o (1), a tall plan
-   (3), pre-empted `tool.call` hooks (4), the reply indent (5).
+7. Answer the spec's concerns and record them here: ctrl+o (1), first-draw
+   order (2: scroll back after `/kr on`), a tall plan (3), pre-empted `tool.call` hooks (4), the reply indent (5).
 8. Check WCAG 1.4.8's 80/40 figures on w3.org and correct the spec's "Width
    rule" if they differ.
 
 ## Risks
 
-- **Spike (a) fails.** Eligibility by message id is the spec's core. If the
-  ids do not match, the spec changes before any other step.
+- **First-draw order.** Eligibility assumes rows are first drawn in
+  transcript order (spec concern 2). The live check scrolls back after
+  `/kr on` to confirm no old reply turns bilingual.
 - **Plan usage.** Every translation is a Haiku call on Ben's subscription.
   The per-text cache and the latest-reply-only start keep it bounded; the
   live check notes how many calls a typical session makes.
