@@ -135,6 +135,31 @@ context-bar.
 
    Mutation-check: the exactly-once placeholder count, the control-char
    check, and the fallback `codeEqual`.
+
+   **Result (2026-10-26):** the test ran red first (`cannot import
+   "./translate"`), then 16 pass, 0 fail across both files. Mutations, each
+   restored after:
+   - "at least once" for "exactly once" in `restore`: failed "a reply that
+     drops, duplicates or alters a placeholder fails code-changed";
+   - control-char check removed: failed "a reply with a control character
+     other than tab or newline fails control-char";
+   - fallback `codeEqual` removed: failed "a source holding ⟦K is sent
+     unprotected and checked by codeEqual".
+
+   Departures from the spec:
+   - **`translate` meets a fake `$`.** The test's own `$` has no `model`
+     noun, and an inline test plugin may not pass its `$` to an imported
+     helper (the engine refuses the module). So the test hands `translate`
+     an object holding only `model.complete`, which records the request
+     and answers it. The `model.complete` chain itself is covered in step 4,
+     through the mod's own hooks.
+   - **AskUserQuestion fields are marked `⟦N<n>⟧`,** each on its own line
+     above its field, instead of a plain numbered list, so a field's own
+     Markdown list or line breaks cannot be read as a number. The system
+     text gains one line: keep every `⟦N<n>⟧` marker on its own line, in
+     order.
+   - **An inline code span ends at a blank line,** so one stray backtick
+     cannot protect several paragraphs from translation.
 4. **Toggle and replies.** In `register.tsx`: `session.start`, `/kr`,
    `turn.step`, and the `AssistantMessage` and `UserMessage` render hooks.
    Test first in `register.test.tsx`, covering the spec's Verification items
