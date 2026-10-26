@@ -188,8 +188,12 @@ and the repo:
   the `claude-code/testing` kit and the built-in tools' input types, so it is
   the only types file needed. Its folder is per process and changes after a
   restart, so take the path the skill prints when it loads, never a recorded
-  one. Its first line (`// Written by Claude Code 2.1.309.`) must match
-  `claude --version`; if it does not, load the skill again.
+  one. Its first line (`// Written by Claude Code 2.1.309.`) names the
+  version of the session that loaded the skill. `claude --version` names the
+  CLI on `PATH`, which can be newer after a mid-session update; reloading the
+  skill does not change the file then. Record both versions with the result;
+  the after-merge `tsc -p` against the engine-written types covers the newer
+  build.
 - **Config:** `<session scratchpad>/kr-tsc/tsconfig.json`, with the options
   the types file's own header gives:
 
@@ -360,13 +364,17 @@ reply:
 
 1. **Protect.** Replace each top-level fenced block (fence rules as in
    `mermaid-ascii` R1) and each inline code span with a placeholder
-   `⟦K<n>⟧`, numbered from 0 in order. A source that already contains `⟦K`
+   `⟦K<n>⟧`, numbered from 0 in order. An inline span ends at a blank line,
+   so one stray backtick cannot hold several paragraphs back from
+   translation. A source that already contains `⟦K`
    is sent unprotected, and the code check below still applies.
 2. **Call.** `$.model.complete({ model: 'haiku', system, prompt,
    maxTokens, timeoutMs })`. `system` is one fixed text marked `cache:
    true`:
    - Translate the given Markdown from English to natural Korean.
    - Copy every `⟦K<n>⟧` placeholder exactly, once each, in place.
+   - Keep every `⟦N<n>⟧` marker on its own line, in order, and translate
+     the text under each.
    - Keep file paths, commands, flags, identifiers and technical terms in
      English.
    - Keep the Markdown structure.
@@ -380,9 +388,12 @@ reply:
    reply. A reply holding a control character other than tab or newline
    fails `control-char`, as in `mermaid-ascii` R7.
 
-`AskUserQuestion` fields go in one call as a numbered list (questions, then
-each option's label and description), protected the same way. The reply is
-split on the same numbers; a count mismatch fails `count-mismatch`.
+`AskUserQuestion` fields go in one call (questions, then each option's
+label and description), each under a `⟦N<n>⟧` marker line numbered from 1,
+protected the same way. Markers, not a plain numbered list, so a field's own
+Markdown list or line breaks are never read as a number. The reply is split
+on the markers; a missing, extra or out-of-order marker, or text before the
+first, fails `count-mismatch`.
 
 ### State contract
 
@@ -448,7 +459,10 @@ All four are decided here.
     fences around a nested fence) and inline spans come back byte for byte;
   - a stubbed reply that drops, duplicates or alters a placeholder fails
     `code-changed`;
-  - a source already holding `⟦K` falls back to the byte-equality check.
+  - a source already holding `⟦K` falls back to the byte-equality check;
+  - `translate` meets a fake `$` holding only `model.complete`, which
+    records the request and answers it: the test's own `$` has no `model`
+    noun, and a test plugin may not pass its `$` to an imported helper.
 - `layout.test.ts` (pure): 80, 104, 105, 120 and 200 columns, and no
   viewport (R3).
 - `claude plugin test claude/.claude/mods/kr`, with `$.model.complete`
