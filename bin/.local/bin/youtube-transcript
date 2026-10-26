@@ -1,0 +1,10 @@
+#!/bin/sh
+set -eu
+python="$HOME/.local/share/agent-helpers/youtube-content/venv/bin/python"
+helper="$HOME/.agents/skills/youtube-content/scripts/fetch_transcript.py"
+if [ ! -x "$python" ] || [ ! -f "$helper" ]; then
+    printf '%s\n' 'youtube-transcript: isolated runtime or helper is missing; restore the installation before retrying.' >&2
+    exit 127
+fi
+export PYTHONDONTWRITEBYTECODE=1
+exec "$python" "$helper" "$@"
