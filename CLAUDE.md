@@ -242,7 +242,7 @@ official Anthropic marketplace -- its marketplace under
 `extraKnownMarketplaces` (`github` source + `repo`).
 
 Instructions layer separately from settings: `claude/.claude/CLAUDE.md` holds
-the commit rules and nothing else. Everything else that used to live globally
+the commit rules and the worktree-first rule, and nothing else. Everything else that used to live globally
 now belongs in a project file, so each repo can run the workflow its
 characteristics call for.
 
