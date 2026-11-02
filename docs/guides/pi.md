@@ -106,7 +106,7 @@ A temporary model choice can use `/model` or a CLI override.
 ## Personal Pi packages
 
 The personal extensions currently load from `/home/benkim0414/workspace/pi`.
-The global `packages` entry explicitly enables `output-styles`, `footer`, and `plan`,
+The global `packages` entry explicitly enables `output-styles`, `footer`, `plan`, and `goal`,
 with packaged skills, prompts, and themes disabled. Pi reads the local source;
 no push or remote installation is needed. Restart Pi or run `/reload` after
 local changes. Do not also load these extensions with `-e` in the same session.
@@ -145,6 +145,24 @@ Plans default to `.pi/plans/` in the active project, subject to repository rules
 Planning restrictions are instructions for one turn, not tool enforcement.
 Implementation does not start automatically. The `plan` package replaces the
 previous standalone `plan-mode` entry; do not enable both.
+
+## Persistent goals
+
+Run `/goal <objective>` in an idle, trusted interactive session to continue work
+until verified completion, blocking, pause, or the default 20-run budget.
+Use `/goal status` to inspect progress, `/goal pause` to suspend continuation,
+`/goal resume` to grant a fresh budget, and `/goal clear` to remove the goal.
+Escape pauses automatic work, including auxiliary judging.
+
+Use `/goal draft <objective>` to draft a completion contract, `/subgoal <criterion>`
+to add completion requirements, and `/goal gate add <command>` to register a
+shell verification command. Adding a gate authorizes its repeated execution.
+The `goal_process` tool manages owned background processes. Saved goals persist
+in Pi session entries; restoring a session does not restart shell commands.
+Goals use the current model for judging and preserve normal repository approvals.
+No additional personal configuration is required. Restart Pi or run `/reload`
+to load the extension. See the local `packages/goal/README.md` for all commands
+and optional `goal.json` settings.
 
 ## Settings maintenance
 
