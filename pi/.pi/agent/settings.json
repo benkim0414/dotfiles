@@ -10,6 +10,9 @@
     "enabled": true
   },
   "defaultThinkingLevel": "high",
+  "extensions": [
+    "/home/benkim0414/workspace/pi/packages/plan-mode/src/index.ts"
+  ],
   "packages": [
     {
       "source": "npm:pi-web-access@0.29.0",
