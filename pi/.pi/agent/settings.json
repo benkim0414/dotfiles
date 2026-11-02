@@ -19,9 +19,10 @@
       "skills": []
     },
     {
-      "source": "git:git@github.com:benkim0414/pi-packages.git@612affb85a1416edd59d36637572e61e18846570",
+      "source": "/home/benkim0414/workspace/pi",
       "extensions": [
-        "packages/output-styles/src/index.ts"
+        "packages/output-styles/src/index.ts",
+        "packages/footer/src/index.ts"
       ],
       "skills": [],
       "prompts": [],

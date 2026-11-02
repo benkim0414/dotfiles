@@ -105,21 +105,15 @@ A temporary model choice can use `/model` or a CLI override.
 
 ## Personal Pi packages
 
-The private [pi-packages](https://github.com/benkim0414/pi-packages) repository
-contains independently usable personal Pi packages. Shared settings pin its Git
-source to a reviewed full commit SHA and enable output-styles only;
-other extensions, skills, prompts, and themes require an explicit configuration
-change. Keep this declaration in the global `packages` list, alongside existing
-packages, so it applies across projects.
+The personal extensions currently load from `/home/benkim0414/workspace/pi`.
+The global `packages` entry explicitly enables `output-styles` and `footer`,
+with packaged skills, prompts, and themes disabled. Pi reads the local source;
+no push or remote installation is needed. Restart Pi or run `/reload` after
+local changes. Do not also load these extensions with `-e` in the same session.
 
-Each machine needs Git, npm, and existing GitHub SSH access for
-`git@github.com:benkim0414/pi-packages.git`. Authentication and downloaded
-checkouts remain device-local; do not add credentials or package caches to Stow.
-Deploy the updated Pi Stow package from the durable dotfiles checkout using the
-normal workflow above, then restart Pi or run `/reload`. Pi installs declared
-packages automatically; no absolute source path or repeated `-e` flag is needed.
-Do not also load a development copy with `-e` in that session, as it can register
-the extension twice.
+This development configuration requires that checkout at the configured path
+on each machine. To return to a portable setup, replace the local source with
+a reviewed immutable Git source and select the desired extensions.
 
 In an interactive Pi session, run `/output-style` to inspect and choose built-in
 or custom styles. The dotfiles package selects `ASD-STE100` as the personal
@@ -132,19 +126,16 @@ project's policy. Personal custom styles and optional defaults use
 The output-styles package supports symlinks for styles, settings, and directories.
 See the package README in the private repository for precedence and reload rules.
 
-For upgrades, review the package diff, manifests, dependencies, and lifecycle
-scripts and run its checks before changing the full SHA in shared settings.
-Deploy the new pin and restart or `/reload`; the configured SHA never advances
-automatically. Roll back by restoring the previous SHA. To disable the package,
-remove only its declaration and reload; leave existing packages, installed caches,
-and saved style selections intact. Verify `/output-style` from another project
-and confirm Pi's installed Git checkout matches the selected SHA after deployment.
+For local upgrades, review the source changes and run package checks before
+reloading. Authentication, installed caches, and saved style selections stay
+unchanged. To disable an extension, remove its path from the package's
+`extensions` list and reload.
 
 ## Personal footer
 
-The personal footer is disabled in shared settings. To enable it, add
-`packages/footer/src/index.ts` to the pinned package's `extensions` list,
-then restart Pi or run `/reload`.
+The personal footer is enabled from the local checkout alongside output-styles.
+Restart Pi or run `/reload` to load it. Its colors and icons decorate existing
+footer fields. Blink.sh/Mosh rendering still requires visual verification.
 
 ## Settings maintenance
 
