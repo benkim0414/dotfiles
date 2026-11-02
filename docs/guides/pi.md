@@ -106,7 +106,7 @@ A temporary model choice can use `/model` or a CLI override.
 ## Personal Pi packages
 
 The personal extensions currently load from `/home/benkim0414/workspace/pi`.
-The global `packages` entry explicitly enables `output-styles` and `footer`,
+The global `packages` entry explicitly enables `output-styles`, `footer`, and `plan`,
 with packaged skills, prompts, and themes disabled. Pi reads the local source;
 no push or remote installation is needed. Restart Pi or run `/reload` after
 local changes. Do not also load these extensions with `-e` in the same session.
@@ -136,6 +136,15 @@ unchanged. To disable an extension, remove its path from the package's
 The personal footer is enabled from the local checkout alongside output-styles.
 Restart Pi or run `/reload` to load it. Its colors and icons decorate existing
 footer fields. Blink.sh/Mosh rendering still requires visual verification.
+
+## Planning
+
+Run `/plan <task>` to request a saved implementation plan, or `/plan` to use
+conversation context. The command requires an idle, trusted interactive session.
+Plans default to `.pi/plans/` in the active project, subject to repository rules.
+Planning restrictions are instructions for one turn, not tool enforcement.
+Implementation does not start automatically. The `plan` package replaces the
+previous standalone `plan-mode` entry; do not enable both.
 
 ## Settings maintenance
 
