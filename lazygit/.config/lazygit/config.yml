@@ -30,4 +30,4 @@ gui:
     '*': '#b4befe'
 git:
   pagers:
-    - pager: delta --paging=never
+    - pager: delta --paging=never --tabs=2
