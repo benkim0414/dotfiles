@@ -175,6 +175,23 @@ From: [intent.md](intent.md). Status: draft.
   message, and changes no tool call.
 - **R17.** The mod loads on every machine that stows the `claude` package,
   with nothing to install: no npm dependencies, no per-machine step.
+- **R18.** On a surface other than the terminal, the band is laid out with
+  flex instead of counted columns. Such a surface sets `Text` in a
+  proportional face, so spaces and `█`/`░` glyphs do not match the cells
+  of `bodyColumns`. The figures, colours, widths that step aside (R8) and
+  the frame from 60 columns (R7) stay the same. Three parts change:
+  - **header:** a row `Box` with `justifyContent: 'space-between'`, with
+    `◆ context` on the left and the figures and badge on the right. No
+    padding spaces.
+  - **bar:** one row `Box`, one line tall, with a `Box` per part in R3's
+    order. Each part's `backgroundColor` is its row's colour. Its
+    `flexGrow` is its share of 10000 (the engine's limit), at least 1 for
+    a part with tokens. R3's whole-cell apportioning and R4's glyphs apply
+    to the terminal only. The compaction marker is a `│` in the `warning`
+    colour before the reserved part.
+  - **legend:** a row `Box` with `flexWrap: 'wrap'` and a column gap of 2,
+    one `Text` per R5 entry. Below 60 columns there is no legend, as on
+    the terminal.
 
 ## Design
 
