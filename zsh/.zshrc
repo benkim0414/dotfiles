@@ -42,10 +42,14 @@ KEYTIMEOUT=1
 
 bindkey -M viins "^a" beginning-of-line
 bindkey -M viins "^e" end-of-line
-bindkey -M viins "^p" history-beginning-search-backward
-bindkey -M viins "^n" history-beginning-search-forward
-bindkey -M viins "^[[A" history-beginning-search-backward
-bindkey -M viins "^[[B" history-beginning-search-forward
+# history-search-end: prefix search that also moves the cursor to end of line
+autoload -Uz history-search-end
+zle -N history-beginning-search-backward-end history-search-end
+zle -N history-beginning-search-forward-end history-search-end
+bindkey -M viins "^p" history-beginning-search-backward-end
+bindkey -M viins "^n" history-beginning-search-forward-end
+bindkey -M viins "^[[A" history-beginning-search-backward-end
+bindkey -M viins "^[[B" history-beginning-search-forward-end
 bindkey -M viins "^[[C" forward-char
 bindkey -M viins "^[[D" backward-char
 
