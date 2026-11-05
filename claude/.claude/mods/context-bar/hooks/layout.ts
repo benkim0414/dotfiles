@@ -189,6 +189,49 @@ export function layout(reading: Reading, width: number): Band | null {
   return { rows: [spread(left, right, room), bar(room), ...wrap(entries, room)], isFramed: true }
 }
 
+// One part of the desktop bar: a Box that grows by `grow`, its share of the
+// bar in ten-thousandths. The reserved part opens with the compaction marker.
+export type Segment = { color: string; tokens: number; grow: number; isReserved: boolean }
+
+// The band on a surface that lays out in pixels (R18): the header's two
+// sides, the bar's parts and the legend's entries. The surface spreads the
+// header, sizes the bar and wraps the legend, so nothing counts columns.
+export type FlexBand = { left: Row; right: Row; bar: Segment[]; legend: Row[]; isFramed: boolean }
+
+// R18: the same figures as `layout`, at the same widths, as flex parts.
+export function flexLayout(reading: Reading, width: number): FlexBand | null {
+  if (width < 20) return null
+  const { used, window, totalTokens, compactsAt } = reading
+  const isOver = totalTokens > window
+  const free: Part = { ...reading.free, tokens: isOver ? 0 : reading.free.tokens }
+  const reserved = reading.reserved && { ...reading.reserved, tokens: isOver ? 0 : reading.reserved.tokens }
+  const u = shortTokens(totalTokens)
+  const w = shortTokens(window)
+  const isFramed = width >= 60
+
+  const left: Row = [{ text: '◆', color: 'claude' }, { text: ' context', bold: true }]
+  const share = badge(totalTokens, window)
+  const context = ` of ${w}` + (compactsAt === null ? '' : ` · compacts at ${shortTokens(compactsAt)}`)
+  const right: Row = isFramed
+    ? [{ text: u, bold: true }, { text: context, dim: true }, { text: ' ' }, share]
+    : [{ text: `${u}/${w}`, bold: true }, { text: ' ' }, share]
+
+  const segment = (p: Part, isReserved = false): Omit<Segment, 'grow'> => ({ color: p.color, tokens: p.tokens, isReserved })
+  let bar = [...used.map(p => segment(p)), segment(free), ...(reserved ? [segment(reserved, true)] : [])]
+    .filter(s => s.tokens > 0)
+  // R3 step 1: with no tokens anywhere, the whole bar is free.
+  if (bar.length === 0) bar = [{ color: free.color, tokens: 1, isReserved: false }]
+  const d = bar.reduce((a, s) => a + s.tokens, 0)
+  const grow = bar.map(s => Math.max(1, Math.round((s.tokens / d) * GROW)))
+
+  const legend = isFramed ? [...used.map(p => entry(p, percent(p.tokens, window))), entry(free, null)] : []
+  return { left, right, bar: bar.map((s, i) => ({ ...s, grow: grow[i] ?? 1 })), legend, isFramed }
+}
+
+// The engine refuses a flexGrow above 10000, so the parts share that many
+// as their weights; any part with tokens keeps at least 1.
+const GROW = 10_000
+
 // R5: `■ <label> <tokens> <pct>`, the swatch coloured, the tokens bold and
 // the percent dim; the free entry is dim throughout, with no percent.
 function entry(p: Part, pct: string | null): Row {

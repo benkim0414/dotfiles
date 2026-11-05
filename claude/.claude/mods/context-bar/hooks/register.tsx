@@ -2,7 +2,8 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
 import type { Reading } from '../types'
-import { layout, reduce } from './layout'
+import { flexLayout, layout, reduce } from './layout'
+import type { Row } from './layout'
 
 const USAGE = 'Usage: /context-bar [on|off]'
 
@@ -99,22 +100,48 @@ export const register: Register = on => {
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     if (e.props.hasSurvey || !(await read($, isOn))) return next(e)
     const value = await read($, reading)
-    const band = value && layout(value, e.props.bodyColumns)
-    if (!band) return next(e)
-
+    if (!value) return next(e)
     const { Box, Text } = $.ui.resolve(e)
+    const spans = (row: Row) =>
+      row.map(s => (
+        <Text color={s.color} dimColor={s.dim} bold={s.bold} backgroundColor={s.background}>
+          {s.text}
+        </Text>
+      ))
+
+    // R18: a surface other than the terminal sets text in a proportional
+    // face, so its band is laid out by flex, not by counted columns.
+    if (e.surface !== 'terminal') {
+      const flex = flexLayout(value, e.props.bodyColumns)
+      if (!flex) return next(e)
+      const frame = flex.isFramed ? { borderStyle: 'round', borderColor: 'inactive', paddingX: 1 } : {}
+      return (
+        <Box flexDirection="column" {...frame}>
+          <Box flexDirection="row" justifyContent="space-between" columnGap={1}>
+            <Text>{spans(flex.left)}</Text>
+            <Text>{spans(flex.right)}</Text>
+          </Box>
+          <Box flexDirection="row" height={1} alignItems="stretch">
+            {flex.bar.map(s => {
+              const part = <Box flexGrow={s.grow} flexShrink={1} width={0} minWidth={1} backgroundColor={s.color} />
+              return s.isReserved ? [<Text color="warning">│</Text>, part] : part
+            })}
+          </Box>
+          {flex.legend.length > 0 ? (
+            <Box flexDirection="row" flexWrap="wrap" columnGap={2}>
+              {flex.legend.map(entry => <Text>{spans(entry)}</Text>)}
+            </Box>
+          ) : null}
+        </Box>
+      )
+    }
+
+    const band = layout(value, e.props.bodyColumns)
+    if (!band) return next(e)
     const frame = band.isFramed ? { borderStyle: 'round', borderColor: 'inactive', paddingX: 1 } : {}
     return (
       <Box flexDirection="column" {...frame}>
-        {band.rows.map(row => (
-          <Text>
-            {row.map(s => (
-              <Text color={s.color} dimColor={s.dim} bold={s.bold} backgroundColor={s.background}>
-                {s.text}
-              </Text>
-            ))}
-          </Text>
-        ))}
+        {band.rows.map(row => <Text>{spans(row)}</Text>)}
       </Box>
     )
   })

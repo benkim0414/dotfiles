@@ -114,8 +114,8 @@ async function seen($: $T, props: Partial<BandProps> = {}): Promise<string> {
   const views: string[] = []
   for (const surface of ['terminal', 'desktop'] as const) {
     const ui = await $.ui.mount({ ...BAND, props: { ...BAND.props, ...props }, surface })
-    const text = (await ui.find({ type: 'Text' }))?.text ?? ''
-    views.push(text === 'engine' ? 'engine' : (/ ([\d.]+[kM]?) of /.exec(text)?.[1] ?? `?${text}`))
+    const text = (await ui.find({ type: 'Text', text: /^engine$| of / }))?.text ?? ''
+    views.push(text === 'engine' ? 'engine' : (/([\d.]+[kM]?) of /.exec(text)?.[1] ?? `?${text}`))
     await ui.unmount()
   }
   expect(views[0], 'terminal and desktop differ').toBe(views[1])
@@ -424,6 +424,37 @@ test('the band is framed from 60 columns, as in the video, and not below', async
       await ui.unmount()
     }
   }
+})
+
+test('desktop lays the band out by flex, with no cell glyphs', async ($, on) => {
+  const t = engine(on, { isOn: true })
+  t.cfg.fallback = usage({
+    categories: [
+      row('Messages', 30_000),
+      row('Skills', 10_000),
+      row('Free space', 947_000, 'free', 'inactive'),
+      row('Autocompact buffer', 13_000, 'buffer', 'inactive'),
+    ],
+  })
+  await start($)
+  await t.clock.settle()
+  const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
+  const texts = await ui.findAll({ type: 'Text' })
+  expect(texts.some(x => /[█░]/.test(x.text ?? '')), 'cell glyphs on desktop').toBe(false)
+  const boxes = await ui.findAll({ type: 'Box' })
+  const header = boxes.find(b => b.props.justifyContent === 'space-between')
+  expect(header, 'header spread by flex').toBeDefined()
+  const grows = boxes.filter(b => typeof b.props.flexGrow === 'number').map(b => b.props.flexGrow)
+  // The parts share 10000 by their tokens, each rounded to a whole weight;
+  // the first has three times the second's tokens.
+  expect(grows.length).toBe(4)
+  expect(texts.filter(x => x.text === '│'), 'one compaction marker').toHaveLength(1)
+  expect(Math.abs(grows.reduce((a, b) => a + b, 0) - 10_000)).toBeLessThanOrEqual(grows.length)
+  expect(Math.abs((grows[0] ?? 0) - 3 * (grows[1] ?? 0))).toBeLessThanOrEqual(3)
+  expect(grows[1]).toBeGreaterThan(0)
+  const legend = boxes.find(b => b.props.flexWrap === 'wrap')
+  expect(legend, 'legend wraps by flex').toBeDefined()
+  await ui.unmount()
 })
 
 test('a reading stored by the earlier shape is declined after a reload', async ($, on) => {
