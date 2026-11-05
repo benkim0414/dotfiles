@@ -175,23 +175,30 @@ From: [intent.md](intent.md). Status: draft.
   message, and changes no tool call.
 - **R17.** The mod loads on every machine that stows the `claude` package,
   with nothing to install: no npm dependencies, no per-machine step.
-- **R18.** On a surface other than the terminal, the band is laid out with
-  flex instead of counted columns. Such a surface sets `Text` in a
-  proportional face, so spaces and `█`/`░` glyphs do not match the cells
-  of `bodyColumns`. The figures, colours, widths that step aside (R8) and
-  the frame from 60 columns (R7) stay the same. Three parts change:
+- **R18.** On the desktop surface, the band is laid out with flex instead
+  of counted columns. The desktop sets `Text` in a proportional face, so
+  spaces and `█`/`░` glyphs do not match the cells of `bodyColumns`. The
+  figures, the widths that step aside (R8) and the frame from 60 columns
+  (R7) stay the same. Four parts change:
+  - **colours:** fixed hex values taken from the target screenshot, by
+    legend label: system prompt `#7b9bd9`, tools `#82c4cc`, mcp tools
+    `#9d8cf2`, agents `#9fcf86`, memory files `#e5c36a`, skills `#eaa3c2`,
+    messages `#d97a52`. A label not in that list takes the next of four
+    spare colours. Free and reserved are the track `#2b303d`, the marker
+    is `#e5c36a`, the `◆` is `#d97a52`, and the badge is `#1d2b17` on
+    `#8dbf73`. The desktop does not expose its theme, so these do not
+    follow a theme change. The terminal keeps theme keys (R4–R6).
   - **header:** a row `Box` with `justifyContent: 'space-between'`, with
     `◆ context` on the left and the figures and badge on the right. No
     padding spaces.
-  - **bar:** one row `Box`, one line tall, with a `Box` per part in R3's
-    order. Each part's `backgroundColor` is its row's colour. Its
-    `flexGrow` is its share of 10000 (the engine's limit), at least 1 for
-    a part with tokens. R3's whole-cell apportioning and R4's glyphs apply
-    to the terminal only. The compaction marker is a `│` in the `warning`
-    colour before the reserved part.
+  - **bar:** one `Svg`, 1000 units wide and 22 high, with corners of
+    radius 4, scaled to the band's width. R3 shares the 1000 units among
+    the parts, so a part with tokens keeps at least one unit. Used parts
+    take their colour. Free and reserved are track, and a 3-unit marker
+    sits where the reserve starts. R4's glyphs apply to the terminal only.
   - **legend:** a row `Box` with `flexWrap: 'wrap'` and a column gap of 2,
-    one `Text` per R5 entry. Below 60 columns there is no legend, as on
-    the terminal.
+    one `Text` per R5 entry, the swatch in the desktop colour. Below 60
+    columns there is no legend, as on the terminal.
 
 ## Design
 
