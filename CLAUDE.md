@@ -78,7 +78,7 @@ repo that needs it.
 - **RTK** (`brew "rtk"`): a `PreToolUse` hook on `Bash` (`rtk hook claude`)
   rewrites supported commands (git, test runners, builds) to compact output.
   Failed runs keep their full output, retrievable with `rtk recall <id>`; run
-  a command raw with `rtk proxy <cmd>`. Read/Grep/Glob bypass it. Defaults
+  a command raw with `rtk bypass <cmd>`. Read/Grep/Glob bypass it. Defaults
   only -- no config file is stowed; telemetry is off unless opted in.
 - **Hindsight** coding-agent integration: its `SessionStart`,
   `UserPromptSubmit` and `Stop` hooks are declared in
