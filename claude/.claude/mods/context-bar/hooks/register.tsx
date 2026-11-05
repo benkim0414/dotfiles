@@ -109,24 +109,20 @@ export const register: Register = on => {
         </Text>
       ))
 
-    // R18: a surface other than the terminal sets text in a proportional
-    // face, so its band is laid out by flex, not by counted columns.
-    if (e.surface !== 'terminal') {
+    // R18: the desktop sets text in a proportional face, so its band is
+    // laid out by flex, and its bar is an SVG in the desktop's own colours.
+    if (e.surface === 'desktop') {
+      const { Svg } = $.ui.resolve(e)
       const flex = flexLayout(value, e.props.bodyColumns)
       if (!flex) return next(e)
       const frame = flex.isFramed ? { borderStyle: 'round', borderColor: 'inactive', paddingX: 1 } : {}
       return (
-        <Box flexDirection="column" {...frame}>
+        <Box flexDirection="column" rowGap="sm" {...frame}>
           <Box flexDirection="row" justifyContent="space-between" columnGap={1}>
             <Text>{spans(flex.left)}</Text>
             <Text>{spans(flex.right)}</Text>
           </Box>
-          <Box flexDirection="row" height={1} alignItems="stretch">
-            {flex.bar.map(s => {
-              const part = <Box flexGrow={s.grow} flexShrink={1} width={0} minWidth={1} backgroundColor={s.color} />
-              return s.isReserved ? [<Text color="warning">│</Text>, part] : part
-            })}
-          </Box>
+          <Svg source={flex.bar} alt={flex.alt} />
           {flex.legend.length > 0 ? (
             <Box flexDirection="row" flexWrap="wrap" columnGap={2}>
               {flex.legend.map(entry => <Text>{spans(entry)}</Text>)}

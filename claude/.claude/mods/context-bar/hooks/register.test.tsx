@@ -444,14 +444,20 @@ test('desktop lays the band out by flex, with no cell glyphs', async ($, on) => 
   const boxes = await ui.findAll({ type: 'Box' })
   const header = boxes.find(b => b.props.justifyContent === 'space-between')
   expect(header, 'header spread by flex').toBeDefined()
-  const grows = boxes.filter(b => typeof b.props.flexGrow === 'number').map(b => b.props.flexGrow)
-  // The parts share 10000 by their tokens, each rounded to a whole weight;
-  // the first has three times the second's tokens.
-  expect(grows.length).toBe(4)
-  expect(texts.filter(x => x.text === '│'), 'one compaction marker').toHaveLength(1)
-  expect(Math.abs(grows.reduce((a, b) => a + b, 0) - 10_000)).toBeLessThanOrEqual(grows.length)
-  expect(Math.abs((grows[0] ?? 0) - 3 * (grows[1] ?? 0))).toBeLessThanOrEqual(3)
-  expect(grows[1]).toBeGreaterThan(0)
+  // The bar is one SVG: each part's share of 1000 units in the desktop
+  // colours, the reserve drawn as track after one marker.
+  const svg = await ui.find({ type: 'Svg' })
+  const source = String(svg?.props.source ?? '')
+  const rects = [...source.matchAll(/<rect x="([\d.]+)" y="0" width="([\d.]+)" height="22" fill="(#[0-9a-f]{6})"\/>/g)]
+    .map(m => [Number(m[1]), Number(m[2]), m[3]])
+  expect(rects).toEqual([
+    [0, 30, '#d97a52'],
+    [30, 10, '#eaa3c2'],
+    [40, 947, '#2b303d'],
+    [987, 13, '#2b303d'],
+    [985.5, 3, '#e5c36a'],
+  ])
+  expect(svg?.props.alt).toBe('context 40k of 1M, 4% used')
   const legend = boxes.find(b => b.props.flexWrap === 'wrap')
   expect(legend, 'legend wraps by flex').toBeDefined()
   await ui.unmount()
