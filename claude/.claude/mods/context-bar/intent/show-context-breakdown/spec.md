@@ -186,13 +186,20 @@ From: [intent.md](intent.md). Status: draft.
     (reserved) is a series too. With more than 6 series, the first 5
     used rows keep a colour (4 when there is a buffer) and the rest share
     one "other" part.
-  - **colours:** the panel's dark chart palette, as fixed hex values. The
-    series take `#3987e5`, `#d95926`, `#199e70`, `#c98500` and `#d55181`
-    in order. "Other" is `#97958d`, the buffer is `#5f5e5a`, and the track
-    (free) is `#97958d` at 15% opacity. The `◆` is `#d97a52`, and the
-    badge is `#1d2b17` on `#8dbf73`. The desktop does not expose its
-    theme, so these do not follow a theme or light mode. The terminal
-    keeps theme keys (R4–R6).
+  - **colours:** the panel's dark chart roles, kept by the desktop's token
+    names in `CDS` and `CHART`. The series are `chart-categorical-1` to
+    `-5`: `blue-400` `#338ced`, `orange-400` `#e76624`, `aqua-400`
+    `#00a888`, `yellow-350` `#d28e05` and `magenta-400` `#e24d8b`.
+    "Other" is `chart-reference` (`gray-350` `#959595`), the buffer is
+    `chart-muted` (`gray-550` `#5e5e5e`), and the track (free) is
+    `chart-reference-tint`, `gray-350` at 15% opacity. The values are the
+    desktop colour theme's (`data-cds-fizzy-lake~=color`), which overrides
+    the base palette. A mod cannot name these tokens: the desktop resolves
+    only a Claude Code theme key, a hex or `rgb()`/`hsl()` value, or an
+    ANSI name, and no theme key maps to a chart colour. The SVG is drawn as
+    an image and reads no CSS variable. So the bar and swatches carry the
+    values, and they do not follow light mode. The `◆` (`claude`) and the
+    badge (R6's keys) are theme keys, as on the terminal (R4–R6).
   - **header:** a row `Box` with `justifyContent: 'space-between'`, with
     `◆ context` on the left and the figures and badge on the right. No
     padding spaces.
