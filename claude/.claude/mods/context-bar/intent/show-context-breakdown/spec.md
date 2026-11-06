@@ -179,25 +179,32 @@ From: [intent.md](intent.md). Status: draft.
   of counted columns. The desktop sets `Text` in a proportional face, so
   spaces and `█`/`░` glyphs do not match the cells of `bodyColumns`. The
   figures, the widths that step aside (R8) and the frame from 60 columns
-  (R7) stay the same. Four parts change:
-  - **colours:** fixed hex values taken from the target screenshot, by
-    legend label: system prompt `#7b9bd9`, tools `#82c4cc`, mcp tools
-    `#9d8cf2`, agents `#9fcf86`, memory files `#e5c36a`, skills `#eaa3c2`,
-    messages `#d97a52`. A label not in that list takes the next of four
-    spare colours. Free and reserved are the track `#2b303d`, the marker
-    is `#e5c36a`, the `◆` is `#d97a52`, and the badge is `#1d2b17` on
-    `#8dbf73`. The desktop does not expose its theme, so these do not
-    follow a theme change. The terminal keeps theme keys (R4–R6).
+  (R7) stay the same. The bar and its colours copy the desktop's own
+  context panel (its "Context window" card) in dark mode. Five parts
+  change:
+  - **order and series:** used rows go largest first. The buffer
+    (reserved) is a series too. With more than 6 series, the first 5
+    used rows keep a colour (4 when there is a buffer) and the rest share
+    one "other" part.
+  - **colours:** the panel's dark chart palette, as fixed hex values. The
+    series take `#3987e5`, `#d95926`, `#199e70`, `#c98500` and `#d55181`
+    in order. "Other" is `#97958d`, the buffer is `#5f5e5a`, and the track
+    (free) is `#97958d` at 15% opacity. The `◆` is `#d97a52`, and the
+    badge is `#1d2b17` on `#8dbf73`. The desktop does not expose its
+    theme, so these do not follow a theme or light mode. The terminal
+    keeps theme keys (R4–R6).
   - **header:** a row `Box` with `justifyContent: 'space-between'`, with
     `◆ context` on the left and the figures and badge on the right. No
     padding spaces.
-  - **bar:** one `Svg`, 1000 units wide and 22 high, with corners of
-    radius 4, scaled to the band's width. R3 shares the 1000 units among
-    the parts, so a part with tokens keeps at least one unit. Used parts
-    take their colour. Free and reserved are track, and a 3-unit marker
-    sits where the reserve starts. R4's glyphs apply to the terminal only.
+  - **bar:** one `Svg`, 8px tall and 8px wide per cell of the band's inner
+    width. A pill-shaped track holds the parts from the left: used, other,
+    then the buffer. Each part takes its share of the window, at least
+    2px. The parts are 1px apart, with 2px corners inside the run and
+    round ends at its two ends. There is no compaction marker. R3's cells
+    and R4's glyphs apply to the terminal only.
   - **legend:** a row `Box` with `flexWrap: 'wrap'` and a column gap of 2,
-    one `Text` per R5 entry, the swatch in the desktop colour. Below 60
+    one `Text` per entry in the bar's order: used rows, the buffer
+    (`reserved`), then free. Each swatch takes its part's colour. Below 60
     columns there is no legend, as on the terminal.
 
 ## Design
