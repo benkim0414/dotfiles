@@ -12,7 +12,7 @@ const isOn = atom({ plugin: 'context-bar', key: 'isOn' } as const, false)
 // Change the tag when Reading changes: it declines what an earlier version
 // stored, which outlives a reload.
 const reading = atom({ plugin: 'context-bar', key: 'reading' } as const, null, {
-  shape: 'reading-2',
+  shape: 'reading-3',
 })
 
 // R13: starting a refresh, a compaction's clear and turning the bar off

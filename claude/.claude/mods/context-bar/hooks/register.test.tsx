@@ -461,7 +461,10 @@ test('desktop lays the band out by flex, with no cell glyphs', async ($, on) => 
     '#e76624',
     '#5e5e5e',
   ])
-  expect(svg?.props.alt).toBe('context 40k of 1M, 4% used')
+  expect(svg?.props.alt).toBe('Context window 40k of 1M, 4% used')
+  // The legend names the rows as the desktop panel does.
+  expect(texts.some(x => x.text === ' Messages ')).toBe(true)
+  expect(texts.some(x => x.text === ' Free space 947k')).toBe(true)
   // The legend's swatches match the bar, in the bar's order, free last.
   const swatches = texts.filter(x => x.text === '■').map(x => x.props.color)
   expect(swatches).toEqual(['#338ced', '#e76624', '#5e5e5e', '#959595'])

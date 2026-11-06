@@ -1,6 +1,7 @@
 // One segment of the bar and one legend entry: a breakdown row reduced to
-// what the layout needs. `color` is the row's theme key.
-export type Part = { label: string; tokens: number; color: string }
+// what the layout needs. `color` is the row's theme key. `label` is the
+// terminal's (R5); `name` is the row's own, which the desktop shows (R18).
+export type Part = { label: string; tokens: number; color: string; name?: string }
 
 // The breakdown reduced (spec "Reading"): every figure shares `window`.
 export type Reading = {

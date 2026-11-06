@@ -207,16 +207,16 @@ const reading = (total: number): Reading => ({
 test('reduce sorts rows by kind and drops deferred ones', () => {
   expect(reduce(usage())).toEqual({
     used: [
-      { label: 'system prompt', tokens: 4200, color: 'promptBorder' },
-      { label: 'tools', tokens: 17_000, color: 'inactive' },
-      { label: 'mcp tools', tokens: 52_000, color: 'suggestion' },
-      { label: 'agents', tokens: 3400, color: 'permission' },
-      { label: 'memory files', tokens: 8600, color: 'claude' },
-      { label: 'skills', tokens: 5100, color: 'warning' },
-      { label: 'messages', tokens: 0, color: 'merged' },
+      { label: 'system prompt', tokens: 4200, color: 'promptBorder', name: 'System prompt' },
+      { label: 'tools', tokens: 17_000, color: 'inactive', name: 'System tools' },
+      { label: 'mcp tools', tokens: 52_000, color: 'suggestion', name: 'MCP tools' },
+      { label: 'agents', tokens: 3400, color: 'permission', name: 'Custom agents' },
+      { label: 'memory files', tokens: 8600, color: 'claude', name: 'Memory files' },
+      { label: 'skills', tokens: 5100, color: 'warning', name: 'Skills' },
+      { label: 'messages', tokens: 0, color: 'merged', name: 'Messages' },
     ],
-    free: { label: 'free', tokens: 896_700, color: 'promptBorder' },
-    reserved: { label: 'reserved', tokens: 13_000, color: 'inactive' },
+    free: { label: 'free', tokens: 896_700, color: 'promptBorder', name: 'Free space' },
+    reserved: { label: 'reserved', tokens: 13_000, color: 'inactive', name: 'Autocompact buffer' },
     totalTokens: 90_300,
     window: 1_000_000,
     compactsAt: 987_000,
@@ -398,22 +398,36 @@ test('R18: past six series the desktop bar keeps four colours and one other', ()
   // system prompt and agents are drawn as other, and listed in its grey.
   const labels = (band?.legend ?? []).map(e => [e[1]?.text.trim(), e[0]?.color])
   expect(labels).toEqual([
-    ['mcp tools', '#338ced'],
-    ['tools', '#e76624'],
-    ['memory files', '#00a888'],
-    ['skills', '#d28e05'],
-    ['system prompt', '#959595'],
-    ['agents', '#959595'],
-    ['reserved', '#5e5e5e'],
-    ['free 897k', '#959595'],
+    ['MCP tools', '#338ced'],
+    ['System tools', '#e76624'],
+    ['Memory files', '#00a888'],
+    ['Skills', '#d28e05'],
+    ['System prompt', '#959595'],
+    ['Custom agents', '#959595'],
+    ['Autocompact buffer', '#5e5e5e'],
+    ['Free space 897k', '#959595'],
   ])
 })
 
-test('R18: the desktop header names theme keys, as the terminal does', () => {
+test("R18: the desktop header uses the panel's words and a theme key", () => {
   const band = flexLayout(reduce(usage()) as Reading, 80)
+  expect(band?.left.map(s => s.text).join('')).toBe('◆ Context window')
   expect(band?.left[0]?.color).toBe('claude')
   // The badge stands apart from the figures, with no padding spaces.
-  expect(band?.right.map(s => s.text).join('')).toBe('90k of 1M · compacts at 987k')
+  expect(band?.right.map(s => s.text).join('')).toBe('90k of 1M · Compacts at 987k')
+})
+
+test('R18: a reading without row names falls back to the panel words', () => {
+  const r: Reading = {
+    used: [{ label: 'messages', tokens: 5000, color: 'merged' }],
+    free: { label: 'free', tokens: 982_000, color: 'inactive' },
+    reserved: { label: 'reserved', tokens: 13_000, color: 'inactive' },
+    totalTokens: 5000,
+    window: 1_000_000,
+    compactsAt: 987_000,
+  }
+  const labels = (flexLayout(r, 80)?.legend ?? []).map(e => e[1]?.text.trim())
+  expect(labels).toEqual(['messages', 'Autocompact buffer', 'Free space 982k'])
 })
 
 test('R18: the desktop badge is an SVG with 2px corners in the desktop text colours', () => {

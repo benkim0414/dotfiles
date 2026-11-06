@@ -91,7 +91,7 @@ export function apportion(tokens: number[], width: number, fill: number): number
 export function reduce(usage: SessionUsage): Reading | null {
   const b = usage.context.breakdown
   if (!b) return null
-  const part = (c: ContextCategory): Part => ({ label: labelFor(c), tokens: c.tokens, color: c.color })
+  const part = (c: ContextCategory): Part => ({ label: labelFor(c), tokens: c.tokens, color: c.color, name: c.name })
   const used = b.categories.filter(c => c.kind === 'used').map(part)
   if (used.length === 0) return null
   const free = b.categories.find(c => c.kind === 'free')
@@ -303,11 +303,12 @@ export function flexLayout(reading: Reading, width: number): FlexBand | null {
   const isFramed = width >= 60
 
   // Theme keys, as on the terminal: the desktop maps each to its own colour.
-  const left: Row = [{ text: '◆', color: 'claude' }, { text: ' context', bold: true }]
+  // The words are the desktop panel's: its title and the rows' own names.
+  const left: Row = [{ text: '◆', color: 'claude' }, { text: ' Context window', bold: true }]
   const pct = percent(totalTokens, window)
   // The badge stands alone, drawn as an SVG with the swatch's corners.
   const share = desktopBadge(totalTokens, window)
-  const context = ` of ${w}` + (compactsAt === null ? '' : ` · compacts at ${shortTokens(compactsAt)}`)
+  const context = ` of ${w}` + (compactsAt === null ? '' : ` · Compacts at ${shortTokens(compactsAt)}`)
   const right: Row = isFramed
     ? [{ text: u, bold: true }, { text: context, dim: true }]
     : [{ text: `${u}/${w}`, bold: true }]
@@ -346,14 +347,18 @@ export function flexLayout(reading: Reading, width: number): FlexBand | null {
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${px} ${THICK}" width="${px}" height="${THICK}">` +
     `<rect width="${px}" height="${THICK}" rx="${THICK / 2}" fill="${CHART.referenceTint.color}" fill-opacity="${CHART.referenceTint.opacity}"/>` +
     `${shapes.join('')}</svg>`
-  const alt = `context ${u} of ${w}, ${pct} used`
+  const alt = `Context window ${u} of ${w}, ${pct} used`
 
-  // The legend in the bar's order: used, the buffer, then free.
+  // The legend in the bar's order: used, the buffer, then free, each by
+  // the row's own name (a reading without one falls back to the panel's).
+  const named = (p: Part, fallback: string): Part => ({ ...p, label: p.name ?? fallback })
   const legend = isFramed
     ? [
-        ...colored.map(p => entry(p, percent(p.tokens, window))),
-        ...(buffer ? [entry({ ...buffer, color: CHART.muted }, percent(buffer.tokens, window))] : []),
-        entry({ ...free, color: CHART.referenceTint.color }, null),
+        ...colored.map(p => entry(named(p, p.label), percent(p.tokens, window))),
+        ...(buffer
+          ? [entry({ ...named(buffer, 'Autocompact buffer'), color: CHART.muted }, percent(buffer.tokens, window))]
+          : []),
+        entry({ ...named(free, 'Free space'), color: CHART.referenceTint.color }, null),
       ]
     : []
   return { left, right, share, bar, alt, legend, isFramed }
