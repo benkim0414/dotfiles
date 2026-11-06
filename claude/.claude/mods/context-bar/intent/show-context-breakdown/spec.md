@@ -180,7 +180,7 @@ From: [intent.md](intent.md). Status: draft.
   spaces and `█`/`░` glyphs do not match the cells of `bodyColumns`. The
   figures, the widths that step aside (R8) and the frame from 60 columns
   (R7) stay the same. The bar and its colours copy the desktop's own
-  context panel (its "Context window" card) in dark mode. Five parts
+  context panel (its "Context window" card) in dark mode. Six parts
   change:
   - **order and series:** used rows go largest first. The buffer
     (reserved) is a series too. With more than 6 series, the first 5
@@ -200,8 +200,13 @@ From: [intent.md](intent.md). Status: draft.
     an image and reads no CSS variable. So the bar and swatches carry the
     values, and they do not follow light mode. The `◆` (`claude`) is a
     theme key, as on the terminal (R4–R6).
+  - **words:** the panel's own. The title is `◆ Context window`, the
+    header reads `<used> of <window> · Compacts at <threshold>`, and each
+    legend entry takes its row's own name (`Messages`, `System tools`,
+    `Autocompact buffer`, `Free space`). A stored reading without names
+    falls back to R5's label, or to `Autocompact buffer` and `Free space`.
   - **header:** a row `Box` with `justifyContent: 'space-between'`, with
-    `◆ context` on the left and the figures and badge on the right. No
+    the title on the left and the figures and badge on the right. No
     padding spaces. The badge is its own `Svg`, 18px tall, with 2px
     corners to match the legend swatches. A `Box` border cannot give that:
     the desktop's smallest border radius is `--cds-radius`, 6px. R6's
@@ -218,7 +223,7 @@ From: [intent.md](intent.md). Status: draft.
     and R4's glyphs apply to the terminal only.
   - **legend:** a row `Box` with `flexWrap: 'wrap'` and a column gap of 2,
     one `Text` per entry in the bar's order: used rows, the buffer
-    (`reserved`), then free. Each swatch takes its part's colour. Below 60
+    (`Autocompact buffer`), then free. Each swatch takes its part's colour. Below 60
     columns there is no legend, as on the terminal.
 
 ## Design
@@ -285,7 +290,7 @@ sequenceDiagram
 stores that:
 
 ```ts
-type Part = { label: string; tokens: number; color: string }
+type Part = { label: string; tokens: number; color: string; name?: string } // name: the row's own (R18)
 type Reading = {
   used: Part[]            // kind 'used', in /context order
   free: Part              // kind 'free', or { label: 'free', tokens: 0, color: 'inactive' }
@@ -301,7 +306,8 @@ when the API's own shape changes, only the reducer needs updating.
 
 `compactsAt` changed from a percentage to tokens, so the atom's shape tag
 moves from `reading-1` to `reading-2`, and a reading the earlier code stored
-reads as absent after the reload.
+reads as absent after the reload. Adding `name` (R18) moves it to
+`reading-3`.
 
 ### Layout
 
@@ -423,7 +429,7 @@ interface PluginState {
 }
 ```
 
-`reading` is shaped (`shape: 'reading-2'`), so a reload that changes
+`reading` is shaped (`shape: 'reading-3'`), so a reload that changes
 `Reading` declines a value an earlier version stored. `isOn` lives in
 `$.state` only as a mirror. `$.store` is the source of truth across
 sessions.
