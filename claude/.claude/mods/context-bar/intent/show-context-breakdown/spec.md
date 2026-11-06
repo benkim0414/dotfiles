@@ -202,7 +202,10 @@ From: [intent.md](intent.md). Status: draft.
     badge (R6's keys) are theme keys, as on the terminal (R4–R6).
   - **header:** a row `Box` with `justifyContent: 'space-between'`, with
     `◆ context` on the left and the figures and badge on the right. No
-    padding spaces.
+    padding spaces. The badge is its own `Box` with `borderStyle:
+    'single'`, which the desktop draws with the theme's small corner
+    radius. Its border and fill take the badge colour (R6), so only the
+    rounded corners show, with `xs` padding across and none down.
   - **bar:** one `Svg`, 8px tall and 8px wide per cell of the band's inner
     width. A pill-shaped track holds the parts from the left: used, other,
     then the buffer. Each part takes its share of the window, at least
