@@ -198,14 +198,18 @@ From: [intent.md](intent.md). Status: draft.
     only a Claude Code theme key, a hex or `rgb()`/`hsl()` value, or an
     ANSI name, and no theme key maps to a chart colour. The SVG is drawn as
     an image and reads no CSS variable. So the bar and swatches carry the
-    values, and they do not follow light mode. The `◆` (`claude`) and the
-    badge (R6's keys) are theme keys, as on the terminal (R4–R6).
+    values, and they do not follow light mode. The `◆` (`claude`) is a
+    theme key, as on the terminal (R4–R6).
   - **header:** a row `Box` with `justifyContent: 'space-between'`, with
     `◆ context` on the left and the figures and badge on the right. No
-    padding spaces. The badge is its own `Box` with `borderStyle:
-    'single'`, which the desktop draws with the theme's small corner
-    radius. Its border and fill take the badge colour (R6), so only the
-    rounded corners show, with `xs` padding across and none down.
+    padding spaces. The badge is its own `Svg`, 18px tall, with 2px
+    corners to match the legend swatches. A `Box` border cannot give that:
+    the desktop's smallest border radius is `--cds-radius`, 6px. R6's
+    thresholds pick the fill from `CDS_TEXT`, the dark values of the
+    tokens the desktop maps R6's keys to: `text-success` `#53c556`,
+    `text-warning` `#e49c06`, `text-danger` `#f17778`. The text is
+    `on-primary` `#191919`, 13px semibold. It uses the system UI face,
+    because an SVG image cannot load the desktop's own font.
   - **bar:** one `Svg`, 8px tall and 8px wide per cell of the band's inner
     width. A pill-shaped track holds the parts from the left: used, other,
     then the buffer. Each part takes its share of the window, at least
