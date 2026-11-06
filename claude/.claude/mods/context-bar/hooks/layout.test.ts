@@ -3,7 +3,7 @@ import { expect, test } from 'claude-code/testing'
 import type { SessionUsage } from 'claude-code'
 
 import { EXAMPLE, row, usage } from './fixtures'
-import { apportion, labelFor, layout, percent, reduce, shortTokens, spread } from './layout'
+import { apportion, flexLayout, labelFor, layout, percent, reduce, shortTokens, spread } from './layout'
 import type { Reading } from '../types'
 import type { Span } from './layout'
 
@@ -386,5 +386,25 @@ test('the badge is green below 70%, yellow from 70% and red from 90%', () => {
     [' 69% ', 'inverseText', 'success'],
     [' 70% ', 'inverseText', 'warning'],
     [' 90% ', 'inverseText', 'error'],
+  ])
+})
+
+test('R18: past six series the desktop bar keeps four colours and one other', () => {
+  // EXAMPLE has six used rows with tokens and a buffer: seven series.
+  const band = flexLayout(reduce(usage()) as Reading, 80)
+  const fills = [...(band?.bar ?? '').matchAll(/<path fill="(#[0-9a-f]{6})"/g)].map(m => m[1])
+  expect(fills).toEqual(['#3987e5', '#d95926', '#199e70', '#c98500', '#97958d', '#5f5e5a'])
+  // Largest first: mcp tools, tools, memory files and skills keep a colour;
+  // system prompt and agents are drawn as other, and listed in its grey.
+  const labels = (band?.legend ?? []).map(e => [e[1]?.text.trim(), e[0]?.color])
+  expect(labels).toEqual([
+    ['mcp tools', '#3987e5'],
+    ['tools', '#d95926'],
+    ['memory files', '#199e70'],
+    ['skills', '#c98500'],
+    ['system prompt', '#97958d'],
+    ['agents', '#97958d'],
+    ['reserved', '#5f5e5a'],
+    ['free 897k', '#97958d'],
   ])
 })

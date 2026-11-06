@@ -444,20 +444,22 @@ test('desktop lays the band out by flex, with no cell glyphs', async ($, on) => 
   const boxes = await ui.findAll({ type: 'Box' })
   const header = boxes.find(b => b.props.justifyContent === 'space-between')
   expect(header, 'header spread by flex').toBeDefined()
-  // The bar is one SVG: each part's share of 1000 units in the desktop
-  // colours, the reserve drawn as track after one marker.
+  // The bar is one SVG drawn as the desktop's context panel: 8px tall, as
+  // wide as 76 cells at 8px, a track at 15%, then the used rows largest
+  // first in its series colours and the buffer in its muted grey.
   const svg = await ui.find({ type: 'Svg' })
   const source = String(svg?.props.source ?? '')
-  const rects = [...source.matchAll(/<rect x="([\d.]+)" y="0" width="([\d.]+)" height="22" fill="(#[0-9a-f]{6})"\/>/g)]
-    .map(m => [Number(m[1]), Number(m[2]), m[3]])
-  expect(rects).toEqual([
-    [0, 30, '#d97a52'],
-    [30, 10, '#eaa3c2'],
-    [40, 947, '#2b303d'],
-    [987, 13, '#2b303d'],
-    [985.5, 3, '#e5c36a'],
+  expect(source).toContain('viewBox="0 0 608 8" width="608" height="8"')
+  expect(source).toContain('<rect width="608" height="8" rx="4" fill="#97958d" fill-opacity="0.15"/>')
+  expect([...source.matchAll(/<path fill="(#[0-9a-f]{6})"/g)].map(m => m[1])).toEqual([
+    '#3987e5',
+    '#d95926',
+    '#5f5e5a',
   ])
   expect(svg?.props.alt).toBe('context 40k of 1M, 4% used')
+  // The legend's swatches match the bar, in the bar's order, free last.
+  const swatches = texts.filter(x => x.text === '■').map(x => x.props.color)
+  expect(swatches).toEqual(['#3987e5', '#d95926', '#5f5e5a', '#97958d'])
   const legend = boxes.find(b => b.props.flexWrap === 'wrap')
   expect(legend, 'legend wraps by flex').toBeDefined()
   await ui.unmount()

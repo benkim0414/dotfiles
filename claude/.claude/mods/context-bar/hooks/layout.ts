@@ -189,46 +189,54 @@ export function layout(reading: Reading, width: number): Band | null {
   return { rows: [spread(left, right, room), bar(room), ...wrap(entries, room)], isFramed: true }
 }
 
-// R18: the desktop's own colours, taken from the target screenshot. They
-// are fixed hex values, not theme keys: the terminal keeps its theme.
+// R18: the colours of the desktop's own context panel in dark mode (its
+// chart palette): one per series, then "other", the buffer and the track.
+// Fixed hex values, not theme keys: the terminal keeps its theme.
 export const DESKTOP = {
+  series: ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181'],
+  other: '#97958d',
+  buffer: '#5f5e5a',
+  // The track is `other` at 15%.
+  track: '#97958d',
+  trackOpacity: 0.15,
   mark: '#d97a52',
-  track: '#2b303d',
-  marker: '#e5c36a',
   badge: { fill: '#8dbf73', text: '#1d2b17' },
-  parts: {
-    'system prompt': '#7b9bd9',
-    tools: '#82c4cc',
-    'mcp tools': '#9d8cf2',
-    agents: '#9fcf86',
-    'memory files': '#e5c36a',
-    skills: '#eaa3c2',
-    messages: '#d97a52',
-  } as Record<string, string>,
-  // For a used row the screenshot does not show, in bar order.
-  spare: ['#6fb3a6', '#c9a27e', '#b38ad9', '#8fa7c2'],
 } as const
+
+// As the desktop panel: at most this many series in the bar, the buffer
+// counted; past it, the smallest used rows share one "other" part.
+const SERIES = 6
+
+// The bar's height in CSS pixels, and the width taken per cell of
+// `bodyColumns` to size the drawing (the code font's advance, rounded up).
+const THICK = 8
+const CELL = 8
 
 // The band on a surface that lays out in pixels (R18): the header's two
 // sides, the bar as SVG markup and the legend's entries. The surface
 // spreads the header, scales the bar and wraps the legend.
 export type FlexBand = { left: Row; right: Row; bar: string; alt: string; legend: Row[]; isFramed: boolean }
 
-// The bar's drawing units: VIEW across, the height at the target's aspect.
-const VIEW = 1000
-const TALL = 22
+const r2 = (n: number) => Math.round(n * 100) / 100
 
-// R18: the same figures as `layout`, at the same widths, in DESKTOP colours.
+// One rectangle with its own left and right corner radii.
+function pill(x: number, w: number, h: number, rs: number, re: number, fill: string): string {
+  const a = Math.min(rs, w / 2, h / 2)
+  const b = Math.min(re, w / 2, h / 2)
+  return (
+    `<path fill="${fill}" d="M${r2(x + a)} 0H${r2(x + w - b)}A${b} ${b} 0 0 1 ${r2(x + w)} ${b}` +
+    `V${h - b}A${b} ${b} 0 0 1 ${r2(x + w - b)} ${h}H${r2(x + a)}A${a} ${a} 0 0 1 ${r2(x)} ${h - a}` +
+    `V${a}A${a} ${a} 0 0 1 ${r2(x + a)} 0Z"/>`
+  )
+}
+
+// R18: the same figures as `layout`, at the same widths, drawn as the
+// desktop's context panel draws its bar.
 export function flexLayout(reading: Reading, width: number): FlexBand | null {
   if (width < 20) return null
   const { window, totalTokens, compactsAt } = reading
   const isOver = totalTokens > window
-  let spare = 0
-  const used = reading.used.map(p => ({
-    ...p,
-    color: DESKTOP.parts[p.label] ?? DESKTOP.spare[spare++ % DESKTOP.spare.length] ?? DESKTOP.track,
-  }))
-  const free: Part = { ...reading.free, tokens: isOver ? 0 : reading.free.tokens, color: DESKTOP.track }
+  const free: Part = { ...reading.free, tokens: isOver ? 0 : reading.free.tokens }
   const reserved = reading.reserved && { ...reading.reserved, tokens: isOver ? 0 : reading.reserved.tokens }
   const u = shortTokens(totalTokens)
   const w = shortTokens(window)
@@ -242,29 +250,47 @@ export function flexLayout(reading: Reading, width: number): FlexBand | null {
     ? [{ text: u, bold: true }, { text: context, dim: true }, { text: ' ' }, share]
     : [{ text: `${u}/${w}`, bold: true }, { text: ' ' }, share]
 
-  // R3 in VIEW units, so a part with tokens keeps at least one unit. The
-  // reserve is drawn as track, opened by the compaction marker.
-  const parts = [...used, free, ...(reserved ? [reserved] : [])]
-  const counts = apportion(parts.map(p => p.tokens), VIEW, used.length)
-  const rects: string[] = []
+  // Used rows largest first. With more series than SERIES, the first
+  // 5 less the buffer keep a colour and the rest share `other`.
+  const used = reading.used.filter(p => p.tokens > 0).sort((a, b) => b.tokens - a.tokens)
+  const buffer = reserved !== null && reserved.tokens > 0 ? reserved : null
+  const isCrowded = used.length + (buffer ? 1 : 0) > SERIES
+  const kept = isCrowded ? 5 - (buffer ? 1 : 0) : used.length
+  const colored = used.map((p, i) => ({ ...p, color: i < kept ? (DESKTOP.series[i] ?? DESKTOP.other) : DESKTOP.other }))
+  const rest = colored.slice(kept).reduce((a, p) => a + p.tokens, 0)
+  const parts = [
+    ...colored.slice(0, kept).map(p => ({ tokens: p.tokens, color: p.color })),
+    ...(rest > 0 ? [{ tokens: rest, color: DESKTOP.other }] : []),
+    ...(buffer ? [{ tokens: buffer.tokens, color: DESKTOP.buffer }] : []),
+  ]
+
+  // The bar: a pill-shaped track, then the parts from the left, each at
+  // least 2px and 1px apart, the run's two ends round and its seams 2px.
+  const px = Math.max(40, (isFramed ? width - FRAME : width) * CELL)
+  const total = Math.max(window, parts.reduce((a, p) => a + p.tokens, 0) + free.tokens) || 1
+  const shapes: string[] = []
   let x = 0
-  let markAt: number | null = null
   parts.forEach((p, i) => {
-    const n = counts[i] ?? 0
-    if (n === 0) return
-    const fill = i < used.length ? p.color : DESKTOP.track
-    rects.push(`<rect x="${x}" y="0" width="${n}" height="${TALL}" fill="${fill}"/>`)
-    if (p === reserved) markAt = x
-    x += n
+    const seam = i === 0 ? 0 : 1
+    const span = Math.max(2 + seam, (p.tokens / total) * px)
+    const isLast = i === parts.length - 1
+    shapes.push(pill(x + seam, span - seam, THICK, i === 0 ? THICK / 2 : 2, isLast ? THICK / 2 : 2, p.color))
+    x += span
   })
-  const marker = markAt === null ? '' : `<rect x="${Math.max(0, markAt - 1.5)}" y="0" width="3" height="${TALL}" fill="${DESKTOP.marker}"/>`
   const bar =
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${VIEW} ${TALL}" width="${VIEW * 4}" height="${TALL * 4}">` +
-    `<defs><clipPath id="c"><rect width="${VIEW}" height="${TALL}" rx="4"/></clipPath></defs>` +
-    `<g clip-path="url(#c)"><rect width="${VIEW}" height="${TALL}" fill="${DESKTOP.track}"/>${rects.join('')}${marker}</g></svg>`
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${px} ${THICK}" width="${px}" height="${THICK}">` +
+    `<rect width="${px}" height="${THICK}" rx="${THICK / 2}" fill="${DESKTOP.track}" fill-opacity="${DESKTOP.trackOpacity}"/>` +
+    `${shapes.join('')}</svg>`
   const alt = `context ${u} of ${w}, ${pct} used`
 
-  const legend = isFramed ? [...used.map(p => entry(p, percent(p.tokens, window))), entry(free, null)] : []
+  // The legend in the bar's order: used, the buffer, then free.
+  const legend = isFramed
+    ? [
+        ...colored.map(p => entry(p, percent(p.tokens, window))),
+        ...(buffer ? [entry({ ...buffer, color: DESKTOP.buffer }, percent(buffer.tokens, window))] : []),
+        entry({ ...free, color: DESKTOP.track }, null),
+      ]
+    : []
   return { left, right, bar, alt, legend, isFramed }
 }
 
