@@ -189,18 +189,31 @@ export function layout(reading: Reading, width: number): Band | null {
   return { rows: [spread(left, right, room), bar(room), ...wrap(entries, room)], isFramed: true }
 }
 
-// R18: the colours of the desktop's own context panel in dark mode (its
-// chart palette): one per series, then "other", the buffer and the track.
-// Fixed hex values, not theme keys: the terminal keeps its theme.
-export const DESKTOP = {
-  series: ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181'],
-  other: '#97958d',
-  buffer: '#5f5e5a',
-  // The track is `other` at 15%.
-  track: '#97958d',
-  trackOpacity: 0.15,
-  mark: '#d97a52',
-  badge: { fill: '#8dbf73', text: '#1d2b17' },
+// R18: the desktop's palette tokens the context panel's chart uses, named
+// as the desktop names them (`--cds-<name>`), with the values its colour
+// theme gives them. A mod cannot name them: the desktop resolves a Claude
+// Code theme key, a hex or rgb()/hsl() value or an ANSI name, and none of
+// its theme keys maps to a chart colour; the bar's SVG is drawn as an
+// image, which reads no CSS variable. Hence the values, kept by name here.
+export const CDS = {
+  'blue-400': '#338ced',
+  'orange-400': '#e76624',
+  'aqua-400': '#00a888',
+  'yellow-350': '#d28e05',
+  'magenta-400': '#e24d8b',
+  'gray-350': '#959595',
+  'gray-550': '#5e5e5e',
+} as const
+
+// The panel's chart roles in dark mode (`--cds-chart-<role>`).
+export const CHART = {
+  categorical: [CDS['blue-400'], CDS['orange-400'], CDS['aqua-400'], CDS['yellow-350'], CDS['magenta-400']],
+  // "Other" rows.
+  reference: CDS['gray-350'],
+  // The buffer.
+  muted: CDS['gray-550'],
+  // The track and free: `reference` at 15%.
+  referenceTint: { color: CDS['gray-350'], opacity: 0.15 },
 } as const
 
 // As the desktop panel: at most this many series in the bar, the buffer
@@ -242,9 +255,10 @@ export function flexLayout(reading: Reading, width: number): FlexBand | null {
   const w = shortTokens(window)
   const isFramed = width >= 60
 
-  const left: Row = [{ text: '◆', color: DESKTOP.mark }, { text: ' context', bold: true }]
+  // Theme keys, as on the terminal: the desktop maps each to its own colour.
+  const left: Row = [{ text: '◆', color: 'claude' }, { text: ' context', bold: true }]
   const pct = percent(totalTokens, window)
-  const share: Span = { text: ` ${pct} `, bold: true, color: DESKTOP.badge.text, background: DESKTOP.badge.fill }
+  const share: Span = { ...badge(totalTokens, window), bold: true }
   const context = ` of ${w}` + (compactsAt === null ? '' : ` · compacts at ${shortTokens(compactsAt)}`)
   const right: Row = isFramed
     ? [{ text: u, bold: true }, { text: context, dim: true }, { text: ' ' }, share]
@@ -256,12 +270,15 @@ export function flexLayout(reading: Reading, width: number): FlexBand | null {
   const buffer = reserved !== null && reserved.tokens > 0 ? reserved : null
   const isCrowded = used.length + (buffer ? 1 : 0) > SERIES
   const kept = isCrowded ? 5 - (buffer ? 1 : 0) : used.length
-  const colored = used.map((p, i) => ({ ...p, color: i < kept ? (DESKTOP.series[i] ?? DESKTOP.other) : DESKTOP.other }))
+  const colored = used.map((p, i) => ({
+    ...p,
+    color: i < kept ? (CHART.categorical[i] ?? CHART.reference) : CHART.reference,
+  }))
   const rest = colored.slice(kept).reduce((a, p) => a + p.tokens, 0)
   const parts = [
     ...colored.slice(0, kept).map(p => ({ tokens: p.tokens, color: p.color })),
-    ...(rest > 0 ? [{ tokens: rest, color: DESKTOP.other }] : []),
-    ...(buffer ? [{ tokens: buffer.tokens, color: DESKTOP.buffer }] : []),
+    ...(rest > 0 ? [{ tokens: rest, color: CHART.reference }] : []),
+    ...(buffer ? [{ tokens: buffer.tokens, color: CHART.muted }] : []),
   ]
 
   // The bar: a pill-shaped track, then the parts from the left, each at
@@ -279,7 +296,7 @@ export function flexLayout(reading: Reading, width: number): FlexBand | null {
   })
   const bar =
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${px} ${THICK}" width="${px}" height="${THICK}">` +
-    `<rect width="${px}" height="${THICK}" rx="${THICK / 2}" fill="${DESKTOP.track}" fill-opacity="${DESKTOP.trackOpacity}"/>` +
+    `<rect width="${px}" height="${THICK}" rx="${THICK / 2}" fill="${CHART.referenceTint.color}" fill-opacity="${CHART.referenceTint.opacity}"/>` +
     `${shapes.join('')}</svg>`
   const alt = `context ${u} of ${w}, ${pct} used`
 
@@ -287,8 +304,8 @@ export function flexLayout(reading: Reading, width: number): FlexBand | null {
   const legend = isFramed
     ? [
         ...colored.map(p => entry(p, percent(p.tokens, window))),
-        ...(buffer ? [entry({ ...buffer, color: DESKTOP.buffer }, percent(buffer.tokens, window))] : []),
-        entry({ ...free, color: DESKTOP.track }, null),
+        ...(buffer ? [entry({ ...buffer, color: CHART.muted }, percent(buffer.tokens, window))] : []),
+        entry({ ...free, color: CHART.referenceTint.color }, null),
       ]
     : []
   return { left, right, bar, alt, legend, isFramed }

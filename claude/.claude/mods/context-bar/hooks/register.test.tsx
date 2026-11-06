@@ -450,16 +450,16 @@ test('desktop lays the band out by flex, with no cell glyphs', async ($, on) => 
   const svg = await ui.find({ type: 'Svg' })
   const source = String(svg?.props.source ?? '')
   expect(source).toContain('viewBox="0 0 608 8" width="608" height="8"')
-  expect(source).toContain('<rect width="608" height="8" rx="4" fill="#97958d" fill-opacity="0.15"/>')
+  expect(source).toContain('<rect width="608" height="8" rx="4" fill="#959595" fill-opacity="0.15"/>')
   expect([...source.matchAll(/<path fill="(#[0-9a-f]{6})"/g)].map(m => m[1])).toEqual([
-    '#3987e5',
-    '#d95926',
-    '#5f5e5a',
+    '#338ced',
+    '#e76624',
+    '#5e5e5e',
   ])
   expect(svg?.props.alt).toBe('context 40k of 1M, 4% used')
   // The legend's swatches match the bar, in the bar's order, free last.
   const swatches = texts.filter(x => x.text === '■').map(x => x.props.color)
-  expect(swatches).toEqual(['#3987e5', '#d95926', '#5f5e5a', '#97958d'])
+  expect(swatches).toEqual(['#338ced', '#e76624', '#5e5e5e', '#959595'])
   const legend = boxes.find(b => b.props.flexWrap === 'wrap')
   expect(legend, 'legend wraps by flex').toBeDefined()
   await ui.unmount()

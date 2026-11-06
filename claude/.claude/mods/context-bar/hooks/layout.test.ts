@@ -393,18 +393,25 @@ test('R18: past six series the desktop bar keeps four colours and one other', ()
   // EXAMPLE has six used rows with tokens and a buffer: seven series.
   const band = flexLayout(reduce(usage()) as Reading, 80)
   const fills = [...(band?.bar ?? '').matchAll(/<path fill="(#[0-9a-f]{6})"/g)].map(m => m[1])
-  expect(fills).toEqual(['#3987e5', '#d95926', '#199e70', '#c98500', '#97958d', '#5f5e5a'])
+  expect(fills).toEqual(['#338ced', '#e76624', '#00a888', '#d28e05', '#959595', '#5e5e5e'])
   // Largest first: mcp tools, tools, memory files and skills keep a colour;
   // system prompt and agents are drawn as other, and listed in its grey.
   const labels = (band?.legend ?? []).map(e => [e[1]?.text.trim(), e[0]?.color])
   expect(labels).toEqual([
-    ['mcp tools', '#3987e5'],
-    ['tools', '#d95926'],
-    ['memory files', '#199e70'],
-    ['skills', '#c98500'],
-    ['system prompt', '#97958d'],
-    ['agents', '#97958d'],
-    ['reserved', '#5f5e5a'],
-    ['free 897k', '#97958d'],
+    ['mcp tools', '#338ced'],
+    ['tools', '#e76624'],
+    ['memory files', '#00a888'],
+    ['skills', '#d28e05'],
+    ['system prompt', '#959595'],
+    ['agents', '#959595'],
+    ['reserved', '#5e5e5e'],
+    ['free 897k', '#959595'],
   ])
+})
+
+test('R18: the desktop header names theme keys, as the terminal does', () => {
+  const band = flexLayout(reduce(usage()) as Reading, 80)
+  expect(band?.left[0]?.color).toBe('claude')
+  const share = band?.right.at(-1)
+  expect([share?.text, share?.color, share?.background]).toEqual([' 9% ', 'inverseText', 'success'])
 })
