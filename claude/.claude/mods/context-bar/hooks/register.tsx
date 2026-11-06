@@ -118,9 +118,24 @@ export const register: Register = on => {
       const frame = flex.isFramed ? { borderStyle: 'round', borderColor: 'inactive', paddingX: 1 } : {}
       return (
         <Box flexDirection="column" rowGap="sm" {...frame}>
-          <Box flexDirection="row" justifyContent="space-between" columnGap={1}>
+          <Box flexDirection="row" justifyContent="space-between" alignItems="center" columnGap={1}>
             <Text>{spans(flex.left)}</Text>
-            <Text>{spans(flex.right)}</Text>
+            <Box flexDirection="row" alignItems="center" columnGap={1}>
+              <Text>{spans(flex.right)}</Text>
+              {/* The desktop rounds the corners of a Box with a border. Its
+                  border takes the badge's colour, so only the corners show. */}
+              <Box
+                borderStyle="single"
+                borderColor={flex.share.background}
+                backgroundColor={flex.share.background}
+                paddingX="xs"
+                paddingY={0}
+              >
+                <Text color={flex.share.color} bold={flex.share.bold}>
+                  {flex.share.text}
+                </Text>
+              </Box>
+            </Box>
           </Box>
           <Svg source={flex.bar} alt={flex.alt} />
           {flex.legend.length > 0 ? (

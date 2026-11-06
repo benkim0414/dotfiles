@@ -412,6 +412,8 @@ test('R18: past six series the desktop bar keeps four colours and one other', ()
 test('R18: the desktop header names theme keys, as the terminal does', () => {
   const band = flexLayout(reduce(usage()) as Reading, 80)
   expect(band?.left[0]?.color).toBe('claude')
-  const share = band?.right.at(-1)
-  expect([share?.text, share?.color, share?.background]).toEqual([' 9% ', 'inverseText', 'success'])
+  // The badge stands apart from the figures, with no padding spaces.
+  expect(band?.right.map(s => s.text).join('')).toBe('90k of 1M · compacts at 987k')
+  const share = band?.share
+  expect([share?.text, share?.color, share?.background]).toEqual(['9%', 'inverseText', 'success'])
 })

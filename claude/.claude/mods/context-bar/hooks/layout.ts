@@ -226,9 +226,17 @@ const THICK = 8
 const CELL = 8
 
 // The band on a surface that lays out in pixels (R18): the header's two
-// sides, the bar as SVG markup and the legend's entries. The surface
-// spreads the header, scales the bar and wraps the legend.
-export type FlexBand = { left: Row; right: Row; bar: string; alt: string; legend: Row[]; isFramed: boolean }
+// sides and its badge, the bar as SVG markup and the legend's entries. The
+// surface spreads the header, scales the bar and wraps the legend.
+export type FlexBand = {
+  left: Row
+  right: Row
+  share: Span
+  bar: string
+  alt: string
+  legend: Row[]
+  isFramed: boolean
+}
 
 const r2 = (n: number) => Math.round(n * 100) / 100
 
@@ -258,11 +266,13 @@ export function flexLayout(reading: Reading, width: number): FlexBand | null {
   // Theme keys, as on the terminal: the desktop maps each to its own colour.
   const left: Row = [{ text: '◆', color: 'claude' }, { text: ' context', bold: true }]
   const pct = percent(totalTokens, window)
-  const share: Span = { ...badge(totalTokens, window), bold: true }
+  // The badge stands alone: the surface draws it in a box with round
+  // corners, so its text carries no padding spaces.
+  const share: Span = { ...badge(totalTokens, window), text: pct, bold: true }
   const context = ` of ${w}` + (compactsAt === null ? '' : ` · compacts at ${shortTokens(compactsAt)}`)
   const right: Row = isFramed
-    ? [{ text: u, bold: true }, { text: context, dim: true }, { text: ' ' }, share]
-    : [{ text: `${u}/${w}`, bold: true }, { text: ' ' }, share]
+    ? [{ text: u, bold: true }, { text: context, dim: true }]
+    : [{ text: `${u}/${w}`, bold: true }]
 
   // Used rows largest first. With more series than SERIES, the first
   // 5 less the buffer keep a colour and the rest share `other`.
@@ -308,7 +318,7 @@ export function flexLayout(reading: Reading, width: number): FlexBand | null {
         entry({ ...free, color: CHART.referenceTint.color }, null),
       ]
     : []
-  return { left, right, bar, alt, legend, isFramed }
+  return { left, right, share, bar, alt, legend, isFramed }
 }
 
 // R5: `■ <label> <tokens> <pct>`, the swatch coloured, the tokens bold and
