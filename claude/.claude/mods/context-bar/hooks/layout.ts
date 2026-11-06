@@ -205,6 +205,17 @@ export const CDS = {
   'gray-550': '#5e5e5e',
 } as const
 
+// The text tokens the badge's theme keys map to on the desktop, in dark
+// mode: `success`, `warning` and `error` are `text-success`, `-warning`
+// and `-danger`; `inverseText` is `on-primary`. Kept by value because the
+// badge is an SVG, which reads no CSS variable.
+export const CDS_TEXT = {
+  'text-success': '#53c556',
+  'text-warning': '#e49c06',
+  'text-danger': '#f17778',
+  'on-primary': '#191919',
+} as const
+
 // The panel's chart roles in dark mode (`--cds-chart-<role>`).
 export const CHART = {
   categorical: [CDS['blue-400'], CDS['orange-400'], CDS['aqua-400'], CDS['yellow-350'], CDS['magenta-400']],
@@ -231,7 +242,7 @@ const CELL = 8
 export type FlexBand = {
   left: Row
   right: Row
-  share: Span
+  share: Badge
   bar: string
   alt: string
   legend: Row[]
@@ -239,6 +250,34 @@ export type FlexBand = {
 }
 
 const r2 = (n: number) => Math.round(n * 100) / 100
+
+// The desktop badge: an SVG, so its corners can be the legend swatch's
+// 2px, which no Box border gives (the desktop's least is `--cds-radius`).
+export type Badge = { svg: string; alt: string; width: number; height: number }
+
+// The desktop's body text: 13px, semibold for the badge.
+const FONT = 13
+const BADGE_HIGH = 18
+const BADGE_PAD = 4
+const BADGE_RADIUS = 2
+
+// R6's colours by R6's thresholds, as the desktop draws those theme keys.
+export function desktopBadge(totalTokens: number, window: number): Badge {
+  const pct = percent(totalTokens, window)
+  const n = Number.parseInt(pct, 10)
+  const fill = n >= 90 ? CDS_TEXT['text-danger'] : n >= 70 ? CDS_TEXT['text-warning'] : CDS_TEXT['text-success']
+  // Digits are 0.6em and `%` 0.9em in a system UI face, near enough to
+  // centre the text; the text is anchored at the middle either way.
+  const digits = pct.length - 1
+  const width = Math.ceil(digits * FONT * 0.6 + FONT * 0.9 + 2 * BADGE_PAD)
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${BADGE_HIGH}" width="${width}" height="${BADGE_HIGH}">` +
+    `<rect width="${width}" height="${BADGE_HIGH}" rx="${BADGE_RADIUS}" fill="${fill}"/>` +
+    `<text x="${width / 2}" y="${BADGE_HIGH / 2}" text-anchor="middle" dominant-baseline="central" ` +
+    `font-family="system-ui,-apple-system,sans-serif" font-size="${FONT}" font-weight="600" ` +
+    `fill="${CDS_TEXT['on-primary']}">${pct}</text></svg>`
+  return { svg, alt: `${pct} of the context window used`, width, height: BADGE_HIGH }
+}
 
 // One rectangle with its own left and right corner radii.
 function pill(x: number, w: number, h: number, rs: number, re: number, fill: string): string {
@@ -266,9 +305,8 @@ export function flexLayout(reading: Reading, width: number): FlexBand | null {
   // Theme keys, as on the terminal: the desktop maps each to its own colour.
   const left: Row = [{ text: '◆', color: 'claude' }, { text: ' context', bold: true }]
   const pct = percent(totalTokens, window)
-  // The badge stands alone: the surface draws it in a box with round
-  // corners, so its text carries no padding spaces.
-  const share: Span = { ...badge(totalTokens, window), text: pct, bold: true }
+  // The badge stands alone, drawn as an SVG with the swatch's corners.
+  const share = desktopBadge(totalTokens, window)
   const context = ` of ${w}` + (compactsAt === null ? '' : ` · compacts at ${shortTokens(compactsAt)}`)
   const right: Row = isFramed
     ? [{ text: u, bold: true }, { text: context, dim: true }]

@@ -3,7 +3,7 @@ import { expect, test } from 'claude-code/testing'
 import type { SessionUsage } from 'claude-code'
 
 import { EXAMPLE, row, usage } from './fixtures'
-import { apportion, flexLayout, labelFor, layout, percent, reduce, shortTokens, spread } from './layout'
+import { apportion, desktopBadge, flexLayout, labelFor, layout, percent, reduce, shortTokens, spread } from './layout'
 import type { Reading } from '../types'
 import type { Span } from './layout'
 
@@ -414,6 +414,13 @@ test('R18: the desktop header names theme keys, as the terminal does', () => {
   expect(band?.left[0]?.color).toBe('claude')
   // The badge stands apart from the figures, with no padding spaces.
   expect(band?.right.map(s => s.text).join('')).toBe('90k of 1M · compacts at 987k')
-  const share = band?.share
-  expect([share?.text, share?.color, share?.background]).toEqual(['9%', 'inverseText', 'success'])
+})
+
+test('R18: the desktop badge is an SVG with 2px corners in the desktop text colours', () => {
+  const fill = (total: number) => /rx="2" fill="(#[0-9a-f]{6})"/.exec(desktopBadge(total, 1_000_000).svg)?.[1]
+  // R6's thresholds: green below 70%, yellow from 70%, red from 90%.
+  expect([fill(690_000), fill(700_000), fill(900_000)]).toEqual(['#53c556', '#e49c06', '#f17778'])
+  const b = desktopBadge(90_000, 1_000_000)
+  expect(b.svg).toContain('fill="#191919">9%</text>')
+  expect([b.height, b.width > desktopBadge(9000, 1_000_000).width - 1]).toEqual([18, true])
 })

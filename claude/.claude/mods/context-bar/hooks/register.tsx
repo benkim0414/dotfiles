@@ -122,19 +122,12 @@ export const register: Register = on => {
             <Text>{spans(flex.left)}</Text>
             <Box flexDirection="row" alignItems="center" columnGap={1}>
               <Text>{spans(flex.right)}</Text>
-              {/* The desktop rounds the corners of a Box with a border. Its
-                  border takes the badge's colour, so only the corners show. */}
-              <Box
-                borderStyle="single"
-                borderColor={flex.share.background}
-                backgroundColor={flex.share.background}
-                paddingX="xs"
-                paddingY={0}
-              >
-                <Text color={flex.share.color} bold={flex.share.bold}>
-                  {flex.share.text}
-                </Text>
-              </Box>
+              <Svg
+                source={flex.share.svg}
+                alt={flex.share.alt}
+                width={flex.share.width}
+                height={flex.share.height}
+              />
             </Box>
           </Box>
           <Svg source={flex.bar} alt={flex.alt} />

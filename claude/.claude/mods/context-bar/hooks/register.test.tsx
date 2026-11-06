@@ -444,16 +444,15 @@ test('desktop lays the band out by flex, with no cell glyphs', async ($, on) => 
   const boxes = await ui.findAll({ type: 'Box' })
   const header = boxes.find(b => b.props.justifyContent === 'space-between')
   expect(header, 'header spread by flex').toBeDefined()
-  // The badge is a bordered Box, which the desktop draws with round
-  // corners; the border takes the fill, so only the corners show.
-  const badge = boxes.find(b => b.props.borderStyle === 'single')
-  expect([badge?.props.backgroundColor, badge?.props.borderColor, badge?.props.paddingX, badge?.props.paddingY])
-    .toEqual(['success', 'success', 'xs', 0])
-  expect(texts.find(x => x.text === '4%')?.props.color).toBe('inverseText')
+  // The badge is its own SVG, at its own pixel size, with 2px corners.
+  const svgs = await ui.findAll({ type: 'Svg' })
+  const badge = svgs.find(s => String(s.props.alt).includes('of the context window used'))
+  expect([badge?.props.alt, badge?.props.height]).toEqual(['4% of the context window used', 18])
+  expect(String(badge?.props.source)).toContain('rx="2" fill="#53c556"')
   // The bar is one SVG drawn as the desktop's context panel: 8px tall, as
   // wide as 76 cells at 8px, a track at 15%, then the used rows largest
   // first in its series colours and the buffer in its muted grey.
-  const svg = await ui.find({ type: 'Svg' })
+  const svg = svgs.find(s => s !== badge)
   const source = String(svg?.props.source ?? '')
   expect(source).toContain('viewBox="0 0 608 8" width="608" height="8"')
   expect(source).toContain('<rect width="608" height="8" rx="4" fill="#959595" fill-opacity="0.15"/>')
