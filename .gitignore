@@ -13,6 +13,7 @@ bin/.local/bin/agent
 bin/.local/bin/amd-*
 bin/.local/bin/claude
 bin/.local/bin/cua-driver
+bin/.local/bin/dagr
 bin/.local/bin/ds4-cockpit
 bin/.local/bin/factory
 bin/.local/bin/factory.backup-*
