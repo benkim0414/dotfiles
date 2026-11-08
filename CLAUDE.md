@@ -122,7 +122,20 @@ Direct `ctrl+h/j/k/l` pane navigation comes from the `vim-herdr-navigation`
 herdr plugin (a vim-tmux-navigator port): it forwards the key into vim when a
 vim/neovim pane is focused, else moves herdr focus, and falls back to tmux or
 `wincmd` outside herdr. The nvim side is folded into the `vim-tmux-navigator`
-spec in `nvim/.config/nvim/lua/plugins/nav.lua`.
+spec in `nvim/.config/nvim/lua/plugins/nav.lua`. It loads
+`require("herdr_navigation").setup()`: `lua/herdr_navigation.lua` is a pinned
+copy of upstream `editor/nvim.lua` at `7873100`, including the desktop
+`HC_TERMINAL_ID` / `herdr-app do pane.go --direction` branch. Its only behavioral
+delta is executable validation on each TUI handoff: a usable `HERDR_BIN_PATH`
+wins, otherwise use `exepath("herdr")`; warn only if neither is usable. Launched
+commands retain upstream's quiet handling of exit status.
+
+Keep the lazy dependency for `herdr plugin link` below, not as the editor
+implementation. Do not restore `dofile` of the lazy checkout: Lazy sync does not
+update the pinned local editor copy. To refresh that copy, compare with upstream,
+retain the executable check, update its provenance comment, and run
+`nvim --headless -u NONE -i NONE -l nvim/tests/herdr_navigation.lua` from the repo
+root. `nvim/.stow-local-ignore` keeps those tests out of `~/tests`.
 
 `config.toml` is direct-stowed: herdr only writes the `onboarding` flag and never
 rewrites keys at runtime (runtime state lives in separate files -- `plugins.json`,

@@ -79,22 +79,18 @@ herdr plugin action list --plugin vim-herdr-navigation   # verify left/down/up/r
 ```
 
 On the nvim side, fold it into the existing `vim-tmux-navigator` lazy.nvim spec:
-disable that plugin's own mappings and let the port own `<C-h/j/k/l>`.
+disable that plugin's own mappings and load the pinned local editor hook for
+`<C-h/j/k/l>`. Keep the lazy dependency so its clone remains available to
+`herdr plugin link ~/.local/share/nvim/lazy/vim-herdr-navigation`.
 
 ```lua
 {
   "christoomey/vim-tmux-navigator",
-  dependencies = { "paulbkim-dev/vim-herdr-navigation" },
+  dependencies = { { "paulbkim-dev/vim-herdr-navigation", branch = "master" } },
   lazy = false,
   init = function() vim.g.tmux_navigator_no_mappings = 1 end,
   config = function()
-    local root = require("lazy.core.config").options.root
-    local hook = root .. "/vim-herdr-navigation/editor/nvim.lua"
-    if (vim.uv or vim.loop).fs_stat(hook) then
-      dofile(hook)
-    else
-      vim.notify("vim-herdr-navigation not synced; run :Lazy sync", vim.log.levels.WARN)
-    end
+    require("herdr_navigation").setup()
     -- The port has no "previous" action; keep tmux's <c-\> via the still-defined command.
     vim.keymap.set("n", "<c-\\>", "<cmd>TmuxNavigatePrevious<cr>", { silent = true })
   end,
@@ -103,6 +99,24 @@ disable that plugin's own mappings and let the port own `<C-h/j/k/l>`.
 
 `vim.g.tmux_navigator_no_mappings = 1` disables only the *key maps*, not the
 `TmuxNavigate*` *commands* — so the `$TMUX` fallback and `<c-\>` still resolve.
+
+`nvim/.config/nvim/lua/herdr_navigation.lua` is a pinned copy of upstream
+`editor/nvim.lua` at `7873100`, with a `setup()` loader and mapping loop. Keep
+upstream's split-first control flow, explicit `--pane`, desktop app branch
+(`HC_TERMINAL_ID` calls `herdr-app do pane.go --direction`), then tmux fallback.
+The only behavioral delta comes from `navigate.sh`: on every TUI handoff, use
+`HERDR_BIN_PATH` if executable, otherwise `vim.fn.exepath("herdr")`. Warn and
+return only when neither is usable. Ignore launched commands' exit statuses,
+as upstream does; pane-focus failures must not produce repeated warning toasts.
+
+Do not restore `dofile` of the lazy checkout. That dependency supplies the
+Herdr-side plugin clone; Lazy sync does not refresh the local editor copy.
+When refreshing the copy, compare with upstream, retain the executable check,
+and update the commit comment. Run
+`nvim --headless -u NONE -i NONE -l nvim/tests/herdr_navigation.lua` and
+`bash bin/tests/stow-hygiene/run.sh` from the repo root. The package's
+`.stow-local-ignore` excludes `tests/` from the home directory.
+The July design and plan linked below remain historical records.
 
 **3. Store `config.toml` as a direct Stow symlink — no base+generated pattern.**
 herdr only writes `config.toml` once (the `onboarding` flag) and never rewrites

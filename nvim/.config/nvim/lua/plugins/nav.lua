@@ -71,25 +71,17 @@ return {
   },
   {
     "christoomey/vim-tmux-navigator",
+    -- Keep this clone for `herdr plugin link`; the editor hook is pinned locally.
     dependencies = { { "paulbkim-dev/vim-herdr-navigation", branch = "master" } },
     lazy = false,
     init = function()
       vim.g.tmux_navigator_no_mappings = 1
     end,
     config = function()
-      -- vim-herdr-navigation owns <C-h/j/k/l>: forwards to herdr when in a herdr
-      -- pane, falls back to tmux ($TMUX) or plain wincmd otherwise.
-      local root = require("lazy.core.config").options.root
-      local hook = root .. "/vim-herdr-navigation/editor/nvim.lua"
-      if (vim.uv or vim.loop).fs_stat(hook) then
-        dofile(hook)
-      else
-        vim.notify(
-          "vim-herdr-navigation not synced; run :Lazy sync",
-          vim.log.levels.WARN
-        )
-      end
-      -- Keep tmux muscle memory for last-focused split. The port owns C-hjkl but
+      -- Local editor hook validates stale HERDR_BIN_PATH values after updates.
+      -- The Herdr-side vim-herdr-navigation plugin still forwards these keys.
+      require("herdr_navigation").setup()
+      -- Keep tmux muscle memory for last-focused split. The local hook owns C-hjkl but
       -- has no "previous" action, so this uses the TmuxNavigate command (tmux, or
       -- wincmd fallback in plain vim); it does not cross into a herdr pane.
       vim.keymap.set("n", "<c-\\>", "<cmd>TmuxNavigatePrevious<cr>",

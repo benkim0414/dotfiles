@@ -1,0 +1,4 @@
+# tests/ is repo-internal and must not reach the home directory.
+# A .stow-local-ignore replaces Stow's default ignore list rather than adding
+# to it; this package contains no file the default list protects.
+^/tests$
