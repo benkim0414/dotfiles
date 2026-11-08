@@ -57,6 +57,8 @@ codex/.codex/ambient-suggestions/
 codex/.codex/app-server-control/
 codex/.codex/app-server-daemon/
 codex/.codex/auth.json
+codex/.codex/auth.json.lock
+codex/.codex/auth.lock
 codex/.codex/cache/
 codex/.codex/chrome-native-hosts-v2.json
 codex/.codex/computer-use/
