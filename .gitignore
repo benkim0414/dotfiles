@@ -20,7 +20,9 @@ bin/.local/bin/factory.backup-*
 bin/.local/bin/grok
 bin/.local/bin/graphify
 bin/.local/bin/graphify-mcp
+bin/.local/bin/hc
 bin/.local/bin/herdr
+bin/.local/bin/herdr-core
 bin/.local/bin/herdr-reviewr
 bin/.local/bin/hermes
 bin/.local/bin/hermes-acp
