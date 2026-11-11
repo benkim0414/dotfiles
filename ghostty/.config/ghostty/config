@@ -2,9 +2,6 @@
 font-family = JetBrainsMonoNL Nerd Font
 font-size = 16
 
-# Theme — built-in Catppuccin Mocha (self-contained, no stray files)
-theme = Catppuccin Mocha
-
 # macOS
 macos-titlebar-style = hidden
 macos-option-as-alt = true
