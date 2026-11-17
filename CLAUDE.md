@@ -4,8 +4,6 @@ macOS/Linux dotfiles managed with GNU Stow and Homebrew.
 
 # Commands
 
-Documented solutions: `docs/solutions/` stores past fixes and decisions by category with YAML frontmatter (`module`, `tags`, `problem_type`); relevant when implementing or debugging in documented areas.
-
 ## Daily workflow
 
 ```sh
@@ -47,7 +45,7 @@ Never commit `.env*` or `.mise.local.toml` files -- they are gitignored.
 
 # Wiki staging
 
-Generated plugin docs (`docs/superpowers/{specs,plans}/`, `docs/solutions/`) are
+Other repos' generated plugin docs (a tracked `docs/` tree) are
 mirrored into `~/workspace/wiki/raw/<repo>/` for later `/ingest` into the wiki's
 `okf/` knowledge pages.
 
@@ -61,15 +59,6 @@ mirrored into `~/workspace/wiki/raw/<repo>/` for later `/ingest` into the wiki's
   `.git/info/exclude`), since git ignores `.git/hooks/` there.
 - Staging is copy-only: it never commits or pushes the wiki. Ingestion into
   `okf/` stays a separate manual step (the wiki's `/ingest` skill).
-
-Design: `docs/superpowers/specs/2026-06-22-wiki-stage-docs-mirror-design.md`.
-
-# Documented solutions
-
-`docs/solutions/` holds documented solutions to past problems (bugs, conventions,
-workflow patterns), organized by category with YAML frontmatter (`module`, `tags`,
-`problem_type`). Relevant when implementing or debugging in a documented area.
-
 # Global tools (kept light)
 
 Every Claude Code session gets only two tools. Anything else belongs to the
@@ -161,9 +150,6 @@ Per-device setup (one time):
    `stow -t ~ herdr`.
 4. Launch nvim once so lazy.nvim syncs `vim-herdr-navigation`.
 5. `herdr server reload-config` (or restart the server) to load the keys.
-
-Design: `docs/superpowers/specs/2026-07-09-herdr-tmux-keybindings-design.md`.
-
 # Stow gotchas
 
 - **Always pass `-t ~`**. There is no .stowrc; the default target is the parent dir (`~/workspace/`), not `~`.
@@ -209,7 +195,7 @@ An interactive session watches the folder, so edits reload on their own.
 - Config files are edited in-place in the package dir; symlinks make changes live immediately.
 - Machine-specific settings go in untracked `~/.zshenv.local`, `~/.zprofile.local` and `~/.gitconfig.local`, which the shared configs load only if present. They live outside the repo: never commit or stow them.
 - Custom scripts go in `bin/.local/bin/` and must be executable.
-- A package's tests live inside that package: `<package>/tests/<name>/run.sh` (`atuin/`, `bin/`, `zsh/`). The `claude/` package nests them one level deeper, at `claude/.claude/tests/<name>/run.sh`, because the whole package stows into `~/.claude/`. Suites share an `ok`/`bad` counter and `exit 0`/`exit 1`; before trusting a new assertion, read `docs/solutions/conventions/assertions-that-pass-when-they-cannot-check-2026-09-18.md` -- the convention makes "could not check" look identical to "checked and passed".
+- A package's tests live inside that package: `<package>/tests/<name>/run.sh` (`atuin/`, `bin/`, `zsh/`). The `claude/` package nests them one level deeper, at `claude/.claude/tests/<name>/run.sh`, because the whole package stows into `~/.claude/`. Suites share an `ok`/`bad` counter and `exit 0`/`exit 1`. `bad` fires only from a branch you wrote, so "could not check" looks identical to "checked and passed": when a file is missing or a `grep`/`git`/`jq` call fails, call `bad`, never fall through.
 - The `claude/` package stows to `~/.claude/` (settings, statusline, themes, and instructions). `settings.json` is stowed directly like any other file.
 - The `codex/` package includes `codex/.codex/config.base.toml` as a reference template. Manage the active `~/.codex/config.toml` manually; there is no sync command. Codex writes UI notices, plugin state, and local project trust entries into `config.toml`, so that file is intentionally ignored. When applying template settings to an existing config, preserve its device-local entries.
 
@@ -219,8 +205,7 @@ An interactive session watches the folder, so edits reload on their own.
   main worktree all pass. Only `Write`-style tools are guarded. 20 of the
   hook's 75 functions, roughly 700 lines, are unreachable, and they are the
   machinery that branch would need. Treat the guard as covering direct writes
-  only until that is resolved:
-  `docs/solutions/tooling-decisions/codex-worktree-guard-shell-branch-is-a-stub-2026-09-18.md`.
+  only until that is resolved.
 
 # Claude Code settings
 
@@ -241,7 +226,6 @@ The matching Pi style lives in its own Stow package. Keep both bodies identical.
 The style favors short sentences, plain words, and consistent terms while
 preserving technical precision and uncertainty. It does not certify compliance
 with ASD's approved dictionary. Explicit user requests take precedence.
-See [global output styles](docs/guides/output-styles.md) for deployment and overrides.
 
 ## Plugins
 

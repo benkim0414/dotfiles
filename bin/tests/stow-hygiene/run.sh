@@ -30,8 +30,6 @@ trap 'rm -rf "$TARGET"' EXIT
 checked=0
 for pkg_dir in "$REPO"/*/; do
   pkg="$(basename "$pkg_dir")"
-  # docs/ is documentation, not a Stow package.
-  [[ "$pkg" == "docs" ]] && continue
   [[ -d "$pkg_dir/tests" ]] || continue
   checked=$((checked + 1))
 
