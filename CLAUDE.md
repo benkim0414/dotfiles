@@ -87,8 +87,8 @@ repo that needs it.
   one `work` bank for `~/workspace`, `optInOnly`, `project:{gitProject}` tags.
 
 User-scope MCP servers (device-local, `~/.claude.json`) are limited to
-`hindsight`, `atlassian` and `slack`. No plugin is enabled globally; the one
-global skill, `eli5`, is vendored (see Plugins below).
+`hindsight`, `atlassian` and `slack`. No plugin is enabled globally; the two
+global skills, `eli5` and `show-me`, are vendored (see Plugins below).
 Per-repo tools -- plugins, and MCP servers such as Serena, Nx, Terraform or
 EKS -- are enabled only in that repo. For repos shared with teammates, put them in
 the gitignored `.claude/settings.local.json` (plugins) and local-scope MCP
@@ -241,7 +241,7 @@ See [global output styles](docs/guides/output-styles.md) for deployment and over
 it in its own settings (for shared repos, the gitignored
 `.claude/settings.local.json`).
 
-The one global skill, `eli5`, is
+One global skill, `eli5`, is
 [DreambigOu/ELI5](https://github.com/DreambigOu/ELI5)'s `skills/eli5/SKILL.md`,
 copied verbatim at commit `a766623b` into `claude/.claude/skills/eli5/`. It
 stows into `~/.claude/skills/eli5` next to the `skills` CLI's symlinks, and
@@ -249,6 +249,17 @@ the `skills` entry in `pi/.pi/agent/settings.json` makes Pi load that same
 directory. To update it, re-copy the file from upstream and record the new
 commit here. It replaced the `eli5@claude-community` plugin, which made HTML
 picture explainers; DreambigOu's skill instead writes prose for a named audience.
+
+The other global skill, `show-me`, is
+[humanlayer/skills](https://github.com/humanlayer/skills)'
+`plugins/show-me/skills/show-me/` (`SKILL.md` and `agents/openai.yaml`, MIT),
+copied verbatim at commit `bba9d13a` into `claude/.claude/skills/show-me/`. It
+explains the current topic with pseudocode, call trees, diagrams and small
+HTML artifacts, and runs only on `/show-me` (`disable-model-invocation: true`).
+To update it, re-copy both files from upstream and record the new commit here.
+A machine that installed it with `npx skills add` has a
+`~/.claude/skills/show-me` symlink into `~/.agents/skills/`: remove that
+symlink before `stow -t ~ -R claude`, or Stow refuses to overlay it.
 
 To make a plugin global, add it under `enabledPlugins` and -- unless it comes from the
 official Anthropic marketplace -- its marketplace under
