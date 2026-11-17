@@ -43,22 +43,6 @@ first clone or secret rotation. 1Password: same pattern with `mise-load-op` and 
 Never use `_.source` for secret scripts -- mise re-runs them on every prompt.
 Never commit `.env*` or `.mise.local.toml` files -- they are gitignored.
 
-# Wiki staging
-
-Other repos' generated plugin docs (a tracked `docs/` tree) are
-mirrored into `~/workspace/wiki/raw/<repo>/` for later `/ingest` into the wiki's
-`okf/` knowledge pages.
-
-- `wiki-stage` -- idempotent mirror of a repo's tracked `docs/` tree into
-  `~/workspace/wiki/raw/<repo>/`. Content-hash skip, never deletes, exits 0 on
-  every guard. Safe to run manually anytime (also backfills).
-- `wiki-stage-install` -- installs a `post-merge` hook into a repo so staging
-  fires automatically when docs merge to `main`. Run once per repo to wire it;
-  refuses to clobber an existing foreign hook. Husky-aware: in repos that set
-  `core.hooksPath` it installs at `.husky/post-merge` (kept local via
-  `.git/info/exclude`), since git ignores `.git/hooks/` there.
-- Staging is copy-only: it never commits or pushes the wiki. Ingestion into
-  `okf/` stays a separate manual step (the wiki's `/ingest` skill).
 # Global tools (kept light)
 
 Every Claude Code session gets only two tools. Anything else belongs to the
