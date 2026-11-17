@@ -5,14 +5,16 @@ set -euo pipefail
 : "${EPOCHSECONDS:=$(date +%s)}"
 file_mtime() { stat -c %Y "$1" 2>/dev/null || stat -f %m "$1" 2>/dev/null || echo 0; }
 
-# Catppuccin Mocha — 24-bit ANSI colors (hex values from starship.toml)
+# Claude Code default dark theme — 24-bit ANSI colors. Each name is the
+# theme token it copies, and is used for that token's meaning.
 RESET='\033[0m'
-MAUVE='\033[38;2;203;166;247m'   # #cba6f7
-BLUE='\033[38;2;137;180;250m'    # #89b4fa
-GREEN='\033[38;2;166;227;161m'   # #a6e3a1
-YELLOW='\033[38;2;249;226;175m'  # #f9e2af
-RED='\033[38;2;243;139;168m'     # #f38ba8
-OVERLAY='\033[38;2;108;112;134m' # #6c7086
+CLAUDE='\033[38;2;215;119;87m'    # claude: brand / primary
+INACTIVE='\033[38;2;153;153;153m' # inactive: secondary metadata
+MERGED='\033[38;2;175;135;255m'   # merged: git state
+SUCCESS='\033[38;2;78;186;101m'   # success
+WARNING='\033[38;2;255;193;7m'    # warning
+ERROR='\033[38;2;255;107;128m'    # error
+SUBTLE='\033[38;2;80;80;80m'      # subtle: faint chrome
 
 # Read stdin once; parse all fields in a single jq invocation (tab-separated).
 json=$(cat)
@@ -44,11 +46,11 @@ fi
 
 # Color thresholds: >=90 red, >=70 yellow, else green.
 if (( ctx_pct >= 90 )); then
-  ctx_color="$RED"
+  ctx_color="$ERROR"
 elif (( ctx_pct >= 70 )); then
-  ctx_color="$YELLOW"
+  ctx_color="$WARNING"
 else
-  ctx_color="$GREEN"
+  ctx_color="$SUCCESS"
 fi
 
 # Git branch — cached per working directory (5-second TTL).
@@ -77,7 +79,7 @@ if [[ -n "$cwd" ]]; then
 fi
 
 # Separator.
-sep="${OVERLAY} │ ${RESET}"
+sep="${SUBTLE} │ ${RESET}"
 
 # Visible length — strip ANSI escapes and count characters.
 visible_len() {
@@ -87,7 +89,7 @@ visible_len() {
 }
 
 # Line 1 (identity): model, directory, git branch.
-line_id="${MAUVE}${model}${RESET}"
+line_id="${CLAUDE}${model}${RESET}"
 if [[ -n "$cwd" ]]; then
   # Fish-style path: abbreviate every component except the last.
   # Inline abbreviation avoids subshell forks per path component.
@@ -110,10 +112,10 @@ if [[ -n "$cwd" ]]; then
     fi
   done
   unset _parts _n _i _p
-  line_id+="${sep}${BLUE}${display_cwd}${RESET}"
+  line_id+="${sep}${INACTIVE}${display_cwd}${RESET}"
 fi
 if [[ -n "$git_branch" ]]; then
-  line_id+="${sep}${RED}${git_branch}${RESET}"
+  line_id+="${sep}${MERGED}${git_branch}${RESET}"
 fi
 
 # Line 2 (metrics): context %, rate limits.
@@ -123,11 +125,11 @@ for pair in "5h:$rate_5h" "7d:$rate_7d"; do
   pct="${pair##*:}"
   if (( pct > 0 )); then
     if (( pct >= 90 )); then
-      rc="$RED"
+      rc="$ERROR"
     elif (( pct >= 70 )); then
-      rc="$YELLOW"
+      rc="$WARNING"
     else
-      rc="$GREEN"
+      rc="$SUCCESS"
     fi
     line_metrics+="${sep}${rc}${label} ${pct}%${RESET}"
   fi
