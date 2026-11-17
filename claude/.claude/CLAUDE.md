@@ -1,7 +1,7 @@
 # Worktrees
 
 - Before the first change to any file in a git repo, call `EnterWorktree`.
-  Never edit files in the main checkout.
+  Make every edit inside that worktree.
 - Reading, searching and running read-only commands need no worktree.
 - If the session is already in a worktree, keep working there.
 - Skip only when the user says so for this task, or the directory is not
@@ -21,16 +21,13 @@
 
 # Conventional commits
 
-- Form: `type(scope): description`.
-- Types: feat, fix, docs, chore, refactor, test, build, perf.
-- Breaking change: append `!` to the type or scope.
+- Allowed types: feat, fix, docs, chore, refactor, test, build, perf.
 
 ## Scope
 
 Scope names WHAT the commit changes (a component), not WHERE the file
-lives. Read the diff before choosing it. Prefer component names the
-repo's `git log` already uses. Omit the scope when no single component
-dominates.
+lives. Prefer component names the repo's `git log` already uses. Omit
+the scope when no single component dominates.
 
 Reject a scope when it is:
 

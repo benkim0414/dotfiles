@@ -86,6 +86,14 @@ repo that needs it.
   `~/.hindsight/coding-agents/dist/`). Config lives in `~/.hindsight/coding-agent.json`:
   one `work` bank for `~/workspace`, `optInOnly`, `project:{gitProject}` tags.
 
+One local hook also runs in every session. `git-stage-guard`
+(`claude/.claude/hooks/git-stage-guard.py`, a `PreToolUse` hook on `Bash`)
+blocks broad staging: `git add` with `-A`, `--all`, `-u`, `--update`,
+`--no-ignore-removal` or a `.` pathspec, and `git commit -a`/`--all`. It
+enforces the staging rule in `claude/.claude/CLAUDE.md`, and it allows input
+it cannot parse. Tests: `claude/.claude/tests/git-stage-guard/run.sh`. The
+new `hooks/` directory needs `stow -t ~ -R claude` once per machine.
+
 User-scope MCP servers (device-local, `~/.claude.json`) are limited to
 `hindsight`, `atlassian` and `slack`. No plugin is enabled globally; the two
 global skills, `eli5` and `show-me`, are vendored (see Plugins below).

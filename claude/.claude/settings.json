@@ -189,6 +189,10 @@
           {
             "type": "command",
             "command": "rtk hook claude"
+          },
+          {
+            "type": "command",
+            "command": "\"$HOME/.claude/hooks/git-stage-guard.py\""
           }
         ]
       }
