@@ -218,7 +218,13 @@
       "mcp__atlassian__jira_remove_issue_link",
       "mcp__atlassian__jira_remove_watcher",
       "mcp__atlassian__confluence_delete_page",
-      "mcp__atlassian__confluence_delete_attachment"
+      "mcp__atlassian__confluence_delete_attachment",
+      "mcp__atlassian__jira_create_customer_request",
+      "mcp__atlassian__jira_move_issue",
+      "mcp__atlassian__confluence_move_page",
+      "mcp__atlassian__confluence_set_page_restrictions",
+      "mcp__slack__slack_post_message",
+      "mcp__slack__slack_reply_to_thread"
     ]
   },
   "outputStyle": "ASD-STE100",
