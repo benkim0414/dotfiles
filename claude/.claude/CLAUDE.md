@@ -21,9 +21,7 @@
 
 # Conventional commits
 
-- Form: `type(scope): description`.
-- Types: feat, fix, docs, chore, refactor, test, build, perf.
-- Breaking change: append `!` to the type or scope.
+- Allowed types: feat, fix, docs, chore, refactor, test, build, perf.
 
 ## Scope
 
