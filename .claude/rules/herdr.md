@@ -28,10 +28,16 @@ load even when the herdr server started from a sparse environment.
 
 ## Config writes
 
-`config.toml` is direct-stowed: herdr only writes the `onboarding` flag and
-never rewrites keys at runtime (runtime state lives in separate files --
-`plugins.json`, `session.json`, sockets, `*.log`). No base+generated pattern
-is needed.
+`config.toml` is direct-stowed, and herdr writes to it through the symlink.
+As of herdr 0.9.5 (`src/config/write.rs`), it writes:
+
+- `onboarding = false` after onboarding.
+- From the settings overlay: `[theme] name` (and `auto_switch = false`),
+  `[ui] status_indicators`, `[ui.sound] enabled`, `[ui.toast] delivery`.
+
+These writes land in the repo. Commit the ones worth keeping and
+`git checkout` the rest. Other runtime state (sidebar preferences,
+`session.json`, `plugins.json`, sockets, logs) lives in separate files.
 
 ## Per-device setup
 
