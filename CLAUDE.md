@@ -63,7 +63,6 @@ servers (`claude mcp add --scope local ...`) rather than committed
 
 - **Always pass `-t ~`**. There is no .stowrc; the default target is the parent dir (`~/workspace/`), not `~`.
 - **Before stowing `bin`**: run `mkdir -p ~/.local/bin` first. Otherwise Stow tree-folds and creates a directory symlink, which breaks other tools that install into `~/.local/bin`.
-- **Before stowing `codex`**: run `mkdir -p ~/.codex` first. Same tree-folding issue -- Codex writes runtime state (history, logs) into `~/.codex/`.
 - **Never `stow` from a worktree**. Stow resolves links relative to the package dir it is given, so stowing from `.claude/worktrees/<name>/` produces symlinks into a directory that disappears when the worktree is removed. Stow from the main checkout after merge.
 - **Before stowing `claude` on a new machine**: Claude Code creates its own `~/.claude/settings.json`, and Stow refuses to overlay a non-symlink. Either `rm ~/.claude/settings.json` first, or run `stow -t ~ --adopt claude` to pull the machine's file into the repo, then review `git diff` and `git checkout` anything you do not want to keep.
 - **A package's `tests/` needs `.stow-local-ignore`**. Stow links every top-level entry of a package, so `<package>/tests/` lands in `~/tests` unless excluded. The `zsh` package leaked this way for months (`~/tests -> workspace/dotfiles/zsh/tests`). `zsh`, `bin`, and `atuin` each carry a `.stow-local-ignore` holding `^/tests$`; `bin/tests/stow-hygiene/run.sh` fails if a package with `tests/` lacks one. Note that `.stow-local-ignore` **replaces** Stow's default ignore list rather than adding to it — that is why `git/.stow-local-ignore` re-states `\.git`, so its own `.gitignore` can stow.
@@ -105,7 +104,6 @@ An interactive session watches the folder, so edits reload on their own.
 - Custom scripts go in `bin/.local/bin/` and must be executable.
 - A package's tests live inside that package: `<package>/tests/<name>/run.sh` (`atuin/`, `bin/`, `zsh/`). The `claude/` package nests them one level deeper, at `claude/.claude/tests/<name>/run.sh`, because the whole package stows into `~/.claude/`. Suites share an `ok`/`bad` counter and `exit 0`/`exit 1`. `bad` fires only from a branch you wrote, so "could not check" looks identical to "checked and passed": when a file is missing or a `grep`/`git`/`jq` call fails, call `bad`, never fall through.
 - The `claude/` package stows to `~/.claude/` (settings, statusline, themes, and instructions). `settings.json` is stowed directly like any other file.
-- The `codex/` package includes `codex/.codex/config.base.toml` as a reference template. Manage the active `~/.codex/config.toml` manually; there is no sync command. Codex writes UI notices, plugin state, and local project trust entries into `config.toml`, so that file is intentionally ignored. When applying template settings to an existing config, preserve its device-local entries.
 
 # Claude Code settings
 
