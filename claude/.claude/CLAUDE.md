@@ -26,9 +26,8 @@
 ## Scope
 
 Scope names WHAT the commit changes (a component), not WHERE the file
-lives. Read the diff before choosing it. Prefer component names the
-repo's `git log` already uses. Omit the scope when no single component
-dominates.
+lives. Prefer component names the repo's `git log` already uses. Omit
+the scope when no single component dominates.
 
 Reject a scope when it is:
 
