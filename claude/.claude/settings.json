@@ -5,6 +5,7 @@
     "DISABLE_COST_WARNINGS": "1"
   },
   "permissions": {
+    "defaultMode": "auto",
     "allow": [
       "Read",
       "Glob",
@@ -235,6 +236,5 @@
     "type": "command",
     "command": "$HOME/.claude/statusline.sh"
   },
-  "defaultMode": "auto",
   "editorMode": "vim"
 }
