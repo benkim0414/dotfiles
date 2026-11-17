@@ -33,8 +33,9 @@ at the repo root.
   mod loads"
 - `.claude/settings.json`: `env.CLAUDE_CODE_PLUGIN_DIRS` gains
   `:~/.claude/mods/kr`
-- `CLAUDE.md` (repo root): a `kr` entry under "Mods": what it shows, `/kr`
-  to toggle it, Haiku on the subscription, nothing to install
+- `README.md` (this mod's folder): what it shows, `/kr` to toggle it, Haiku
+  on the subscription, nothing to install. Mod docs live in each mod's
+  README, not the repo root `CLAUDE.md`.
 
 `.gitignore` already covers `claude/.claude/mods/*/.claude-plugin/types/`.
 There is no `render/` folder and no `node_modules`, so
@@ -247,7 +248,8 @@ context-bar.
    file's version line.
 7. **Loading.** `env.CLAUDE_CODE_PLUGIN_DIRS` gains `:~/.claude/mods/kr`.
    A separate commit, because it changes every session on every machine.
-8. **Docs.** The `CLAUDE.md` entry from "Files that change".
+8. **Docs.** `README.md` exists from before step 5. When steps 5–7 land,
+   remove its "Status" section and describe questions and plans under "Use".
 
 If implementation departs from this plan, update this file in the same
 commit.
