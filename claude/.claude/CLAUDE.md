@@ -1,7 +1,7 @@
 # Worktrees
 
 - Before the first change to any file in a git repo, call `EnterWorktree`.
-  Never edit files in the main checkout.
+  Make every edit inside that worktree.
 - Reading, searching and running read-only commands need no worktree.
 - If the session is already in a worktree, keep working there.
 - Skip only when the user says so for this task, or the directory is not
