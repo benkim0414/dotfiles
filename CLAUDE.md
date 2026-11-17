@@ -282,9 +282,28 @@ characteristics call for.
 
 User-scope defaults (in `claude/.claude/settings.json`):
 
-- `defaultMode: "auto"` -- new sessions open in auto mode. A classifier
-  judges unmatched tool calls; explicit `allow` entries skip the
-  classifier. Requires Opus 4.6+ / Sonnet 4.6+ (Opus 4.7 in use).
+- `permissions.defaultMode: "auto"` -- new sessions open in auto mode.
+  The key must sit under `permissions`; a top-level `defaultMode` is not
+  documented. A classifier judges unmatched tool calls; explicit `allow`
+  entries skip the classifier, and `ask` rules still force a prompt.
+- Goal: reversible or non-destructive operations run without a prompt;
+  destructive or outward-facing ones prompt.
+- Bash has no blanket allow. Built-in read-only commands (`ls`, `cat`,
+  `grep`, read-only `git`, ...) need no rule. `allow` names a short list
+  of reversible commands (`git add/commit/switch/fetch/stash push|pop`,
+  `gh pr|issue|run` reads, `rg`, `jq`, `mkdir -p`, ...). Keep that list
+  short: an allow rule skips the classifier, so do not allow commands
+  whose arguments can destroy data (`git push`, `cp`, `mv`, `gh api`).
+- `ask` gates destructive shell commands by text: every `rm`/`rmdir`,
+  force pushes and pushes to main, `git stash drop|clear`, `kubectl
+  apply|patch|replace|scale|delete`, `terraform apply|destroy`, `helm
+  install|upgrade|uninstall`, publishing, and global/system/hooksPath/
+  credential `git config` writes. Reversible operations (`gh issue
+  close|lock`, `gh run cancel`, `gh workflow disable`, `chmod`, cron
+  tools) are not gated.
+- `deny` path rules use gitignore syntax: `*` is one level, `**` is
+  recursive (`Read(~/.ssh/**)`). They also cover `cat`/`head`-style Bash
+  reads, but not scripts that open files; that needs the sandbox.
 - Most MCP tools are not pre-approved in `allow` (bare `mcp__*` is
   invalid there -- only `deny`/`ask` accept bare wildcards). Under
   `defaultMode: "auto"` the classifier judges each unmatched MCP call.
@@ -298,10 +317,14 @@ User-scope defaults (in `claude/.claude/settings.json`):
   classifier, and the atlassian and slack allows below cover them for
   those two servers.
 - atlassian + slack MCP posture (same file): `mcp__atlassian__*` and
-  `mcp__slack__*` are auto-allowed; the five destructive tools
-  (`jira_delete_issue`, `jira_remove_issue_link`, `jira_remove_watcher`,
-  `confluence_delete_page`, `confluence_delete_attachment`) are re-gated
-  by exact name in `ask` (ask beats allow).
+  `mcp__slack__*` are auto-allowed. Exact-name `ask` rules re-gate the
+  destructive tools (`jira_delete_issue`, `jira_remove_issue_link`,
+  `jira_remove_watcher`, `confluence_delete_page`,
+  `confluence_delete_attachment`) and the outward-facing ones
+  (`slack_post_message`, `slack_reply_to_thread`,
+  `jira_create_customer_request`, `jira_move_issue`,
+  `confluence_move_page`, `confluence_set_page_restrictions`). Ask beats
+  allow.
 
 Per-repo overrides live in `.claude/settings.local.json` (gitignored).
 Add `permissions.ask` or `permissions.deny` rules there for sensitive
