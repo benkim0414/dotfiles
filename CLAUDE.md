@@ -64,8 +64,7 @@ One local hook also runs in every session. `git-stage-guard`
 blocks broad staging: `git add` with `-A`, `--all`, `-u`, `--update`,
 `--no-ignore-removal` or a `.` pathspec, and `git commit -a`/`--all`. It
 enforces the staging rule in `claude/.claude/CLAUDE.md`, and it allows input
-it cannot parse. Tests: `claude/.claude/tests/git-stage-guard/run.sh`. The
-new `hooks/` directory needs `stow -t ~ -R claude` once per machine.
+it cannot parse. Tests: `claude/.claude/tests/git-stage-guard/run.sh`.
 
 User-scope MCP servers (device-local, `~/.claude.json`) are limited to
 `hindsight`, `atlassian` and `slack`. No plugin is enabled globally; the two
@@ -75,12 +74,6 @@ EKS -- are enabled only in that repo. For repos shared with teammates, put them 
 the gitignored `.claude/settings.local.json` (plugins) and local-scope MCP
 servers (`claude mcp add --scope local ...`) rather than committed
 `.claude/settings.json` or `.mcp.json`.
-
-Removed on 2026-10-06 to keep the global config light: context-mode,
-Caveman (and its `caveman/` Stow package), Superpowers, Compound Engineering,
-claude-md-management,
-insane-search, and the `qmd`, `sequential-thinking` and `playwright` MCP
-servers. Rationale and fact-checked comparison: `~/.claude/reports/`.
 
 # herdr
 
@@ -182,14 +175,6 @@ An interactive session watches the folder, so edits reload on their own.
 - A package's tests live inside that package: `<package>/tests/<name>/run.sh` (`atuin/`, `bin/`, `zsh/`). The `claude/` package nests them one level deeper, at `claude/.claude/tests/<name>/run.sh`, because the whole package stows into `~/.claude/`. Suites share an `ok`/`bad` counter and `exit 0`/`exit 1`. `bad` fires only from a branch you wrote, so "could not check" looks identical to "checked and passed": when a file is missing or a `grep`/`git`/`jq` call fails, call `bad`, never fall through.
 - The `claude/` package stows to `~/.claude/` (settings, statusline, themes, and instructions). `settings.json` is stowed directly like any other file.
 - The `codex/` package includes `codex/.codex/config.base.toml` as a reference template. Manage the active `~/.codex/config.toml` manually; there is no sync command. Codex writes UI notices, plugin state, and local project trust entries into `config.toml`, so that file is intentionally ignored. When applying template settings to an existing config, preserve its device-local entries.
-
-  **The codex worktree guard does not restrain shell commands.** Its shell and
-  MCP-executor branch is a stub (`exit 0`), so every `Bash` call is allowed --
-  `rm -rf`, `git push --force`, and `git checkout -B main` inside the protected
-  main worktree all pass. Only `Write`-style tools are guarded. 20 of the
-  hook's 75 functions, roughly 700 lines, are unreachable, and they are the
-  machinery that branch would need. Treat the guard as covering direct writes
-  only until that is resolved.
 
 # Claude Code settings
 
