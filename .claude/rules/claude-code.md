@@ -19,6 +19,9 @@ project that needs it, so each repo runs the workflow that fits it.
 - Claude Code writes to it at runtime (`/config`, `/effort`, theme, plugin
   installs). The writes land in the repo. Commit the ones worth keeping and
   `git checkout` the rest.
+- Every machine shares this file. A hook for a tool that only some machines
+  have must exit 0 when the tool is absent: see the Hindsight hooks
+  (`[ -f "$f" ] && exec node "$f"; exit 0`).
 - On a new machine, Claude Code creates its own `~/.claude/settings.json`,
   and Stow refuses to overlay it. Run `rm ~/.claude/settings.json`, or run
   `stow -t ~ --adopt claude`, review `git diff`, and `git checkout` what you

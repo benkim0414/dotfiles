@@ -246,7 +246,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$HOME/.hindsight/coding-agents/dist/claude-sessionstart-hook.js\"",
+            "command": "f=\"$HOME/.hindsight/coding-agents/dist/claude-sessionstart-hook.js\"; [ -f \"$f\" ] && exec node \"$f\"; exit 0",
             "timeout": 30
           }
         ]
@@ -257,7 +257,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$HOME/.hindsight/coding-agents/dist/claude-hook.js\"",
+            "command": "f=\"$HOME/.hindsight/coding-agents/dist/claude-hook.js\"; [ -f \"$f\" ] && exec node \"$f\"; exit 0",
             "timeout": 30
           }
         ]
@@ -268,7 +268,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$HOME/.hindsight/coding-agents/dist/claude-stop-hook.js\"",
+            "command": "f=\"$HOME/.hindsight/coding-agents/dist/claude-stop-hook.js\"; [ -f \"$f\" ] && exec node \"$f\"; exit 0",
             "timeout": 60
           }
         ]
