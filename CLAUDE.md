@@ -259,16 +259,6 @@ the commit rules and the worktree-first rule, and nothing else. Everything else 
 now belongs in a project file, so each repo can run the workflow its
 characteristics call for.
 
-## Theme
-
-Theme contrast and role separation are guarded by
-`claude/.claude/tests/theme-contrast/run.sh`, which asserts every foreground
-token clears WCAG AA (4.5:1) against the theme background, and that
-`permission` and `merged` stay visually distinct from `claude`. The palette
-is saturated in the accents -- only Overlay0 and Overlay1 go unused, and both
-are neutral greys too dim to serve as a role colour -- so the rule enforced is
-"no shared hue between roles that co-occur", not "one hue per token".
-
 ## Permission posture
 
 User-scope defaults (in `claude/.claude/settings.json`):
