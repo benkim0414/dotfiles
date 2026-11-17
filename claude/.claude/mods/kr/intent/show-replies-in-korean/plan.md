@@ -80,12 +80,42 @@ context-bar.
 
    Record the result in this file under step 1. No repo commit unless the
    spec changes.
+
+   **Result (2026-10-26).** (c) ran in the kit; (a), (b), (d) and (e) ran as
+   a live dev-mod (`kr-id-spike`), since the kit supplies `requestId` itself
+   and cannot prove an engine-side identity.
+   - **(a) failed as written:** `SessionMessage` carries no id. A drawn
+     message's `requestId` is its transcript row `uuid`, and equals
+     `session.append`'s `uuid`, but `cc-plugin-sec-default` pre-empted
+     `session.append` at least once. The spec now builds eligibility from the
+     order of first draws in the render hooks (spec "Identity", "Identity
+     spike").
+   - **(b) passed live:** `turn.step` start and end bracket each model
+     request, and its rows are appended before the end. An aborted stream
+     is left to step 4's tests.
+   - **(c) passed:** 3 kit tests. A test's `on('model.complete', …)` answers
+     `{ value: … }`: a text, an `api-error`, and a reply held on a promise.
+   - **(d) passed live:** the `[KO]` lines showed under the question and the
+     descriptions, and the answer returned was the English label.
+   - **(e) passed:** `$.settings.read({ key: 'plansDirectory' })` works and
+     returns `undefined` here, so the default applies.
 2. **Scaffold and the width rule.** `plugin.json`, `hooks.json`,
    `types/index.d.ts`, `tsconfig.json`, a stub `register.tsx` that only
    returns `next(e)`, and `layout.ts`. Write `layout.test.ts` first: 80,
    100 and 104 stack; 105 gives `colWidth` 50; 120 gives 57; 155 and 200
    give 75 (the cap); no viewport stacks. Mutation-check the threshold
    (`>` for `≥`) and the cap.
+
+   **Result (2026-10-26):** the test ran red first (`cannot import
+   "./layout"`), then 4 pass, 0 fail. Mutations, each restored after:
+   - threshold `< 105` → `<= 105`: failed "from 105 columns the reply goes
+     side by side";
+   - cap `min(75, …)` removed: failed "columns stop at 75 cells".
+
+   `claude plugin validate` passed, warning only about the directory's
+   listing files (README, LICENSE, icon). The type check exited 0 with the
+   2.1.309 types while `claude --version` printed 2.1.310 (see "Type check
+   before the mod loads").
 3. **Translation core.** `translate.ts`, test first in
    `translate.test.ts`:
    - `protect`/`restore` round-trip byte for byte: backtick and tilde
@@ -105,11 +135,40 @@ context-bar.
 
    Mutation-check: the exactly-once placeholder count, the control-char
    check, and the fallback `codeEqual`.
+
+   **Result (2026-10-26):** the test ran red first (`cannot import
+   "./translate"`), then 16 pass, 0 fail across both files. Mutations, each
+   restored after:
+   - "at least once" for "exactly once" in `restore`: failed "a reply that
+     drops, duplicates or alters a placeholder fails code-changed";
+   - control-char check removed: failed "a reply with a control character
+     other than tab or newline fails control-char";
+   - fallback `codeEqual` removed: failed "a source holding ⟦K is sent
+     unprotected and checked by codeEqual".
+
+   Departures from the spec:
+   - **`translate` meets a fake `$`.** The test's own `$` has no `model`
+     noun, and an inline test plugin may not pass its `$` to an imported
+     helper (the engine refuses the module). So the test hands `translate`
+     an object holding only `model.complete`, which records the request
+     and answers it. The `model.complete` chain itself is covered in step 4,
+     through the mod's own hooks.
+   - **AskUserQuestion fields are marked `⟦N<n>⟧`,** each on its own line
+     above its field, instead of a plain numbered list, so a field's own
+     Markdown list or line breaks cannot be read as a number. The system
+     text gains one line: keep every `⟦N<n>⟧` marker on its own line, in
+     order.
+   - **An inline code span ends at a blank line,** so one stray backtick
+     cannot protect several paragraphs from translation.
 4. **Toggle and replies.** In `register.tsx`: `session.start`, `/kr`,
-   `turn.step`, and the `AssistantMessage` render hook. Test first in
-   `register.test.tsx`, covering the spec's Verification items for them:
+   `turn.step`, and the `AssistantMessage` and `UserMessage` render hooks.
+   Test first in `register.test.tsx`, covering the spec's Verification items
+   for them:
    - `/kr`, `/kr on`, `/kr off`, `/kr foo`: state and answer text;
-   - identity (spike a, kept as a regression test);
+   - first draw: English, one `note`, then a number; a redraw takes no new
+     number;
+   - prompt boundary: a `composer` prompt moves `lastPromptSeq`, a
+     `task-notification` does not;
    - the identical "Done." case: only the latest reply is bilingual;
    - a message created after `/kr on` is eligible;
    - `inFlight` gating: no call while the step streams, exactly one after;
@@ -120,9 +179,52 @@ context-bar.
    - drawing assertions loop over `['terminal', 'desktop'] as const`:
      desktop passes through.
 
-   Mutation-check, one at a time: the terminal check, the `notEligible`
-   check, the `inFlight` gate, the `source` equality check, the claim map
-   (one call per text), and clearing `notEligible` on off.
+   Mutation-check, one at a time: the terminal check, the `> fromSeq`
+   comparison (`≥` must fail a test), the origin filter, the `inFlight`
+   gate, the `source` equality check, the claim maps (one `note` per id,
+   one call per text), and resetting `fromSeq` on off.
+
+   **Result (2026-10-26):** the 17 new tests ran red first (nothing
+   answered `command.run`). Before the mutation checks, one test gained a
+   redraw before the first `note` runs, and one test was added: a cache
+   seeded as an earlier load would leave it (a colliding text's
+   translation, with this load's claims empty). Then 34 pass, 0 fail across
+   the three files. Mutations, each restored after:
+   - terminal check removed: failed "desktop passes through, while its draws
+     still count";
+   - `n <= fromSeq` removed: failed "only the latest reply turns bilingual"
+     and "off clears eligibility". (`<` for `<=` is no mutation here: a
+     reply's number never equals the boundary, which is a prompt's.)
+   - `inFlight` gate removed: failed "while a model request streams";
+   - `source` equality removed: failed "after a reload, a cached translation
+     of a colliding text draws English";
+   - text claim map removed: failed "one call per distinct text" and "a hash
+     collision draws English alone";
+   - `fromSeq = null` on off removed: failed "/kr flips the mode";
+   - origin filter removed, and the `/kr` row exclusion removed: each failed
+     "a composer prompt moves the prompt boundary";
+   - on-while-on guard removed: failed "/kr on while on keeps what is
+     eligible";
+   - subagent exclusion removed: failed "a subagent step does not hold
+     translation back";
+   - **first-draw claim removed: no test failed.** `note` reads `seen`
+     again before it hands out a number, so a second `note` for the same
+     row does nothing; the claim only spares that work. Kept, and recorded
+     here as unguarded by a test.
+
+   Departures from the spec:
+   - **State is read through its writes.** The test's `$` has no `state`
+     noun, so the test records each `state.set` of a plain key as it passes
+     beneath the plugin, as context-bar's test does.
+   - **`/kr on` while on keeps `fromSeq`.** Taking the latest prompt again
+     would turn replies already shown in Korean back to English.
+   - **The `/kr` row is not a prompt.** A `UserMessage` whose text starts
+     with `/kr` does not move `lastPromptSeq`; were it counted, `/kr on`
+     would set the boundary past the reply it is meant to show.
+   - **A reply's translation may take 30 s** (`REPLY_TIMEOUT_MS`); the spec
+     sets limits for questions and plans only.
+   - **The stacked rule** is `columns − 2` cells, or 40 with no viewport.
+
 5. **Questions.** The `AskUserQuestion` `tool.call` pre-translation and
    render rewrite, test first: Korean under each `question` and as
    `<라벨> — <설명>` under each `description`; `label`, `header` and
@@ -160,7 +262,7 @@ plugin-authoring skill has loaded:
 TYPES=<skill folder>/types/claude-code.d.ts   # the path the skill printed when it loaded
 MOD="$PWD/claude/.claude/mods/kr"
 OUT=<session scratchpad>/kr-tsc
-head -1 "$TYPES"; claude --version            # versions must match, else reload the skill
+head -1 "$TYPES"; claude --version            # record both; see below
 mkdir -p "$OUT"
 cat > "$OUT/tsconfig.json" <<EOF
 {
@@ -182,6 +284,15 @@ It passes when `tsc` exits 0 with no output. The config lives in the
 session scratchpad, never in the mod folder or the repo, and nothing is
 emitted.
 
+The types file's first line names the version of the session that loaded
+the skill. `claude --version` names the CLI on `PATH`, which runs `claude
+plugin validate` and `claude plugin test` and can be newer when Claude Code
+updates mid-session. Reloading the skill then writes the session's version
+again, so the two can only match in a session started on the newer build.
+Record both versions with the result. A mismatch means the check ran against
+the running session's API; the after-merge `tsc -p` against the
+engine-written types covers the newer build.
+
 ## After the merge (main checkout, not the worktree)
 
 1. `stow -t ~ -R claude`.
@@ -196,15 +307,16 @@ emitted.
    `ExitPlanMode` row while the approval dialog is open.
 6. `/kr off`: replies draw English only. `/kr on` again: the latest reply's
    Korean returns at once.
-7. Answer the spec's concerns and record them here: ctrl+o (1), a tall plan
-   (3), pre-empted `tool.call` hooks (4), the reply indent (5).
+7. Answer the spec's concerns and record them here: ctrl+o (1), first-draw
+   order (2: scroll back after `/kr on`), a tall plan (3), pre-empted `tool.call` hooks (4), the reply indent (5).
 8. Check WCAG 1.4.8's 80/40 figures on w3.org and correct the spec's "Width
    rule" if they differ.
 
 ## Risks
 
-- **Spike (a) fails.** Eligibility by message id is the spec's core. If the
-  ids do not match, the spec changes before any other step.
+- **First-draw order.** Eligibility assumes rows are first drawn in
+  transcript order (spec concern 2). The live check scrolls back after
+  `/kr on` to confirm no old reply turns bilingual.
 - **Plan usage.** Every translation is a Haiku call on Ben's subscription.
   The per-text cache and the latest-reply-only start keep it bounded; the
   live check notes how many calls a typical session makes.
