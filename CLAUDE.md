@@ -59,50 +59,11 @@ the gitignored `.claude/settings.local.json` (plugins) and local-scope MCP
 servers (`claude mcp add --scope local ...`) rather than committed
 `.claude/settings.json` or `.mcp.json`.
 
-# herdr
-
-herdr (homebrew-core `brew "herdr"`) is the primary agent workspace manager. The
-`herdr/` Stow package ships a minimal `~/.config/herdr/config.toml` that remaps
-herdr's keymap onto tmux muscle memory: prefix `ctrl+s`, `prefix s` = stacked
-split, `prefix v` = side-by-side split, `settings` moved to `prefix ,`. `r`
-(resize), `R` (reload), `b` (sidebar) stay at herdr defaults.
-
-In navigate mode the workspace sidebar list moves with `j`/`k`
-(`navigate_workspace_up/down`); the up/down arrows are reassigned to pane
-vertical focus (`navigate_pane_up/down`). Pane nav elsewhere is unchanged
-(`ctrl+hjkl`, `prefix+hjkl`).
-
-New panes explicitly launch zsh as a login shell so the stowed zsh config and
-Starship prompt load even when the Herdr server was started from a sparse
-environment.
-
-Direct `ctrl+h/j/k/l` pane navigation comes from the `vim-herdr-navigation`
-herdr plugin (a vim-tmux-navigator port): it forwards the key into vim when a
-vim/neovim pane is focused, else moves herdr focus, and falls back to tmux or
-`wincmd` outside herdr. The Neovim side is in `nvim/` (see its rule).
-
-`config.toml` is direct-stowed: herdr only writes the `onboarding` flag and never
-rewrites keys at runtime (runtime state lives in separate files -- `plugins.json`,
-`session.json`, sockets, `*.log`). No base+generated pattern is needed.
-
-Per-device setup (one time):
-
-1. `brew bundle --file=Brewfile` -- installs herdr.
-2. `herdr plugin install paulbkim-dev/vim-herdr-navigation --yes` -- registers the
-   `vim-herdr-navigation.*` actions the config's `ctrl+hjkl` binds call. If
-   lazy.nvim has already cloned the repo, `herdr plugin link
-   ~/.local/share/nvim/lazy/vim-herdr-navigation` is also valid for this machine.
-   herdr plugins live in herdr's own store, not Stow-managed (like `tpm` for tmux).
-3. `rm -f ~/.config/herdr/config.toml` (removes herdr's auto-created stub) then
-   `stow -t ~ herdr`.
-4. Launch nvim once so lazy.nvim syncs `vim-herdr-navigation`.
-5. `herdr server reload-config` (or restart the server) to load the keys.
 # Stow gotchas
 
 - **Always pass `-t ~`**. There is no .stowrc; the default target is the parent dir (`~/workspace/`), not `~`.
 - **Before stowing `bin`**: run `mkdir -p ~/.local/bin` first. Otherwise Stow tree-folds and creates a directory symlink, which breaks other tools that install into `~/.local/bin`.
 - **Before stowing `codex`**: run `mkdir -p ~/.codex` first. Same tree-folding issue -- Codex writes runtime state (history, logs) into `~/.codex/`.
-- **Before stowing `herdr`**: herdr auto-creates `~/.config/herdr/config.toml` (an `onboarding` stub) on first run. Remove it (`rm -f ~/.config/herdr/config.toml`) before `stow -t ~ herdr`, or Stow refuses to overlay the non-symlink target.
 - **Never `stow` from a worktree**. Stow resolves links relative to the package dir it is given, so stowing from `.claude/worktrees/<name>/` produces symlinks into a directory that disappears when the worktree is removed. Stow from the main checkout after merge.
 - **Before stowing `claude` on a new machine**: Claude Code creates its own `~/.claude/settings.json`, and Stow refuses to overlay a non-symlink. Either `rm ~/.claude/settings.json` first, or run `stow -t ~ --adopt claude` to pull the machine's file into the repo, then review `git diff` and `git checkout` anything you do not want to keep.
 - **A package's `tests/` needs `.stow-local-ignore`**. Stow links every top-level entry of a package, so `<package>/tests/` lands in `~/tests` unless excluded. The `zsh` package leaked this way for months (`~/tests -> workspace/dotfiles/zsh/tests`). `zsh`, `bin`, and `atuin` each carry a `.stow-local-ignore` holding `^/tests$`; `bin/tests/stow-hygiene/run.sh` fails if a package with `tests/` lacks one. Note that `.stow-local-ignore` **replaces** Stow's default ignore list rather than adding to it — that is why `git/.stow-local-ignore` re-states `\.git`, so its own `.gitignore` can stow.
