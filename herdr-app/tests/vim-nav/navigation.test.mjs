@@ -42,16 +42,38 @@ async function navigate(commands, replies, program = 'program') {
 }
 
 const ok = {code: 0, stdout: '', stderr: ''};
+const foreground = name => ({...ok, stdout: JSON.stringify({foreground: {name}})});
+
+for (const name of ['vimdiff', 'gvim', 'nvimdiff', 'lvim', 'neovim']) {
+  it(`forwards a chord to foreground ${name}`, async () => {
+    const result = await navigate(['left'], [foreground(name), ok]);
+    deepStrictEqual(result.calls, [['get', terminal, '--json'], ['keys', terminal, 'ctrl+h']]);
+    deepStrictEqual(result.moves, []);
+  });
+}
+
+it('moves pane focus for a non-editor even when the program table reports Vim', async () => {
+  const result = await navigate(['right'], [foreground('bash')], 'vim');
+  deepStrictEqual(result.calls, [['get', terminal, '--json']]);
+  deepStrictEqual(result.moves, [['pane.go', {direction: 'right'}]]);
+});
+
 for (const failure of [
   {name: 'a rejected send', reply: new Error('send rejected'), message: 'send rejected'},
   {name: 'a non-zero send', reply: {code: 1, stdout: '', stderr: 'send failed'}, message: 'send failed'},
 ]) {
   it(`reports ${failure.name} and processes the next chord`, async () => {
-    const result = await navigate(['left', 'down'], [failure.reply, ok], 'vim');
-    deepStrictEqual(result.calls, [['keys', terminal, 'ctrl+h'], ['keys', terminal, 'ctrl+j']]);
-    deepStrictEqual(result.moves, []);
+    const result = await navigate(['left', 'down'], [foreground('vim'), failure.reply, foreground('bash')], 'vim');
+    deepStrictEqual(result.calls, [['get', terminal, '--json'], ['keys', terminal, 'ctrl+h'], ['get', terminal, '--json']]);
+    deepStrictEqual(result.moves, [['pane.go', {direction: 'down'}]]);
     equal(result.notices.length, 1);
     equal(result.notices[0].level, 'error');
     equal(result.notices[0].body, failure.message);
   });
 }
+
+it('reports a failed foreground lookup and processes the next chord', async () => {
+  const result = await navigate(['left', 'right'], [{code: 1, stdout: '', stderr: 'lookup failed'}, foreground('bash')]);
+  deepStrictEqual(result.moves, [['pane.go', {direction: 'right'}]]);
+  equal(result.notices[0].body, 'lookup failed');
+});

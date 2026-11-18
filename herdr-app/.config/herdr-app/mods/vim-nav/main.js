@@ -1,7 +1,8 @@
 import { View, div } from "gpui-kit";
-import { run, focused, terminals, hc, nextCommand, notify } from "herdr";
+import { run, focused, hc, nextCommand, notify } from "herdr";
 
-const VIM = new Set(["nvim", "vim", "neovim"]);
+// Match the foreground process name, not the app's program-table key.
+const VIM = /^(g?(view|l?n?vim?x?)(diff)?|neovim)$/i;
 const KEY = { left: "ctrl+h", down: "ctrl+j", up: "ctrl+k", right: "ctrl+l" };
 
 async function checkedHc(args) {
@@ -15,8 +16,9 @@ async function checkedHc(args) {
 async function navigate(direction) {
   const terminal = focused()?.terminal;
   if (terminal) {
-    const running = terminals().find(entry => entry.address === terminal);
-    if (VIM.has(running?.program?.key)) {
+    const stdout = await checkedHc(["get", terminal, "--json"]);
+    const name = JSON.parse(stdout).foreground?.name ?? "";
+    if (VIM.test(name)) {
       await checkedHc(["keys", terminal, KEY[direction]]);
       return;
     }
