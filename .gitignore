@@ -127,3 +127,7 @@ zsh/.zshrc.bak.*
 claude/.claude/mods/*/render/node_modules/
 # Types the engine writes into each loaded mod
 claude/.claude/mods/*/.claude-plugin/types/
+
+# herdr-app writes editor types into each mod folder it loads
+herdr-app/.config/herdr-app/mods/*/gpui-kit.d.ts
+herdr-app/.config/herdr-app/mods/*/jsconfig.json

@@ -1,0 +1,6 @@
+^/tests$
+^/keymaps$
+^/install\.sh$
+^/\.stow-local-ignore$
+^gpui-kit\.d\.ts$
+^jsconfig\.json$
