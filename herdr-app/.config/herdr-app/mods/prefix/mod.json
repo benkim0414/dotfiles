@@ -1,1 +1,1 @@
-{ "place": "none", "title": "Prefix", "overlay": { "kind": "popup", "at": "top", "offset": 40, "width": 300, "height": 44 } }
+{ "place": "none", "title": "Prefix", "overlay": { "kind": "popup", "at": "top", "offset": 40, "width": 750, "height": 80 } }
