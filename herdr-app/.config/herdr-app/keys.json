@@ -60,7 +60,8 @@
     "ctrl-h": "vim-nav.left",
     "ctrl-j": "vim-nav.down",
     "ctrl-k": "vim-nav.up",
-    "ctrl-l": "vim-nav.right"
+    "ctrl-l": "vim-nav.right",
+    "ctrl-s": "mod.open:prefix"
   },
   "terminal": {
     "cmd-f": "terminal.search",
