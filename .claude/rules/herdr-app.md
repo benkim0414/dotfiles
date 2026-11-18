@@ -14,14 +14,18 @@ key.
 
 Only files the person owns:
 
-- `keys.json`: the TUI keymap, ported. `ctrl-h/j/k/l` run `vim-nav.*`.
-  `ctrl-s` opens the `prefix` mod.
+- `keymaps/{macos,linux}/`: native Herdr App v0.1.16 shortcuts plus the
+  shared `ctrl-s` opener and `vim-nav` bindings. Herdr reads one `keys.json`
+  and does not merge custom files with its defaults. When upgrading, compare
+  each map with the new platform defaults before adding changed bindings.
 - `mods/vim-nav/`: vim-aware `ctrl-h/j/k/l` (a port of the
   `vim-herdr-navigation` plugin). The Neovim side is
   `nvim/.config/nvim/lua/herdr_navigation.lua`, which calls
   `herdr-app do pane.go` when `HC_TERMINAL_ID` is set.
-- `mods/prefix/`: a popup that reads the key after `ctrl-s`: `s` split down,
-  `v` split right, `,` settings.
+- `mods/prefix/`: shared TUI-style shortcuts. `Shift+n` creates a space,
+  `c` creates a tab, `s` and `v` split panes, and `,` opens settings.
+  `b` collapses or expands the sidebar. The native direct shortcuts
+  (`Cmd+B` on macOS and `Ctrl+Shift+B` on Linux) still hide or show it.
 - `layouts/vim-nav.json`: a clone of the shipped `main` layout with a hidden
   0px `vim-nav` block.
 
@@ -31,11 +35,10 @@ Keep those out of the package.
 
 ## Layout and mod depend on each other
 
-A `<mod>.<command>` key reaches only a mod that the shown layout holds. If
-the shown layout lacks the `vim-nav` block, `ctrl-h/j/k/l` fails with
-`unknown command "vim-nav.left"`. Herdr replaces `main` on every start, so
-the block lives in the `vim-nav` clone. Remove the layout and the mod
-together.
+A `<mod>.<command>` key reaches only a mod that the shown layout holds.
+Bind `ctrl-h/j/k/l` in `layout:vim-nav` so they work only in that layout and
+do not try to call a missing mod elsewhere. The prefix works in any layout.
+The block lives in a clone because Herdr owns the shipped `main` layout.
 
 A clone gets no updates from the shipped `main`. To pick them up, run
 `herdr-app do layout.clone '{"name":"main","as":"vim-nav-new"}'`, add the
@@ -45,16 +48,30 @@ Structural window changes (sidebar side, panels, status bar, pane cards)
 go into `layouts/vim-nav.json`. Look (theme, fonts, zoom) goes in
 `settings.json`, which stays untracked.
 
-## Stow with `--no-folding`
+## Install with Stow
+
+From the main checkout, use the wrapper to select the platform keymap and
+check both packages for conflicts before linking either one:
+
+```sh
+bash herdr-app/install.sh --dry-run
+bash herdr-app/install.sh
+```
+
+Alternatively, use plain Stow. Select `macos` or `linux` explicitly and use
+`-n` on both commands first to check for conflicts:
 
 ```sh
 stow --no-folding -t ~ herdr-app
+stow --no-folding -d herdr-app/keymaps -t ~ macos
 ```
 
-Without it, Stow links whole folders (`layouts/`, `mods/<name>/`) when they
-do not exist yet. Herdr then writes `main.json`, `.state/` and mod type files
-into the repo. `.gitignore` covers the mod type files (`gpui-kit.d.ts`,
-`jsconfig.json`) as a backstop.
+To remove both sets of links, use `bash herdr-app/install.sh --delete`.
+Neither method installs a second copy of the app or changes device settings.
+
+Without `--no-folding`, Stow links whole folders (`layouts/`, `mods/<name>/`)
+when they do not exist yet. Herdr then writes `main.json`, `.state/` and mod
+type files into the repo. Stow and Git ignore the generated mod type files.
 
 Herdr loads mods through symlinks. A mod edit through a Stow link may not
 hot-reload: restart the app if the change does not show. Run
@@ -63,12 +80,14 @@ edit.
 
 ## Per-device setup
 
-1. `brew bundle --file=Brewfile` installs the cask. If an older
-   `~/Applications/Herdr.app` exists, delete it and any
-   `~/.local/bin/herdr-app` link to it first.
-2. Launch Herdr once, so it creates `~/.config/herdr-app/`.
-3. Delete the real copies of the tracked files in `~/.config/herdr-app/`.
-   Stow refuses to overlay a real file.
-4. `stow --no-folding -t ~ herdr-app`.
-5. `herdr-app do layout.switch --name vim-nav`. Herdr saves the choice in
-   `shared.json`.
+1. On macOS, install with `brew bundle --file=Brewfile` or keep your existing
+   Herdr App installation. On Linux, use the
+   [official download](https://herdr.dev/download/).
+2. Quit Herdr App and preview the Stow links. Back up and move only the
+   conflicting files reported in the preview, usually `keys.json`.
+   If you already stowed the old keymap, its `keys.json` link can be dangling
+   after this update. Move that link aside and rerun the preview. Leave the
+   other Stow links in place.
+3. Install from the main checkout and open the app.
+4. To enable Vim-aware navigation, run `herdr-app do layout.switch --name vim-nav`.
+   Herdr saves the choice in `shared.json`.
