@@ -1,7 +1,3 @@
-// vim-nav: vim-aware ctrl+h/j/k/l (port of vim-herdr-navigation for herdr-app).
-// keys.json binds ctrl-h/j/k/l to "vim-nav.left|down|up|right".
-// If the focused terminal runs vim/nvim, the key goes to vim (it moves between
-// its splits, and at an edge calls `herdr-app do pane.go`). Else Herdr moves focus.
 import { View, div } from "gpui-kit";
 import { run, focused, terminals, hc, nextCommand } from "herdr";
 
