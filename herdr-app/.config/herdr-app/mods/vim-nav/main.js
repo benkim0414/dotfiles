@@ -14,9 +14,14 @@ async function checkedHc(args) {
 }
 
 async function navigate(direction) {
-  const terminal = focused()?.terminal;
+  const initial = focused();
+  const terminal = initial?.terminal;
   if (terminal) {
     const stdout = await checkedHc(["get", terminal, "--json"]);
+    const current = focused();
+    if (current?.pane !== initial.pane || current?.terminal !== terminal) {
+      return;
+    }
     const name = JSON.parse(stdout).foreground?.name ?? "";
     if (VIM.test(name)) {
       await checkedHc(["keys", terminal, KEY[direction]]);

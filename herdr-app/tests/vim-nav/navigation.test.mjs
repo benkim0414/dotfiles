@@ -12,16 +12,20 @@ async function navigate(commands, replies, program = 'program') {
   const calls = [];
   const moves = [];
   const notices = [];
+  let focus = {pane: 'pane-a', terminal};
   let task;
   const VimNav = load(class {},
     (command, args) => moves.push([command, args]),
-    () => ({terminal}),
+    () => focus,
     () => [{address: terminal, program: {key: program}}],
     async args => {
       calls.push(args);
       const reply = replies.shift();
       if (reply instanceof Error) {
         throw reply;
+      }
+      if (typeof reply === 'function') {
+        return reply(nextFocus => { focus = nextFocus; });
       }
       return reply;
     },
@@ -77,3 +81,15 @@ it('reports a failed foreground lookup and processes the next chord', async () =
   deepStrictEqual(result.moves, [['pane.go', {direction: 'right'}]]);
   equal(result.notices[0].body, 'lookup failed');
 });
+
+for (const name of ['vim', 'bash']) {
+  it(`drops the chord when focus changes during the ${name} lookup`, async () => {
+    const result = await navigate(['left'], [setFocus => {
+      setFocus({pane: 'pane-b', terminal: 'machine/t2'});
+      return foreground(name);
+    }, ok]);
+    deepStrictEqual(result.calls, [['get', terminal, '--json']]);
+    deepStrictEqual(result.moves, []);
+    deepStrictEqual(result.notices, []);
+  });
+}
