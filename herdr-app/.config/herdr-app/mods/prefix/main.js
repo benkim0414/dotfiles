@@ -13,8 +13,6 @@ const ACTIONS = {
   "shift-t": ["tab.rename", {}],
   "shift-x": ["tab.close", {}],
   s: ["pane.split", { direction: "down" }],
-  "-": ["pane.split", { direction: "down" }],
-  minus: ["pane.split", { direction: "down" }],
   v: ["pane.split", { direction: "right" }],
   h: ["pane.go", { direction: "left" }],
   j: ["pane.go", { direction: "down" }],
@@ -31,6 +29,7 @@ const ACTIONS = {
 
 const DIRECTIONS = { h: "left", l: "right", left: "left", right: "right", up: "up", down: "down" };
 const SPACE_STEPS = { j: 1, n: 1, k: -1, p: -1 };
+const SHORTCUT_ROW_HEIGHT = 22;
 
 const CHEATSHEETS = {
   prefix: ["Ctrl+S · waiting for a key", [
@@ -44,7 +43,7 @@ const CHEATSHEETS = {
     ["Select tab", "1–9"],
     ["Rename tab", "T"],
     ["Close tab", "X"],
-    ["Split down", "s", "-"],
+    ["Split down", "s"],
     ["Split right", "v"],
     ["Focus left", "h"],
     ["Focus down", "j"],
@@ -84,7 +83,7 @@ function keycap(key, t) {
 }
 
 function shortcut([label, ...keys], t) {
-  return h_flex().items_center().gap(12)
+  return h_flex().h(SHORTCUT_ROW_HEIGHT).flex_none().items_center().gap(12)
     .child(h_flex().w(68).flex_none().gap(3).children(keys.map(key => keycap(key, t))))
     .child(label);
 }
@@ -258,7 +257,8 @@ export default class Prefix extends View {
           .child(keycap("Esc", t))
           .child(keycap("Ctrl+S", t))))
       // Herdr sizes popups by content up to the manifest height.
-      .child(v_flex().id("prefix-shortcuts").max_h(360).overflow_y_scrollbar()
-        .child(v_flex().flex_none().gap(4).children(rows.map(row => shortcut(row, t)))));
+      .child(v_flex().id("prefix-shortcuts")
+        .max_h(rows.length * SHORTCUT_ROW_HEIGHT).overflow_y_scrollbar()
+        .child(v_flex().flex_none().children(rows.map(row => shortcut(row, t)))));
   }
 }

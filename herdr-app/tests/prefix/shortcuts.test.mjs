@@ -12,7 +12,7 @@ const div = () => {
   for (const name of [
     'p', 'bg', 'text_color', 'track_focus', 'id', 'w_full', 'px', 'items_center',
     'justify_between', 'gap', 'rounded', 'text_size', 'font_semibold', 'border_color',
-    'flex_none', 'max_h', 'overflow_y_scrollbar', 'w',
+    'flex_none', 'h', 'max_h', 'overflow_y_scrollbar', 'w',
   ]) {
     el[name] = () => el;
   }
@@ -85,7 +85,7 @@ it('shows the prefix commands as keycaps without submenu-only keys', () => {
     'Esc', 'Ctrl+S',
     'N', 'w', 'W', 'D',
     'c', 'n', 'p', '1–9', 'T', 'X',
-    's', '-', 'v', 'h', 'j', 'k', 'l', 'Tab', 'Shift+Tab', 'x', 'z',
+    's', 'v', 'h', 'j', 'k', 'l', 'Tab', 'Shift+Tab', 'x', 'z',
     'g', 'b', ',', '?',
   ]);
 });
@@ -129,12 +129,18 @@ it('splits down on prefix s and right on prefix v', () => {
   }
 });
 
+it('dismisses the overlay without splitting on prefix minus', () => {
+  for (const chord of ['-', 'minus']) {
+    press('-', chord);
+    assert.deepEqual(calls, [['close', 'test-overlay']]);
+  }
+});
+
 const aliases = {
   c: ['tab.new', {}], n: ['tab.next', {}], p: ['tab.prev', {}],
   'shift-t': ['tab.rename', {}], 'shift-x': ['tab.close', {}],
   'shift-w': ['space.rename', {}],
   'shift-d': ['space.close', {}], x: ['pane.close', {}], z: ['pane.zoom', {}],
-  '-': ['pane.split', {direction: 'down'}],
   '?': ['app.help', {}], 'shift-/': ['app.help', {}], 'shift-?': ['app.help', {}],
   tab: ['pane.focus', {pane: 'pane-c'}], 'shift-tab': ['pane.focus', {pane: 'pane-d'}],
 };
