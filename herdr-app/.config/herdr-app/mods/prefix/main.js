@@ -1,6 +1,6 @@
 // The shared Ctrl+S keymap. Use the full keystroke so n and Shift+N differ.
 import { View, div } from "gpui-kit";
-import { v_flex } from "gpui-base";
+import { h_flex, v_flex } from "gpui-base";
 import { run, props, focused, closeOverlay, theme, spaces, panes, layout, window, shared, setShared } from "herdr";
 
 const ACTIONS = {
@@ -31,6 +31,63 @@ const ACTIONS = {
 
 const DIRECTIONS = { h: "left", l: "right", left: "left", right: "right", up: "up", down: "down" };
 const SPACE_STEPS = { j: 1, n: 1, k: -1, p: -1 };
+
+const CHEATSHEETS = {
+  prefix: ["Ctrl+S · waiting for a key", [
+    ["New space", "N"],
+    ["Browse spaces", "w"],
+    ["Rename space", "W"],
+    ["Close space", "D"],
+    ["New tab", "c"],
+    ["Next tab", "n"],
+    ["Previous tab", "p"],
+    ["Select tab", "1–9"],
+    ["Rename tab", "T"],
+    ["Close tab", "X"],
+    ["Split down", "s", "-"],
+    ["Split right", "v"],
+    ["Focus left", "h"],
+    ["Focus down", "j"],
+    ["Focus up", "k"],
+    ["Focus right", "l"],
+    ["Next pane", "Tab"],
+    ["Previous pane", "Shift+Tab"],
+    ["Close pane", "x"],
+    ["Zoom pane", "z"],
+    ["Navigation mode", "g"],
+    ["Toggle sidebar rail", "b"],
+    ["Settings", ","],
+    ["Help", "?"],
+  ]],
+  spaces: ["Space navigation", [
+    ["Jump to space", "1–9"],
+    ["Next space", "j", "n"],
+    ["Previous space", "k", "p"],
+    ["First space", "g", "g"],
+    ["Last space", "G"],
+    ["Open picker", "/"],
+    ["Confirm", "Enter"],
+  ]],
+  navigate: ["Navigation mode", [
+    ["Next space", "j"],
+    ["Previous space", "k"],
+    ["Focus left", "h", "←"],
+    ["Focus right", "l", "→"],
+    ["Focus up", "↑"],
+    ["Focus down", "↓"],
+  ]],
+};
+
+function keycap(key, t) {
+  return div().flex_none().px(5).rounded(4).border_1().border_color(t.border)
+    .bg(t.surface).text_size(11).font_semibold().text_color(t.accent).child(key);
+}
+
+function shortcut([label, ...keys], t) {
+  return h_flex().items_center().gap(12)
+    .child(h_flex().w(68).flex_none().gap(3).children(keys.map(key => keycap(key, t))))
+    .child(label);
+}
 
 function adjacentSpace(list, key) {
   const index = list.findIndex(space => space.id === focused()?.space);
@@ -182,28 +239,26 @@ export default class Prefix extends View {
 
   render() {
     const t = theme();
-    const panel = v_flex()
+    const [title, rows] = CHEATSHEETS[this.mode];
+    return v_flex()
       .id("prefix")
       .track_focus(this.handle)
       .on_key_down((e, cx) => this.key(e, cx))
-      .size_full()
-      .px(14)
-      .gap(12)
+      .w_full()
+      .p(14)
+      .gap(8)
       .rounded(8)
       .bg(t.popover)
       .text_size(12)
-      .text_color(t.muted);
-    if (this.mode === "spaces") {
-      return panel
-        .child("Spaces: 1–9 jump · j/n next · k/p previous · gg first · G last")
-        .child("Enter confirm · / picker · Esc close");
-    }
-    if (this.mode === "navigate") {
-      return panel.child("Navigate: j/k spaces · h/l/↑/↓ panes · Esc close");
-    }
-    return panel
-      .child(div().text_color(t.accent).font_semibold().child("Ctrl+S"))
-      .child("N new space · w spaces · c new tab · n/p next/prev · 1–9 select tab")
-      .child("s/v split · x close pane · z zoom · g navigate · b sidebar rail · , settings · ? help · Esc cancel");
+      .text_color(t.foreground)
+      .child(h_flex().flex_none().items_center().justify_between().gap(6)
+        .child(div().font_semibold().child(title))
+        .child(h_flex().items_center().gap(5)
+          .child(div().text_color(t.muted).child("Dismiss"))
+          .child(keycap("Esc", t))
+          .child(keycap("Ctrl+S", t))))
+      // Herdr sizes popups by content up to the manifest height.
+      .child(v_flex().id("prefix-shortcuts").max_h(360).overflow_y_scrollbar()
+        .child(v_flex().flex_none().gap(4).children(rows.map(row => shortcut(row, t)))));
   }
 }

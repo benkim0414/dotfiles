@@ -5,16 +5,27 @@ import { it } from 'node:test';
 const app = new URL('../../.config/herdr-app/', import.meta.url);
 const calls = [];
 let keyDown;
-let banner;
+let keycaps;
+let prefix;
 const div = () => {
-  const el = {};
-  for (const name of ['p', 'bg', 'text_color', 'track_focus', 'id', 'size_full', 'px', 'items_center', 'gap', 'rounded', 'text_size', 'font_semibold']) el[name] = () => el;
+  const el = { content: [] };
+  for (const name of [
+    'p', 'bg', 'text_color', 'track_focus', 'id', 'w_full', 'px', 'items_center',
+    'justify_between', 'gap', 'rounded', 'text_size', 'font_semibold', 'border_color',
+    'flex_none', 'max_h', 'overflow_y_scrollbar', 'w',
+  ]) {
+    el[name] = () => el;
+  }
+  let bordered = false;
+  el.border_1 = () => { bordered = true; return el; };
   el.child = text => {
-    if (typeof text === 'string') {
-      banner.push(text);
+    el.content.push(text);
+    if (bordered && typeof text === 'string') {
+      keycaps.push(text);
     }
     return el;
   };
+  el.children = children => { el.content.push(...children); return el; };
   el.on_key_down = fn => { keyDown = fn; return el; };
   return el;
 };
@@ -46,22 +57,62 @@ const shared = key => state.get(key);
 const setShared = (key, value) => state.set(key, value);
 const source = readFileSync(new URL('mods/prefix/main.js', app), 'utf8')
   .replace(/^import .*;$/gm, '').replace('export default ', '');
-const Prefix = new Function('View', 'div', 'v_flex', 'theme', 'props', 'closeOverlay', 'run', 'spaces', 'focused', 'panes', 'layout', 'window', 'shared', 'setShared', `${source}\nreturn Prefix;`)(class {}, div, div, theme, props, closeOverlay, run, spaces, focused, panes, layout, window, shared, setShared);
+const Prefix = new Function('View', 'div', 'v_flex', 'h_flex', 'theme', 'props', 'closeOverlay', 'run', 'spaces', 'focused', 'panes', 'layout', 'window', 'shared', 'setShared', `${source}\nreturn Prefix;`)(class {}, div, div, div, theme, props, closeOverlay, run, spaces, focused, panes, layout, window, shared, setShared);
 const ctx = {focus_handle: () => ({focus() {}}), stop_propagation() {}, notify() {}};
+function renderKeys() {
+  keycaps = [];
+  prefix.render();
+  return keycaps;
+}
+
 function press(key, keystroke = key) {
   calls.length = 0;
   activeSpace = 'space-a';
-  banner = [];
-  const prefix = new Prefix();
+  prefix = new Prefix();
   prefix.init({}, ctx);
-  prefix.render();
+  renderKeys();
   keyDown({key, keystroke}, ctx);
 }
 
 it('creates a space on prefix Shift+N', () => {
   press('n', 'shift-n');
   assert.deepEqual(calls, [['close', 'test-overlay'], ['space.new', {}]]);
-  assert.match(banner.join(' '), /N new space/);
+});
+
+it('shows the prefix commands as keycaps without submenu-only keys', () => {
+  press('unmapped');
+  assert.deepEqual(renderKeys(), [
+    'Esc', 'Ctrl+S',
+    'N', 'w', 'W', 'D',
+    'c', 'n', 'p', '1–9', 'T', 'X',
+    's', '-', 'v', 'h', 'j', 'k', 'l', 'Tab', 'Shift+Tab', 'x', 'z',
+    'g', 'b', ',', '?',
+  ]);
+});
+
+function textIn(element) {
+  if (typeof element === 'string') {
+    return [element];
+  }
+  return element.content.flatMap(textIn);
+}
+
+it('places keycaps before their command labels in the popup', () => {
+  press('unmapped');
+  const content = textIn(prefix.render()).join(' ');
+  assert.match(content, /N New space w Browse spaces/);
+  assert.match(content, /h Focus left j Focus down k Focus up l Focus right/);
+  assert.match(content, /Shift\+Tab Previous pane/);
+});
+
+it('shows the space navigation commands as keycaps after w', () => {
+  press('w');
+  assert.deepEqual(renderKeys(), ['Esc', 'Ctrl+S', '1–9', 'j', 'n', 'k', 'p', 'g', 'g', 'G', '/', 'Enter']);
+});
+
+it('shows the repeatable navigation commands as keycaps after g', () => {
+  press('g');
+  assert.deepEqual(renderKeys(), ['Esc', 'Ctrl+S', 'j', 'k', 'h', '←', 'l', '→', '↑', '↓']);
 });
 
 it('dismisses the overlay without running an action for unmapped n chords', () => {
