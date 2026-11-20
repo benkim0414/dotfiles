@@ -154,6 +154,25 @@ it('steps through spaces with n and p after prefix w', () => {
   assert.deepEqual(calls.at(-1), ['close', 'test-overlay']);
 });
 
+it('confirms the current space with Enter without selecting it again', () => {
+  for (const previous of ['k', 'p']) {
+    press('w');
+    send('j');
+    send('n');
+    send(previous);
+    send('enter', 'shift-enter');
+    assert.equal(calls.length, 3);
+    send('enter');
+    assert.equal(activeSpace, 'space-b');
+    assert.deepEqual(calls, [
+      ['space.select', {id: 'space-b'}],
+      ['space.select', {id: 'space-c'}],
+      ['space.select', {id: 'space-b'}],
+      ['close', 'test-overlay'],
+    ]);
+  }
+});
+
 it('jumps to the bottom on Shift+G and to the top on gg', () => {
   press('w');
   send('g', 'shift-g');

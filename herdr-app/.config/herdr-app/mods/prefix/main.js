@@ -150,6 +150,9 @@ export default class Prefix extends View {
       return;
     }
     if (this.mode === "spaces") {
+      if (key === "enter") {
+        return closeOverlay(overlay);
+      }
       if (key === "g" && e.is_held) {
         return;
       }
@@ -191,7 +194,9 @@ export default class Prefix extends View {
       .text_size(12)
       .text_color(t.muted);
     if (this.mode === "spaces") {
-      return panel.child("Spaces: 1–9 jump · j/n next · k/p previous · gg first · G last · / picker · Esc close");
+      return panel
+        .child("Spaces: 1–9 jump · j/n next · k/p previous · gg first · G last")
+        .child("Enter confirm · / picker · Esc close");
     }
     if (this.mode === "navigate") {
       return panel.child("Navigate: j/k spaces · h/l/↑/↓ panes · Esc close");

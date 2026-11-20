@@ -26,7 +26,8 @@ Only files the person owns:
   `c` creates a tab, `s` and `v` split panes, and `,` opens settings.
   `w` opens space navigation: `1`–`9` jump by position and close the overlay.
   `j` or `n` selects the next space. `k` or `p` selects the previous space.
-  `gg`/`G` switch to the first/last space. `Esc` closes the overlay.
+  `gg`/`G` switch to the first/last space. `Enter` confirms the current space
+  and closes the overlay. `Esc` also closes the overlay.
   `/` opens the original picker.
   `b` collapses or expands the sidebar. The native direct shortcuts
   (`Cmd+B` on macOS and `Ctrl+Shift+B` on Linux) still hide or show it.
