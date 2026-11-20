@@ -5,7 +5,6 @@ import { run, props, focused, closeOverlay, theme, spaces, panes, layout, window
 
 const ACTIONS = {
   "shift-n": ["space.new", {}],
-  w: ["mod.open", { name: "picker" }],
   "shift-w": ["space.rename", {}],
   "shift-d": ["space.close", {}],
   c: ["tab.new", {}],
@@ -31,6 +30,12 @@ const ACTIONS = {
 };
 
 const DIRECTIONS = { h: "left", l: "right", left: "left", right: "right", up: "up", down: "down" };
+const SPACE_STEPS = { j: 1, n: 1, k: -1, p: -1 };
+
+function adjacentSpace(list, key) {
+  const index = list.findIndex(space => space.id === focused()?.space);
+  return list[index + SPACE_STEPS[key]];
+}
 
 function findSidebar(node) {
   if (node?.id === "sidebar") {
@@ -93,9 +98,43 @@ function prefixAction(key) {
 
 export default class Prefix extends View {
   init(_props, cx) {
-    this.navigate = false;
+    this.mode = "prefix";
+    this.pendingG = false;
     this.handle = cx.focus_handle();
     this.handle.focus();
+  }
+
+  spaceKey(key, overlay) {
+    const doubleG = key === "g" && this.pendingG;
+    this.pendingG = key === "g" && !doubleG;
+    if (this.pendingG) {
+      return;
+    }
+    if (key === "/") {
+      closeOverlay(overlay);
+      return run("mod.open", { name: "picker" });
+    }
+    const list = spaces();
+    if (/^[1-9]$/.test(key)) {
+      const space = list[Number(key) - 1];
+      if (space) {
+        closeOverlay(overlay);
+        return run("space.select", { id: space.id });
+      }
+      return;
+    }
+    let space;
+    if (doubleG) {
+      space = list[0];
+    } else if (key === "shift-g") {
+      space = list[list.length - 1];
+    } else if (Object.hasOwn(SPACE_STEPS, key)) {
+      space = adjacentSpace(list, key);
+    }
+    if (space) {
+      run("space.select", { id: space.id });
+      this.handle.focus();
+    }
   }
 
   key(e, cx) {
@@ -105,20 +144,20 @@ export default class Prefix extends View {
     if (e.key === "escape" || key === "ctrl-s") {
       return closeOverlay(overlay);
     }
-    if (!this.navigate && key === "g") {
-      this.navigate = true;
+    if (this.mode === "prefix" && (key === "w" || key === "g")) {
+      this.mode = key === "w" ? "spaces" : "navigate";
       cx.notify();
       return;
     }
-    if (this.navigate) {
+    if (this.mode === "spaces") {
+      if (key === "g" && e.is_held) {
+        return;
+      }
+      return this.spaceKey(key, overlay);
+    }
+    if (this.mode === "navigate") {
       if (key === "j" || key === "k") {
-        const list = spaces();
-        const index = list.findIndex(s => s.id === focused()?.space);
-        let step = 1;
-        if (key === "k") {
-          step = -1;
-        }
-        const next = list[index + step];
+        const next = adjacentSpace(spaces(), key);
         if (next) {
           run("space.select", { id: next.id });
         }
@@ -151,12 +190,15 @@ export default class Prefix extends View {
       .bg(t.popover)
       .text_size(12)
       .text_color(t.muted);
-    if (this.navigate) {
+    if (this.mode === "spaces") {
+      return panel.child("Spaces: 1–9 jump · j/n next · k/p previous · gg first · G last · / picker · Esc close");
+    }
+    if (this.mode === "navigate") {
       return panel.child("Navigate: j/k spaces · h/l/↑/↓ panes · Esc close");
     }
     return panel
       .child(div().text_color(t.accent).font_semibold().child("Ctrl+S"))
-      .child("N new space · w picker · c new tab · n/p next/prev · 1–9 select")
+      .child("N new space · w spaces · c new tab · n/p next/prev · 1–9 select tab")
       .child("s/v split · x close pane · z zoom · g navigate · b sidebar rail · , settings · ? help · Esc cancel");
   }
 }

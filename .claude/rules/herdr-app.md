@@ -24,6 +24,10 @@ Only files the person owns:
   `herdr-app do pane.go` when `HC_TERMINAL_ID` is set.
 - `mods/prefix/`: shared TUI-style shortcuts. `Shift+n` creates a space,
   `c` creates a tab, `s` and `v` split panes, and `,` opens settings.
+  `w` opens space navigation: `1`–`9` jump by position and close the overlay.
+  `j` or `n` selects the next space. `k` or `p` selects the previous space.
+  `gg`/`G` switch to the first/last space. `Esc` closes the overlay.
+  `/` opens the original picker.
   `b` collapses or expands the sidebar. The native direct shortcuts
   (`Cmd+B` on macOS and `Ctrl+Shift+B` on Linux) still hide or show it.
 - `layouts/vim-nav.json`: a clone of the shipped `main` layout with a hidden

@@ -21,9 +21,15 @@ const div = () => {
 const theme = () => ({});
 const props = () => ({overlay: 'test-overlay'});
 const closeOverlay = id => calls.push(['close', id]);
-const run = (...args) => calls.push(args);
-const spaces = () => [{id: 'space-a'}, {id: 'space-b'}];
-const focused = () => ({space: 'space-a', tab: 'tab-a', pane: 'pane-a'});
+let activeSpace;
+const run = (...args) => {
+  calls.push(args);
+  if (args[0] === 'space.select') {
+    activeSpace = args[1].id;
+  }
+};
+const spaces = () => [{id: 'space-a'}, {id: 'space-b'}, {id: 'space-c'}];
+const focused = () => ({space: activeSpace, tab: 'tab-a', pane: 'pane-a'});
 const panes = () => [{tab: 'tab-a', pane: 'pane-a'}, {tab: 'tab-b', pane: 'pane-b'}, {tab: 'tab-a', pane: 'pane-c'}, {tab: 'tab-a', pane: 'pane-d'}];
 const state = new Map();
 let sidebar;
@@ -44,6 +50,7 @@ const Prefix = new Function('View', 'div', 'v_flex', 'theme', 'props', 'closeOve
 const ctx = {focus_handle: () => ({focus() {}}), stop_propagation() {}, notify() {}};
 function press(key, keystroke = key) {
   calls.length = 0;
+  activeSpace = 'space-a';
   banner = [];
   const prefix = new Prefix();
   prefix.init({}, ctx);
@@ -74,7 +81,7 @@ it('splits down on prefix s and right on prefix v', () => {
 const aliases = {
   c: ['tab.new', {}], n: ['tab.next', {}], p: ['tab.prev', {}],
   'shift-t': ['tab.rename', {}], 'shift-x': ['tab.close', {}],
-  w: ['mod.open', {name: 'picker'}], 'shift-w': ['space.rename', {}],
+  'shift-w': ['space.rename', {}],
   'shift-d': ['space.close', {}], x: ['pane.close', {}], z: ['pane.zoom', {}],
   '-': ['pane.split', {direction: 'down'}],
   '?': ['app.help', {}], 'shift-/': ['app.help', {}], 'shift-?': ['app.help', {}],
@@ -94,6 +101,91 @@ it('selects only tabs 1 through 9 with prefix digits', () => {
   }
   press('0');
   assert.deepEqual(calls, [['close', 'test-overlay']]);
+});
+
+function send(key, keystroke = key, is_held = false) {
+  keyDown({key, keystroke, is_held}, ctx);
+}
+
+it('jumps directly to a space by number on prefix w', () => {
+  press('w');
+  assert.deepEqual(calls, []);
+  send('2');
+  assert.deepEqual(calls, [['close', 'test-overlay'], ['space.select', {id: 'space-b'}]]);
+});
+
+it('keeps space mode open when a digit has no matching space', () => {
+  press('w');
+  send('0');
+  send('9');
+  send('2', 'alt-2');
+  assert.deepEqual(calls, []);
+  send('escape');
+  assert.deepEqual(calls, [['close', 'test-overlay']]);
+});
+
+it('opens the original picker on prefix w then slash', () => {
+  press('w');
+  send('/');
+  assert.deepEqual(calls, [['close', 'test-overlay'], ['mod.open', {name: 'picker'}]]);
+});
+
+it('steps through spaces with j and k without wrapping or closing', () => {
+  press('w');
+  send('k');
+  for (const key of ['j', 'k']) {
+    send(key);
+    send(key, key, true);
+    send(key, key, true);
+  }
+  assert.deepEqual(calls, ['space-b', 'space-c', 'space-b', 'space-a'].map(id => ['space.select', {id}]));
+});
+
+it('steps through spaces with n and p after prefix w', () => {
+  press('w');
+  send('p');
+  send('n');
+  send('n', 'n', true);
+  send('n', 'n', true);
+  send('p');
+  send('p', 'p', true);
+  assert.deepEqual(calls, ['space-b', 'space-c', 'space-b', 'space-a'].map(id => ['space.select', {id}]));
+  send('escape');
+  assert.deepEqual(calls.at(-1), ['close', 'test-overlay']);
+});
+
+it('jumps to the bottom on Shift+G and to the top on gg', () => {
+  press('w');
+  send('g', 'shift-g');
+  assert.deepEqual(calls, [['space.select', {id: 'space-c'}]]);
+  send('g');
+  assert.equal(calls.length, 1);
+  send('g');
+  assert.deepEqual(calls[1], ['space.select', {id: 'space-a'}]);
+});
+
+it('requires consecutive unmodified g presses to jump to the top', () => {
+  press('w');
+  send('j');
+  send('g');
+  send('g', 'ctrl-g');
+  send('g');
+  assert.deepEqual(calls, [['space.select', {id: 'space-b'}]]);
+  send('g');
+  assert.deepEqual(calls[1], ['space.select', {id: 'space-a'}]);
+  send('g');
+  assert.equal(calls.length, 2);
+});
+
+it('ignores held g events until a second distinct g press in space mode', () => {
+  press('w');
+  send('j');
+  send('g');
+  send('g', 'g', true);
+  send('g', 'g', true);
+  assert.deepEqual(calls, [['space.select', {id: 'space-b'}]]);
+  send('g');
+  assert.deepEqual(calls, [['space.select', {id: 'space-b'}], ['space.select', {id: 'space-a'}]]);
 });
 
 it('switches spaces in navigation mode without closing the overlay', () => {
