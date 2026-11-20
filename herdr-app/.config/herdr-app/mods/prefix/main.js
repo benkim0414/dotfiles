@@ -29,7 +29,8 @@ const ACTIONS = {
 
 const DIRECTIONS = { h: "left", l: "right", left: "left", right: "right", up: "up", down: "down" };
 const SPACE_STEPS = { j: 1, n: 1, k: -1, p: -1 };
-const SHORTCUT_ROW_HEIGHT = 22;
+const SHORTCUT_ROW_HEIGHT = 20;
+const SHORTCUT_BOTTOM_PADDING = 8;
 
 const CHEATSHEETS = {
   prefix: ["Ctrl+S · waiting for a key", [
@@ -62,7 +63,7 @@ const CHEATSHEETS = {
     ["Jump to space", "1–9"],
     ["Next space", "j", "n"],
     ["Previous space", "k", "p"],
-    ["First space", "g", "g"],
+    ["First space", "gg"],
     ["Last space", "G"],
     ["Open picker", "/"],
     ["Confirm", "Enter"],
@@ -82,9 +83,19 @@ function keycap(key, t) {
     .bg(t.surface).text_size(11).font_semibold().text_color(t.accent).child(key);
 }
 
+function alternateKeycaps(keys, t) {
+  return keys.flatMap((key, i) => {
+    const cap = keycap(key, t);
+    if (i === 0) {
+      return [cap];
+    }
+    return [div().text_size(11).text_color(t.muted).child("/"), cap];
+  });
+}
+
 function shortcut([label, ...keys], t) {
   return h_flex().h(SHORTCUT_ROW_HEIGHT).flex_none().items_center().gap(12)
-    .child(h_flex().w(68).flex_none().gap(3).children(keys.map(key => keycap(key, t))))
+    .child(h_flex().w(68).flex_none().items_center().gap(3).children(alternateKeycaps(keys, t)))
     .child(label);
 }
 
@@ -254,11 +265,10 @@ export default class Prefix extends View {
         .child(div().font_semibold().child(title))
         .child(h_flex().items_center().gap(5)
           .child(div().text_color(t.muted).child("Dismiss"))
-          .child(keycap("Esc", t))
-          .child(keycap("Ctrl+S", t))))
-      // Herdr sizes popups by content up to the manifest height.
+          .children(alternateKeycaps(["Esc", "Ctrl+S"], t))))
+      // Keep the final keycap above the popup's clipping edge.
       .child(v_flex().id("prefix-shortcuts")
-        .max_h(rows.length * SHORTCUT_ROW_HEIGHT).overflow_y_scrollbar()
-        .child(v_flex().flex_none().children(rows.map(row => shortcut(row, t)))));
+        .max_h(rows.length * SHORTCUT_ROW_HEIGHT + SHORTCUT_BOTTOM_PADDING).overflow_y_scrollbar()
+        .child(v_flex().flex_none().pb(SHORTCUT_BOTTOM_PADDING).children(rows.map(row => shortcut(row, t)))));
   }
 }

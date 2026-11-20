@@ -12,7 +12,7 @@ const div = () => {
   for (const name of [
     'p', 'bg', 'text_color', 'track_focus', 'id', 'w_full', 'px', 'items_center',
     'justify_between', 'gap', 'rounded', 'text_size', 'font_semibold', 'border_color',
-    'flex_none', 'h', 'max_h', 'overflow_y_scrollbar', 'w',
+    'flex_none', 'h', 'max_h', 'overflow_y_scrollbar', 'pb', 'w',
   ]) {
     el[name] = () => el;
   }
@@ -103,16 +103,19 @@ it('places keycaps before their command labels in the popup', () => {
   assert.match(content, /N New space w Browse spaces/);
   assert.match(content, /h Focus left j Focus down k Focus up l Focus right/);
   assert.match(content, /Shift\+Tab Previous pane/);
+  assert.match(content, /Dismiss Esc \/ Ctrl\+S/);
 });
 
 it('shows the space navigation commands as keycaps after w', () => {
   press('w');
-  assert.deepEqual(renderKeys(), ['Esc', 'Ctrl+S', '1–9', 'j', 'n', 'k', 'p', 'g', 'g', 'G', '/', 'Enter']);
+  assert.deepEqual(renderKeys(), ['Esc', 'Ctrl+S', '1–9', 'j', 'n', 'k', 'p', 'gg', 'G', '/', 'Enter']);
+  assert.match(textIn(prefix.render()).join(' '), /j \/ n Next space k \/ p Previous space gg First space/);
 });
 
 it('shows the repeatable navigation commands as keycaps after g', () => {
   press('g');
   assert.deepEqual(renderKeys(), ['Esc', 'Ctrl+S', 'j', 'k', 'h', '←', 'l', '→', '↑', '↓']);
+  assert.match(textIn(prefix.render()).join(' '), /h \/ ← Focus left l \/ → Focus right/);
 });
 
 it('dismisses the overlay without running an action for unmapped n chords', () => {
