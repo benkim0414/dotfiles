@@ -13,7 +13,7 @@
   "packages": [
     "git:github.com/google/elephant-goldfish-model@ef27af6b1d76901d09bb346eea62ce377546052f",
     {
-      "source": "npm:pi-web-access@0.29.0",
+      "source": "npm:pi-web-access@0.32.0",
       "skills": []
     },
     {
