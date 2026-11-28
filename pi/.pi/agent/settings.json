@@ -2,7 +2,7 @@
   "$schema": "https://pi.dev/schemas/settings.schema.json",
   "defaultModel": "gpt-6.1-sol",
   "defaultProvider": "openai-codex",
-  "lastChangelogVersion": "1.4.0",
+  "lastChangelogVersion": "1.6.1",
   "theme": "dark",
   "defaultProjectTrust": "ask",
   "enableSkillCommands": true,
@@ -32,5 +32,9 @@
   "tuiMode": "regular",
   "defaultTools": [
     "+codemode"
-  ]
+  ],
+  "extensionChangelogVersions": {
+    "{\"source\":\"npm:pi-web-access@0.29.0\",\"scope\":\"user\"}": "0.29.0",
+    "{\"source\":\"npm:pi-web-access@0.32.0\",\"scope\":\"user\"}": "0.32.0"
+  }
 }
